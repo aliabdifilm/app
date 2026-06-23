@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auto Retouch Pro</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                <circle cx="16" cy="16" r="14" stroke="currentColor" stroke-width="2"/>
+                <circle cx="16" cy="16" r="6" fill="currentColor"/>
+                <path d="M16 4V8M16 24V28M4 16H8M24 16H28" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            <h1>Auto Retouch Pro</h1>
+        </div>
+        <p class="tagline">Professional Portrait Retouching</p>
+    </header>
+
+    <main>
+        <!-- Upload Area -->
+        <div id="upload-area" class="upload-zone">
+            <div class="upload-content">
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+                </svg>
+                <h2>Upload Your Photo</h2>
+                <p>Drag & drop or click to browse</p>
+                <p class="file-types">JPG, PNG, TIFF, BMP, WebP — Max 50 MB</p>
+            </div>
+            <input type="file" id="file-input" accept="image/*" hidden>
+        </div>
+
+        <!-- Editor Area -->
+        <div id="editor" class="editor hidden">
+            <div class="editor-layout">
+                <!-- Preview Panel -->
+                <div class="preview-panel">
+                    <div class="preview-tabs">
+                        <button class="tab active" data-tab="original">Original</button>
+                        <button class="tab" data-tab="result">Retouched</button>
+                        <button class="tab" data-tab="compare">Compare</button>
+                    </div>
+                    <div class="preview-container">
+                        <img id="original-img" class="preview-img" alt="Original">
+                        <img id="result-img" class="preview-img hidden" alt="Retouched">
+                        <div id="compare-view" class="compare-view hidden">
+                            <img id="compare-original" class="compare-img" alt="Original">
+                            <div class="compare-slider" id="compare-slider">
+                                <img id="compare-result" class="compare-img" alt="Retouched">
+                            </div>
+                            <div class="compare-handle" id="compare-handle">
+                                <div class="handle-line"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Settings Panel -->
+                <div class="settings-panel">
+                    <h3>Retouch Settings</h3>
+
+                    <div class="settings-group">
+                        <h4>Skin</h4>
+                        <div class="setting">
+                            <label>Smoothing</label>
+                            <input type="range" min="0" max="100" value="50" data-key="skin_smoothing">
+                            <span class="value">50%</span>
+                        </div>
+                        <div class="setting">
+                            <label>Blemish Removal</label>
+                            <input type="range" min="0" max="100" value="50" data-key="blemish_removal">
+                            <span class="value">50%</span>
+                        </div>
+                        <div class="setting">
+                            <label>Tone Correction</label>
+                            <input type="range" min="0" max="100" value="30" data-key="skin_tone">
+                            <span class="value">30%</span>
+                        </div>
+                    </div>
+
+                    <div class="settings-group">
+                        <h4>Clothing</h4>
+                        <div class="setting">
+                            <label>Lint & Dust Removal</label>
+                            <input type="range" min="0" max="100" value="50" data-key="clothing_lint">
+                            <span class="value">50%</span>
+                        </div>
+                        <div class="setting">
+                            <label>Wrinkle Smoothing</label>
+                            <input type="range" min="0" max="100" value="30" data-key="clothing_wrinkles">
+                            <span class="value">30%</span>
+                        </div>
+                        <div class="setting">
+                            <label>Sharpness</label>
+                            <input type="range" min="0" max="100" value="30" data-key="clothing_sharpness">
+                            <span class="value">30%</span>
+                        </div>
+                    </div>
+
+                    <div class="settings-group">
+                        <h4>Background</h4>
+                        <div class="setting">
+                            <label>Cleanup</label>
+                            <input type="range" min="0" max="100" value="50" data-key="background_clean">
+                            <span class="value">50%</span>
+                        </div>
+                    </div>
+
+                    <div class="settings-group">
+                        <h4>Enhancement</h4>
+                        <div class="setting">
+                            <label>Contrast</label>
+                            <input type="range" min="0" max="100" value="30" data-key="contrast">
+                            <span class="value">30%</span>
+                        </div>
+                        <div class="setting">
+                            <label>Color Balance</label>
+                            <input type="range" min="0" max="100" value="20" data-key="color_balance">
+                            <span class="value">20%</span>
+                        </div>
+                        <div class="setting">
+                            <label>Exposure</label>
+                            <input type="range" min="0" max="100" value="20" data-key="exposure">
+                            <span class="value">20%</span>
+                        </div>
+                        <div class="setting">
+                            <label>Sharpness</label>
+                            <input type="range" min="0" max="100" value="30" data-key="sharpness">
+                            <span class="value">30%</span>
+                        </div>
+                        <div class="setting">
+                            <label>Eye Enhancement</label>
+                            <input type="range" min="0" max="100" value="30" data-key="eye_enhance">
+                            <span class="value">30%</span>
+                        </div>
+                        <div class="setting">
+                            <label>Studio Polish</label>
+                            <input type="range" min="0" max="100" value="20" data-key="studio_polish">
+                            <span class="value">20%</span>
+                        </div>
+                    </div>
+
+                    <div class="actions">
+                        <button id="btn-retouch" class="btn btn-primary">
+                            <span class="btn-text">Retouch Photo</span>
+                            <span class="btn-loading hidden">Processing...</span>
+                        </button>
+                        <button id="btn-download" class="btn btn-secondary hidden">
+                            Download Result
+                        </button>
+                        <button id="btn-new" class="btn btn-outline">
+                            Upload New Photo
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Processing Overlay -->
+        <div id="processing-overlay" class="overlay hidden">
+            <div class="overlay-content">
+                <div class="spinner"></div>
+                <h3>Processing your photo...</h3>
+                <p id="processing-status">Starting retouching pipeline</p>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 Auto Retouch Pro &mdash; Professional Portrait Retouching</p>
+    </footer>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
