@@ -1,0 +1,15 @@
+# ApexAlgo control server
+Flask>=3.0,<4.0
+requests>=2.31,<3.0
+
+# Production WSGI server. waitress works on Windows and Linux alike, which
+# matters because the control server often runs on the same Windows VPS as
+# the MetaTrader terminal.
+waitress>=3.0,<4.0
+
+# Only needed on the Windows machine that hosts the terminal, for
+# mt5_bridge.py and the walk-forward tooling. Install it there with:
+#     pip install MetaTrader5
+# It is intentionally left out of this file so the control server can be
+# installed on Linux without a build failure.
+# MetaTrader5>=5.0.45
