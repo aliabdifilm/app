@@ -1,0 +1,29 @@
+# Control server secrets and local state - never commit these
+server/config.json
+server/*.db
+server/*.db-wal
+server/*.db-shm
+server/apex_guard_state.json
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+
+# Walk-forward output
+walkforward/
+tools/walkforward/
+*.htm
+*.html
+!server/templates/*.html
+
+# MetaTrader build artifacts
+*.ex5
+*.ex4
+mql5/**/*.log
+
+# OS noise
+.DS_Store
+Thumbs.db

@@ -1,5 +1,10 @@
 # Auto Retouch Pro
 
+> **Note:** this repository also contains **[ApexAlgo](trading-bot/)** — an
+> autonomous MetaTrader 5 trading bot with a mobile control panel. It is a
+> separate, self-contained project under `trading-bot/`.
+
+
 Professional automatic portrait retouching web application.
 
 ## Features

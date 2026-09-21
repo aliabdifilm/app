@@ -1,0 +1,19 @@
+{
+  "name": "ApexAlgo Control",
+  "short_name": "ApexAlgo",
+  "description": "Monitor and control the ApexAlgo MetaTrader 5 trading bot.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0d1117",
+  "theme_color": "#0d1117",
+  "icons": [
+    {
+      "src": "/static/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
