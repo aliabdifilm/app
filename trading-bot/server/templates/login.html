@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0d1117">
+<title>ApexAlgo</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/static/icons/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/static/css/app.css">
+</head>
+<body class="login-page">
+  <main class="login-card">
+    <div class="brand">
+      <svg viewBox="0 0 48 48" width="44" height="44" aria-hidden="true">
+        <path d="M6 38 L18 16 L27 30 L33 20 L42 38 Z" fill="none"
+              stroke="currentColor" stroke-width="3" stroke-linejoin="round"/>
+      </svg>
+      <h1>ApexAlgo</h1>
+      <p class="muted">Trading control panel</p>
+    </div>
+
+    {% if error == 'bad' %}
+      <p class="alert alert-error">Wrong password.</p>
+    {% elif error == 'too_many' %}
+      <p class="alert alert-error">Too many attempts. Wait a few minutes.</p>
+    {% endif %}
+
+    <form method="post" action="/login" autocomplete="off">
+      <label for="password">Panel password</label>
+      <input id="password" name="password" type="password" required autofocus
+             inputmode="text" autocapitalize="off" autocorrect="off">
+      <button type="submit" class="btn btn-primary btn-block">Sign in</button>
+    </form>
+
+    <p class="muted small">
+      The password is in <code>server/config.json</code>. Always reach this panel over HTTPS.
+    </p>
+  </main>
+</body>
+</html>

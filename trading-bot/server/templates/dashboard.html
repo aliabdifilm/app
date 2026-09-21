@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0d1117">
+<title>ApexAlgo</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/static/icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/static/icons/icon.svg">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="stylesheet" href="/static/css/app.css">
+</head>
+<body data-max-risk="{{ max_risk }}">
+
+<header class="topbar">
+  <div class="topbar-left">
+    <span id="statusDot" class="dot dot-unknown" title="connection"></span>
+    <select id="botSelect" class="bot-select" aria-label="Select bot"></select>
+  </div>
+  <div class="topbar-right">
+    <span id="lastSeen" class="muted small">--</span>
+    <a class="icon-link" href="/logout" title="Sign out" aria-label="Sign out">⏻</a>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- guard banner -->
+  <section id="guardBanner" class="banner banner-ok">
+    <strong id="guardTitle">Connecting…</strong>
+    <span id="guardReason" class="small"></span>
+  </section>
+
+  <!-- key figures -->
+  <section class="kpi-grid">
+    <div class="kpi">
+      <span class="kpi-label">Equity</span>
+      <span class="kpi-value" id="kpiEquity">--</span>
+      <span class="kpi-sub" id="kpiCurrency"></span>
+    </div>
+    <div class="kpi">
+      <span class="kpi-label">Day P/L</span>
+      <span class="kpi-value" id="kpiDayPnl">--</span>
+      <span class="kpi-sub" id="kpiDayPct"></span>
+    </div>
+    <div class="kpi">
+      <span class="kpi-label">Drawdown</span>
+      <span class="kpi-value" id="kpiDrawdown">--</span>
+      <span class="kpi-sub" id="kpiPeak"></span>
+    </div>
+    <div class="kpi">
+      <span class="kpi-label">Positions</span>
+      <span class="kpi-value" id="kpiPositions">--</span>
+      <span class="kpi-sub" id="kpiTrades"></span>
+    </div>
+  </section>
+
+  <!-- equity curve -->
+  <section class="card">
+    <div class="card-head">
+      <h2>Equity</h2>
+      <div class="range-tabs" id="rangeTabs">
+        <button class="range-tab is-active" data-hours="12">12h</button>
+        <button class="range-tab" data-hours="48">48h</button>
+        <button class="range-tab" data-hours="168">7d</button>
+        <button class="range-tab" data-hours="720">30d</button>
+      </div>
+    </div>
+    <div class="chart-holder">
+      <svg id="equityChart" viewBox="0 0 600 180" preserveAspectRatio="none"
+           role="img" aria-label="Equity curve"></svg>
+      <p id="chartEmpty" class="muted small centered">No samples yet.</p>
+    </div>
+  </section>
+
+  <!-- controls -->
+  <section class="card">
+    <div class="card-head"><h2>Controls</h2></div>
+
+    <div class="btn-row">
+      <button class="btn btn-warn"    id="btnPause"   data-cmd="pause">Pause</button>
+      <button class="btn btn-ok"      id="btnResume"  data-cmd="resume">Resume</button>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-danger"  data-cmd="close_all" data-confirm="Close every open position?">Close all</button>
+      <button class="btn btn-danger"  data-cmd="flatten"   data-confirm="Close everything and pause the bot?">Flatten</button>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-kill"    data-cmd="kill"      data-confirm="Engage the kill switch? Everything closes and the bot stops until you release it.">Kill switch</button>
+      <button class="btn btn-ghost"   data-cmd="release_kill">Release kill</button>
+    </div>
+
+    <div class="risk-control">
+      <label for="riskRange">
+        Risk per trade: <strong id="riskValue">--</strong>%
+        <span class="muted small">(server ceiling <span id="riskCeiling">--</span>%)</span>
+      </label>
+      <input type="range" id="riskRange" min="0.05" max="2" step="0.05" value="0.5">
+      <button class="btn btn-primary btn-block" id="btnApplyRisk">Apply risk</button>
+    </div>
+  </section>
+
+  <!-- positions -->
+  <section class="card">
+    <div class="card-head">
+      <h2>Open positions</h2>
+      <span class="muted small" id="positionsTotal"></span>
+    </div>
+    <div class="table-scroll">
+      <table class="table" id="positionsTable">
+        <thead>
+          <tr><th>Symbol</th><th>Side</th><th class="num">Lots</th>
+              <th class="num">Open</th><th class="num">P/L</th><th></th></tr>
+        </thead>
+        <tbody><tr><td colspan="6" class="muted centered">--</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- symbols -->
+  <section class="card">
+    <div class="card-head"><h2>Symbols</h2></div>
+    <div class="table-scroll">
+      <table class="table" id="symbolsTable">
+        <thead>
+          <tr><th>Symbol</th><th class="num">Spread</th><th class="num">Pos</th><th>Last decision</th></tr>
+        </thead>
+        <tbody><tr><td colspan="4" class="muted centered">--</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- events -->
+  <section class="card">
+    <div class="card-head"><h2>Activity</h2></div>
+    <ul class="events" id="eventsList"><li class="muted">--</li></ul>
+  </section>
+
+  <p class="muted small centered footnote">
+    ApexAlgo panel · the EA keeps its own hard risk limits even if this panel is offline.
+  </p>
+</main>
+
+<!-- confirmation sheet -->
+<div class="sheet-backdrop" id="sheetBackdrop" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetText">
+    <p id="sheetText">Are you sure?</p>
+    <div class="btn-row">
+      <button class="btn btn-ghost"  id="sheetCancel">Cancel</button>
+      <button class="btn btn-danger" id="sheetConfirm">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+
+<script src="/static/js/app.js"></script>
+</body>
+</html>
