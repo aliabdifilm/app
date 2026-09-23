@@ -110,6 +110,16 @@ if ($includeCount -lt 12) {
     Write-Warn2 "Expected 12 include files, found $includeCount. Check the copy."
 }
 
+# Presets go where the Load button in the EA's Inputs tab opens by default.
+$PresetSource = Join-Path $ProjectDir "presets"
+if (Test-Path $PresetSource) {
+    $PresetTarget = Join-Path $Mql5Dir "Presets"
+    New-Item -ItemType Directory -Force -Path $PresetTarget | Out-Null
+    Copy-Item (Join-Path $PresetSource "*.set") $PresetTarget -Force
+    $presetCount = (Get-ChildItem $PresetSource -Filter *.set).Count
+    Write-Ok "$presetCount preset(s) -> $PresetTarget"
+}
+
 # ----------------------------------------------------------------------
 # 3. Python control server
 # ----------------------------------------------------------------------
@@ -197,6 +207,9 @@ Write-Host @"
 
     5. Drag ApexAlgoEA onto a chart, tick "Allow Algo Trading",
        set InpRemoteToken to the EA token above, and press OK.
+       For gold scalping: open an XAUUSD M1 chart instead, and in the
+       Inputs tab press Load and pick ApexAlgo_XAUUSD_Scalp_M1.set
+       (see docs\12-gold-scalping.md).
 
     6. Open http://127.0.0.1:8800 and sign in with the panel password.
 

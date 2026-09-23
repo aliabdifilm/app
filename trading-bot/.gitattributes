@@ -1,0 +1,2 @@
+# MT5 presets are UTF-16 LE. Never let git rewrite their line endings.
+*.set binary

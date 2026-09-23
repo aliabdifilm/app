@@ -121,6 +121,7 @@ cd trading-bot/scripts
 | [۹ — عیب‌یابی](docs/09-troubleshooting.md) | مشکلات رایج و راه‌حل |
 | [۱۰ — چک‌لیست](docs/10-golive-checklist.md) | **قبل از پول واقعی بخوانید** |
 | [۱۱ — تنظیمات](docs/11-parameters.md) | مرجع هر ۹۷ ورودی |
+| [۱۲ — اسکلپ طلا](docs/12-gold-scalping.md) | **اجرای سریع روی لپ‌تاپ، بدون VPS** |
 
 ---
 
@@ -139,8 +140,10 @@ trading-bot/
 │   ├── mt5_bridge.py     آمار و نگهبان مستقل
 │   ├── templates/        صفحات HTML
 │   └── static/           CSS، JS، PWA
+├── presets/              پریست‌های آماده (اسکلپ طلا M1 و M5)
 ├── tools/walkforward.py  تحلیل Walk-Forward
-├── scripts/              نصب‌کننده ویندوز و لینوکس
+├── tools/make_presets.py سازنده و اعتبارسنج پریست‌ها
+├── scripts/              نصب‌کننده ویندوز/لینوکس + بیدار نگه‌داشتن لپ‌تاپ
 └── docs/                 ۱۱ سند فارسی
 ```
 
