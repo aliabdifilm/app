@@ -5,7 +5,6 @@ import uuid
 import time
 
 import cv2
-import numpy as np
 from flask import Flask, render_template, request, jsonify, send_from_directory
 from werkzeug.utils import secure_filename
 

@@ -26,6 +26,6 @@ Open http://localhost:5000 in your browser.
 
 ## Tech Stack
 
-- **Backend**: Python, Flask, OpenCV, Pillow, NumPy, SciPy
+- **Backend**: Python, Flask, OpenCV, NumPy
 - **Frontend**: HTML5, CSS3, JavaScript (vanilla)
 - **Processing**: Frequency separation, bilateral filtering, CLAHE, GrabCut segmentation, inpainting
