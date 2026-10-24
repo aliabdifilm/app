@@ -1,0 +1,238 @@
+{#- Public landing page.  Static marketing copy; no external assets, no database access except
+    the (optional) "is the visitor logged in?" check done by base.html. -#}
+{% extends 'base.html' %}
+{% set layout = 'public' %}
+{% from 'components/ui.html' import icon, badge, avatar %}
+{% set login_href = login_url|default('/auth/login') %}
+{% set register_href = register_url|default('/auth/register') %}
+{% set dashboard_href = dashboard_url|default('/dashboard') %}
+{% set signed_in = current_user is defined and current_user.is_authenticated %}
+
+{% block title %}مدیریت مراسم، نیرو و حسابداری اتلیه سیار{% endblock %}
+
+{% block head %}
+  <meta name="description" content="اتلیه سیار: پلتفرم متن‌باز فارسی برای اتلیه‌های سیار عکاسی عروسی؛ افیش نیرو، تقویم شمسی، فاکتور مراسم، حقوق شفاف و انبار.">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css', v=asset_version|default('1')) }}">
+{% endblock %}
+
+{% block public_nav %}
+  <a href="#how">چطور کار می‌کند</a>
+  <a href="#roles">نقش‌ها</a>
+  <a href="#features">امکانات</a>
+  <a href="#salary">حقوق شفاف</a>
+{% endblock %}
+
+{% block content %}
+<div class="landing">
+
+  {#- ---------------------------------------------------------------- hero -#}
+  <section class="hero" aria-labelledby="hero-title">
+    <div class="hero__inner">
+      <div class="hero__copy">
+        <p class="hero__eyebrow">{{ badge('متن‌باز', 'accent', 'sparkles') }} {{ badge('موبایل‌محور', 'info', 'phone') }} {{ badge('کاملاً فارسی', 'success', 'check') }}</p>
+        <h1 class="hero__title" id="hero-title">اتلیهٔ سیار؛ <span class="hero__accent">از افیش نیرو تا فاکتور مراسم</span> در یک‌جا</h1>
+        <p class="hero__lead">مدیر تالار تاریخ مراسم را ثبت می‌کند، مدیر اتلیه عکاس، ادیتور، پرزنتور و فروشنده را افیش می‌کند و بعد از مراسم، فروش، دریافتی‌ها، حقوق نیروها و سود مراسم خودکار حساب می‌شود؛ همه با گوشی و به‌زبان فارسی.</p>
+        <div class="hero__cta">
+          {% if signed_in %}
+          <a class="btn btn--primary btn--lg" href="{{ dashboard_href }}">{{ icon('arrow-left') }}ورود به پنل من</a>
+          {% else %}
+          <a class="btn btn--primary btn--lg" href="{{ login_href }}">{{ icon('phone') }}ورود با شمارهٔ موبایل</a>
+          <a class="btn btn--secondary btn--lg" href="{{ register_href }}">ثبت‌نام رایگان</a>
+          {% endif %}
+        </div>
+        <p class="hero__note">{{ icon('shield') }} ورود با کد یک‌بارمصرف پیامکی؛ نیازی به یادداشت‌کردن رمز عبور نیست.</p>
+      </div>
+
+      {#- decorative product preview: an event card with its invoice open -#}
+      <div class="hero__visual" aria-hidden="true">
+        <div class="mock">
+          <div class="mock__bar"><span></span><span></span><span></span></div>
+          <div class="mock__card">
+            <div class="mock__head">
+              <div>
+                <strong>اتلیه ستاره</strong>
+                <small>باغ تالار گل‌های سپید</small>
+              </div>
+              {{ badge('فاکتور ثبت شد', 'success', 'check') }}
+            </div>
+            <div class="mock__date">{{ icon('calendar') }} پنجشنبه ۲۶ تیر ۱۴۰۴</div>
+            <ul class="mock__crew">
+              <li>{{ avatar('مریم', size='sm') }}<span>پرزنتور</span></li>
+              <li>{{ avatar('علی', size='sm', tone='info') }}<span>عکاس</span></li>
+              <li>{{ avatar('سارا', size='sm', tone='success') }}<span>فروشنده</span></li>
+              <li>{{ avatar('رضا', size='sm', tone='warning') }}<span>ادیتور</span></li>
+            </ul>
+            <div class="mock__invoice">
+              <div class="mock__row"><span>۸۰ عکس فروخته‌شده</span><b>۸۰ واحد</b></div>
+              <div class="mock__row"><span>درآمد (کارتخوان + کارت‌به‌کارت + نقد)</span><b>۱۰٬۵۰۰٬۰۰۰</b></div>
+              <div class="mock__row"><span>اجارهٔ باغ</span><b class="num">−۲٬۰۰۰٬۰۰۰</b></div>
+              <div class="mock__row"><span>حقوق ۴ نفر (هرکدام ۱٬۸۷۰٬۰۰۰)</span><b class="num">−۷٬۴۸۰٬۰۰۰</b></div>
+              <div class="mock__row mock__row--total"><span>سود مراسم</span><b>۱٬۰۲۰٬۰۰۰ تومان</b></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {#- ----------------------------------------------------------- how it works -#}
+  <section class="section" id="how" aria-labelledby="how-title">
+    <div class="section__inner">
+      <header class="section__head">
+        <p class="section__kicker">جریان یک مراسم</p>
+        <h2 id="how-title">از اولین تماس تا تسویه، پنج قدم</h2>
+        <p>همان چیزی که امروز با دفترچه و پیام‌رسان انجام می‌دهید، این‌جا مرتب، ثبت‌شده و قابل پیگیری است.</p>
+      </header>
+      <ol class="steps">
+        <li class="step"><span class="step__n">۱</span><div><h3>مدیر تالار تاریخ را ثبت می‌کند</h3><p>مراسم‌های تالار یا باغ در تقویم شمسی وارد می‌شوند و برای اتلیه‌ها پیشنهاد می‌شوند.</p></div></li>
+        <li class="step"><span class="step__n">۲</span><div><h3>مدیر اتلیه نیرو را افیش می‌کند</h3><p>عکاس، ادیتور، پرزنتور و فروشنده را از نیروهای ثابت یا از بازارچهٔ کاریابی انتخاب کنید؛ پایه، پورسانت و پاداش همان‌جا ثبت می‌شود.</p></div></li>
+        <li class="step"><span class="step__n">۳</span><div><h3>در مراسم، هر نفر کار خودش را می‌کند</h3><p>پرزنتور مهمان‌ها را جذب می‌کند، عکاس عکس می‌گیرد، فروشنده فاکتور و کد عکس‌ها را می‌نویسد و ادیتور ادیت و چاپ می‌کند.</p></div></li>
+        <li class="step"><span class="step__n">۴</span><div><h3>فاکتور مراسم ثبت می‌شود</h3><p>تعداد فروش هر محصول، دریافتی‌ها و هزینه‌ها در یک پنجره وارد می‌شود؛ فاکتور زیر کارت مراسم مخفی است و با یک لمس باز می‌شود.</p></div></li>
+        <li class="step"><span class="step__n">۵</span><div><h3>حقوق و سود خودکار حساب می‌شود</h3><p>پایه + پورسانت هر عکس + پاداش پله‌ای برای هر نفر؛ سود مراسم هم بلافاصله مشخص است.</p></div></li>
+      </ol>
+    </div>
+  </section>
+
+  {#- ----------------------------------------------------------------- roles -#}
+  <section class="section section--tint" id="roles" aria-labelledby="roles-title">
+    <div class="section__inner">
+      <header class="section__head">
+        <p class="section__kicker">چهار نقش، چهار پنل</p>
+        <h2 id="roles-title">هر کس فقط چیزی را می‌بیند که لازم دارد</h2>
+      </header>
+      <div class="grid grid--fit roles">
+        <article class="role">
+          <span class="role__icon">{{ icon('building') }}</span>
+          <h3>مدیر تالار</h3>
+          <ul>
+            <li>ثبت تاریخ مراسم‌ها در تقویم شمسی</li>
+            <li>عرضهٔ مراسم به همهٔ اتلیه‌ها یا اتلیهٔ مشخص</li>
+            <li>پیگیری پاسخ و وضعیت هر مراسم</li>
+          </ul>
+        </article>
+        <article class="role">
+          <span class="role__icon">{{ icon('briefcase') }}</span>
+          <h3>مدیر اتلیه (کارفرما)</h3>
+          <ul>
+            <li>افیش چهار پست مراسم و تعیین توافق مالی</li>
+            <li>ثبت فاکتور، دریافتی‌ها و هزینه‌ها</li>
+            <li>انبار کاغذ، جوهر و قاب و محاسبهٔ چاپ</li>
+          </ul>
+        </article>
+        <article class="role">
+          <span class="role__icon">{{ icon('camera') }}</span>
+          <h3>نیرو</h3>
+          <ul>
+            <li>پروفایل، توانایی‌ها و اعلام آمادگی</li>
+            <li>دیدن آگهی‌ها و درخواست همکاری</li>
+            <li>تقویم شخصی و حقوق شفاف هر مراسم</li>
+          </ul>
+        </article>
+        <article class="role">
+          <span class="role__icon">{{ icon('shield') }}</span>
+          <h3>ادمین سایت</h3>
+          <ul>
+            <li>تأیید حساب‌ها و مدیریت کاربران</li>
+            <li>نظارت بر مراسم، آگهی‌ها و گزارش‌ها</li>
+            <li>تنظیمات پلتفرم و سابقهٔ تغییرات</li>
+          </ul>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  {#- --------------------------------------------------------------- features -#}
+  <section class="section" id="features" aria-labelledby="features-title">
+    <div class="section__inner">
+      <header class="section__head">
+        <p class="section__kicker">امکانات</p>
+        <h2 id="features-title">هرچه یک اتلیهٔ سیار لازم دارد</h2>
+      </header>
+      <div class="grid grid--fit features">
+        <article class="feature"><span class="feature__icon">{{ icon('users') }}</span><h3>افیش نیرو و بازارچهٔ کاریابی</h3><p>نیروهای ثابت خودتان یا نیروهای تأییدشدهٔ پلتفرم را برای هر مراسم انتخاب کنید و آگهی همکاری بگذارید.</p></article>
+        <article class="feature"><span class="feature__icon">{{ icon('calendar') }}</span><h3>تقویم شمسی مراسم‌ها</h3><p>نمای ماهانهٔ شنبه‌به‌شنبه با تاریخ شمسی؛ تداخل نیروها قبل از افیش دیده می‌شود.</p></article>
+        <article class="feature"><span class="feature__icon">{{ icon('receipt') }}</span><h3>فاکتور و حسابداری مراسم</h3><p>فروش هر محصول، کارتخوان، کارت‌به‌کارت و نقد، اجارهٔ باغ و سود نهایی؛ همه با مبلغ دقیق به تومان.</p></article>
+        <article class="feature"><span class="feature__icon">{{ icon('coins') }}</span><h3>حقوق شفاف نیروها</h3><p>پایه، پورسانت هر عکس و پاداش پله‌ای با فرمول ثابت؛ توافق هر مراسم ثبت و تغییرناپذیر می‌ماند.</p></article>
+        <article class="feature"><span class="feature__icon">{{ icon('printer') }}</span><h3>محاسبهٔ چاپ و انبار</h3><p>تعداد برگ و بستهٔ A4 و A3 برای ۱۶×۲۱، ۲۰×۳۰ و ۳۰×۴۰ حساب می‌شود و موجودی کاغذ، جوهر و قاب هشدار می‌دهد.</p></article>
+        <article class="feature"><span class="feature__icon">{{ icon('bell') }}</span><h3>اعلان و پیگیری</h3><p>دعوت به مراسم، پاسخ نیروها و تغییرات مهم به‌موقع اطلاع داده می‌شود.</p></article>
+        <article class="feature"><span class="feature__icon">{{ icon('lock') }}</span><h3>ورود امن با موبایل</h3><p>کد یک‌بارمصرف پیامکی با محدودیت تلاش؛ رمز عبور اختیاری است.</p></article>
+        <article class="feature"><span class="feature__icon">{{ icon('phone') }}</span><h3>ساخته‌شده برای گوشی</h3><p>راست‌به‌چپ، دکمه‌های درشت، نصب روی صفحهٔ اصلی و روشن/تاریک بودن خودکار.</p></article>
+        <article class="feature"><span class="feature__icon">{{ icon('sparkles') }}</span><h3>متن‌باز و خودمیزبان</h3><p>بدون سرویس خارجی و بدون ابزار ساخت؛ روی یک سرور ساده هم اجرا می‌شود.</p></article>
+      </div>
+    </div>
+  </section>
+
+  {#- -------------------------------------------------------------- salary -#}
+  <section class="section section--tint" id="salary" aria-labelledby="salary-title">
+    <div class="section__inner salary">
+      <div class="salary__copy">
+        <p class="section__kicker">حقوق شفاف</p>
+        <h2 id="salary-title">یک فرمول، بدون ابهام</h2>
+        <p>حقوق هر نفر در هر مراسم از سه بخش ساخته می‌شود. مبلغ‌ها را شما و نیرو هنگام افیش توافق می‌کنید و همان‌جا ثبت می‌شود؛ تغییر توافق بعدی، حقوق مراسم‌های گذشته را عوض نمی‌کند.</p>
+        <ul class="ticks">
+          <li>{{ icon('check') }} <span><b>پایه:</b> مبلغ ثابت توافقی</span></li>
+          <li>{{ icon('check') }} <span><b>پورسانت:</b> تعداد عکس فروخته‌شده × مبلغ هر عکس</span></li>
+          <li>{{ icon('check') }} <span><b>پاداش:</b> بالاترین پله‌ای که تعداد فروش به آن رسیده (مثلاً ۷۰ عکس به بالا)</span></li>
+        </ul>
+      </div>
+      <div class="formula" role="img" aria-label="مثال: پایه یک میلیون به‌علاوهٔ هشتاد عکس در نه هزار تومان به‌علاوهٔ پاداش صد و پنجاه هزار برابر یک میلیون و هشتصد و هفتاد هزار تومان">
+        <div class="formula__row"><span>پایه</span><b>۱٬۰۰۰٬۰۰۰</b></div>
+        <div class="formula__row"><span>پورسانت ۸۰ عکس × ۹٬۰۰۰</span><b>۷۲۰٬۰۰۰</b></div>
+        <div class="formula__row"><span>پاداش ۷۰ عکس به بالا</span><b>۱۵۰٬۰۰۰</b></div>
+        <div class="formula__row formula__row--total"><span>حقوق هر نفر</span><b>۱٬۸۷۰٬۰۰۰ <small>تومان</small></b></div>
+      </div>
+    </div>
+  </section>
+
+  {#- ------------------------------------------------------------------ CTA -#}
+  <section class="cta" aria-labelledby="cta-title">
+    <div class="cta__inner">
+      <h2 id="cta-title">اولین مراسم را همین امروز افیش کنید</h2>
+      <p>ثبت‌نام رایگان است و کمتر از یک دقیقه طول می‌کشد.</p>
+      <div class="cta__actions">
+        {% if signed_in %}
+        <a class="btn btn--lg cta__btn" href="{{ dashboard_href }}">ورود به پنل من</a>
+        {% else %}
+        <a class="btn btn--lg cta__btn" href="{{ register_href }}">ثبت‌نام</a>
+        <a class="btn btn--lg btn--ghost cta__ghost" href="{{ login_href }}">قبلاً ثبت‌نام کرده‌ام</a>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+</div>
+{% endblock %}
+
+{% block public_footer %}
+<footer class="pub-footer">
+  <div class="pub-footer__inner">
+    <div class="pub-footer__grid">
+      <div>
+        <a class="brand" href="{{ home_url|default('/') }}">
+          <svg class="brand__mark" aria-hidden="true" focusable="false"><use href="#brand-mark"/></svg>
+          <span class="brand__name">اتلیه سیار</span>
+        </a>
+        <p>پلتفرم و اپ مدیریتی متن‌باز برای اتلیه‌های سیار عکاسی عروسی در ایران؛ افیش نیرو، تقویم، حسابداری و انبار.</p>
+      </div>
+      <nav aria-label="پیوندهای سریع">
+        <h3>دسترسی سریع</h3>
+        <ul>
+          <li><a href="{{ login_href }}">ورود</a></li>
+          <li><a href="{{ register_href }}">ثبت‌نام</a></li>
+          <li><a href="#how">چطور کار می‌کند</a></li>
+          <li><a href="#features">امکانات</a></li>
+        </ul>
+      </nav>
+      <nav aria-label="نقش‌ها">
+        <h3>نقش‌ها</h3>
+        <ul>
+          <li><a href="#roles">مدیر تالار</a></li>
+          <li><a href="#roles">مدیر اتلیه</a></li>
+          <li><a href="#roles">نیرو</a></li>
+          <li><a href="#roles">ادمین سایت</a></li>
+        </ul>
+      </nav>
+    </div>
+    <p class="pub-footer__legal">© اتلیه سیار · ساخته‌شده برای اتلیه‌های سیار ایران</p>
+  </div>
+</footer>
+{% endblock %}

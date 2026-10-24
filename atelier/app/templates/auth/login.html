@@ -1,0 +1,35 @@
+{#- Mobile number entry: login and registration share this first step (no account enumeration). -#}
+{% extends 'base.html' %}
+{% set layout = 'bare' %}
+{% from 'components/ui.html' import form_field, checkbox_field, alert, icon %}
+{% set form = form|default({}) %}
+{% set errors = errors|default({}) %}
+{% block title %}ورود{% endblock %}
+{% block head %}{% include 'auth/_head.html' %}{% endblock %}
+{% block content %}
+<section class="auth stack stack--lg" aria-labelledby="auth-title">
+  <header class="auth__head">
+    <h1 class="auth__title" id="auth-title">ورود به اتلیه سیار</h1>
+    <p class="text-muted">شمارهٔ موبایل خود را وارد کنید تا کد ورود را برایتان پیامک کنیم.</p>
+  </header>
+
+  {% if error %}{{ alert(error, 'danger') }}{% endif %}
+
+  <form method="post" action="{{ url_for('auth.login') }}" class="stack">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="next" value="{{ next|default('') }}">
+    {{ form_field('شمارهٔ موبایل', name='mobile', type='tel', inputmode='numeric', dir='ltr',
+                  value=form.get('mobile', ''), required=true, autocomplete='tel-national',
+                  placeholder='۰۹۱۲۳۴۵۶۷۸۹', error=errors.get('mobile'), attrs={'autofocus': ''}) }}
+    {{ checkbox_field('مرا در این دستگاه به خاطر بسپار', 'remember', checked=form.get('remember')) }}
+    <button type="submit" class="btn btn--primary btn--lg btn--block">{{ icon('send') }}دریافت کد ورود</button>
+  </form>
+
+  <div class="auth__links stack stack--sm text-center">
+    {% if password_enabled|default(true) %}
+    <a href="{{ url_for('auth.login_password', next=next|default('') or none) }}">ورود با رمز عبور</a>
+    {% endif %}
+    <p class="text-muted text-sm">حساب ندارید؟ <a href="{{ url_for('auth.register', next=next|default('') or none) }}">ثبت‌نام کنید</a>.</p>
+  </div>
+</section>
+{% endblock %}

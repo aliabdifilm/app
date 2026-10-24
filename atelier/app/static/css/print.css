@@ -1,0 +1,194 @@
+/*
+ * Atelier Sayyar - print stylesheet (linked with media="print" after app.css).
+ *
+ * Goals: A4 invoices / receipts / lists that look like documents, not like the
+ * app.  Chrome (sidebar, top bar, tab bar, toasts, buttons, modals) is hidden,
+ * colours fall back to black on white, tables never split a row.
+ *
+ * Opt-in helpers:
+ *   .no-print            hide this element when printing
+ *   .print-only          show this element only when printing
+ *   .collapse--print-open  an accordion/collapse panel that must print expanded
+ *   .sheet               the invoice / receipt document block (see UI_GUIDE.md)
+ *   .print-break         force a page break before this element
+ */
+@page {
+  size: A4;
+  margin: 12mm;
+}
+
+@media print {
+  /* Always print with light tokens, even if the screen is in dark mode. */
+  :root:root:root {
+    color-scheme: light;
+    --bg: #ffffff;
+    --surface: #ffffff;
+    --surface-2: #f2f2f2;
+    --surface-3: #e6e6e6;
+    --border: #bdbdbd;
+    --border-strong: #555555;
+    --text: #000000;
+    --text-muted: #333333;
+    --text-faint: #444444;
+    --accent: #000000;
+    --accent-text: #000000;
+    --accent-soft: #eeeeee;
+    --accent-ink: #000000;
+    --success: #000000;
+    --success-soft: #eeeeee;
+    --success-ink: #000000;
+    --warning: #000000;
+    --warning-soft: #eeeeee;
+    --warning-ink: #000000;
+    --danger: #000000;
+    --danger-soft: #eeeeee;
+    --danger-ink: #000000;
+    --info: #000000;
+    --info-soft: #eeeeee;
+    --info-ink: #000000;
+    --shadow-sm: none;
+    --shadow-md: none;
+    --shadow-lg: none;
+  }
+
+  html,
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-size: 11pt;
+    line-height: 1.6;
+  }
+
+  /* Hide everything that is application chrome. */
+  .skip-link,
+  .topbar,
+  .sidebar,
+  .scrim,
+  .tabbar,
+  .toasts,
+  .pub-header,
+  .pub-footer,
+  .app__footer,
+  .modal,
+  .jd-pop,
+  .jd-scrim,
+  .page-header__actions,
+  .pagination,
+  .tabs__list,
+  .btn,
+  .icon-btn,
+  .form-actions,
+  .no-print {
+    display: none !important;
+  }
+
+  .print-only {
+    display: revert !important;
+  }
+
+  .app,
+  .app__body {
+    display: block;
+  }
+  .app__main {
+    padding: 0 !important;
+  }
+  .page {
+    max-width: none;
+  }
+
+  a {
+    color: #000000;
+    text-decoration: none;
+  }
+
+  .card,
+  .stat,
+  .accordion,
+  .table-wrap,
+  .sheet,
+  .cal {
+    box-shadow: none !important;
+    background: #ffffff !important;
+    border-color: #999999 !important;
+  }
+  .card,
+  .stat,
+  .sheet {
+    break-inside: avoid;
+  }
+
+  /* Only panels that opt in are forced open. */
+  .collapse--print-open {
+    grid-template-rows: 1fr !important;
+    visibility: visible !important;
+  }
+  .collapse--print-open > .collapse__inner {
+    overflow: visible !important;
+  }
+
+  .badge {
+    background: transparent !important;
+    color: #000000 !important;
+    border: 1px solid #000000 !important;
+  }
+
+  /* Tables: repeat headers, never split a row, show borders. */
+  .table-wrap {
+    overflow: visible;
+  }
+  .table thead {
+    display: table-header-group;
+  }
+  .table tr,
+  .sheet__table tr {
+    break-inside: avoid;
+  }
+  .table thead th,
+  .sheet__table th {
+    background: #eeeeee !important;
+    color: #000000 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .table tbody tr:hover td {
+    background: transparent;
+  }
+  /* A stacked (phone) table prints as a normal table. */
+  .table--stack,
+  .table--stack tbody,
+  .table--stack tr,
+  .table--stack td {
+    display: revert !important;
+  }
+  .table--stack thead {
+    position: static !important;
+    width: auto !important;
+    height: auto !important;
+    clip: auto !important;
+    overflow: visible !important;
+  }
+  .table--stack td::before {
+    content: none !important;
+  }
+
+  .sheet {
+    border: 0 !important;
+    padding: 0 !important;
+  }
+  .sheet__header {
+    border-block-end-color: #000000;
+  }
+  .sheet__totals .is-total {
+    border-block-start-color: #000000;
+  }
+
+  .print-break {
+    break-before: page;
+  }
+
+  /* Money and numbers must never be split across lines. */
+  .num {
+    white-space: nowrap;
+  }
+}

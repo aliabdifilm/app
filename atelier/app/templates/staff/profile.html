@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+{% from 'components/ui.html' import page_header, card, alert, icon, avatar, form_field, money_input, textarea_field, checkbox_field %}
+{% from 'staff/_macros.html' import profile_tabs, csrf %}
+{% block title %}پروفایل{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='css/staff.css', v=asset_version|default('1')) }}">{% endblock %}
+
+{% block content %}
+<div class="page page--narrow stack stack--lg">
+  {{ page_header('پروفایل من', 'این اطلاعات را اتلیه‌ها هنگام انتخاب و دعوت شما می‌بینند.') }}
+  {{ profile_tabs('profile') }}
+
+  {% if not completeness.complete %}
+  {% call card(title='تکمیل پروفایل', subtitle='هر بخش کامل‌شده، شانس انتخاب شدنتان را بیشتر می‌کند.') %}
+  <div class="st-meter-row">
+    <progress class="st-meter" max="100" value="{{ completeness.percent }}" aria-label="تکمیل پروفایل">{{ completeness.percent|fa }}٪</progress>
+    <strong class="st-meter-row__value">{{ completeness.percent|fa }}٪</strong>
+  </div>
+  <ul class="st-todo">
+    {% for step in completeness.missing %}
+    <li><a href="{{ url_for(step.endpoint) }}{% if step.anchor %}#{{ step.anchor }}{% endif %}">{{ icon('plus') }}<span>{{ step.label }}</span></a><small class="text-muted">{{ step.hint }}</small></li>
+    {% endfor %}
+  </ul>
+  {% endcall %}
+  {% endif %}
+
+  {#- ================================== avatar ================================== -#}
+  {% call card(title='عکس پروفایل', id='avatar') %}
+  <div class="st-avatar">
+    {{ avatar(current_user.display_name, size='xl', src=media_url(current_user.avatar_path), alt='عکس پروفایل') }}
+    <div class="st-avatar__forms">
+      <form method="post" action="{{ url_for('staff.avatar_upload') }}" enctype="multipart/form-data" class="stack stack--sm">
+        {{ csrf() }}
+        <div class="field{% if errors.get('avatar') %} field--invalid{% endif %}">
+          <label class="field__label" for="f-avatar">انتخاب عکس تازه</label>
+          <input class="input" id="f-avatar" type="file" name="avatar" accept="image/jpeg,image/png,image/webp" required
+                 {% if errors.get('avatar') %}aria-invalid="true" aria-describedby="f-avatar-error"{% else %}aria-describedby="f-avatar-help"{% endif %}>
+          <p class="field__help" id="f-avatar-help">JPG، PNG یا WebP؛ حداکثر ۵ مگابایت.</p>
+          {% if errors.get('avatar') %}<p class="field__error" id="f-avatar-error" role="alert">{{ icon('alert') }}<span>{{ errors.get('avatar') }}</span></p>{% endif %}
+        </div>
+        <button class="btn btn--secondary" type="submit">{{ icon('upload') }}<span>ذخیرهٔ عکس</span></button>
+      </form>
+      {% if current_user.avatar_path %}
+      <form method="post" action="{{ url_for('staff.avatar_remove') }}" class="inline-form" data-confirm="عکس پروفایل حذف شود؟">
+        {{ csrf() }}
+        <button class="btn btn--danger-soft btn--sm" type="submit">{{ icon('trash') }}<span>حذف عکس</span></button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+  {% endcall %}
+
+  {#- ================================ main profile ================================ -#}
+  <form method="post" action="{{ url_for('staff.profile') }}" class="stack stack--lg" novalidate>
+    {{ csrf() }}
+
+    {% call card(title='مشخصات') %}
+    <div class="form-grid form-grid--2">
+      {{ form_field('نام و نام خانوادگی', name='full_name', value=form.get('full_name', ''), required=true, error=errors.get('full_name'), autocomplete='name') }}
+      {{ form_field('شهر محل کار', name='city', value=form.get('city', ''), error=errors.get('city'), autocomplete='address-level2', help='برای نمایش در جستجوی شهر اتلیه‌ها لازم است.') }}
+      {{ form_field('سابقهٔ کار (سال)', name='experience_years', value=form.get('experience_years', 0), type='text', inputmode='numeric', error=errors.get('experience_years')) }}
+      {{ form_field('اینستاگرام', name='instagram', value=form.get('instagram', ''), dir='ltr', error=errors.get('instagram'), placeholder='@atelier_star') }}
+    </div>
+    <div class="span-all">
+      {{ textarea_field('درباره من', 'bio', form.get('bio', ''), rows=4, maxlength=bio_max, error=errors.get('bio'), help='سبک کار، تجربه و تجهیزاتتان را کوتاه بنویسید (حداکثر ' ~ (bio_max|fa) ~ ' نویسه).') }}
+    </div>
+    {% endcall %}
+
+    {% call card(title='توانایی‌ها', subtitle='یک نفر می‌تواند چند توانایی داشته باشد.', id='skills') %}
+    <fieldset class="st-fieldset{% if errors.get('skills') %} field--invalid{% endif %}">
+      <legend class="visually-hidden">توانایی‌ها</legend>
+      <div class="st-checks">
+        {% for value, label in skills %}
+        {{ checkbox_field(label, 'skills', checked=(value in form.get('skills', [])), value=value, id='skill-' ~ value) }}
+        {% endfor %}
+      </div>
+      {% if errors.get('skills') %}<p class="field__error" role="alert">{{ icon('alert') }}<span>{{ errors.get('skills') }}</span></p>{% endif %}
+    </fieldset>
+    {% endcall %}
+
+    {% call card(title='توافق مورد انتظار', subtitle='فقط راهنمای اتلیه‌هاست؛ توافق نهایی هر مراسم هنگام افیش ثبت می‌شود و این مبالغ جایی اعمال نمی‌شود.') %}
+    <div class="form-grid form-grid--2">
+      {{ money_input('expected_base', form.get('expected_base'), label='پایهٔ مورد انتظار', error=errors.get('expected_base'), id='f-expected_base') }}
+      {{ money_input('expected_commission_per_unit', form.get('expected_commission_per_unit'), label='پورسانت مورد انتظار هر عکس', error=errors.get('expected_commission_per_unit')) }}
+    </div>
+    {% endcall %}
+
+    {% call card(title='تجهیزات شخصی', subtitle='اگر خودتان دارید، اتلیه‌ها نیازی به اجارهٔ آن ندارند.', id='equipment') %}
+    <div class="st-checks">
+      {% for column, label in equipment %}
+      {{ checkbox_field(label, column, checked=form.get(column, false), id='eq-' ~ column) }}
+      {% endfor %}
+    </div>
+    {% endcall %}
+
+    {% call card(title='نمایش پروفایل') %}
+    <div class="stack stack--sm">
+      {{ checkbox_field('نمایش در جستجوی اتلیه‌ها', 'is_listed', checked=form.get('is_listed', false), help='اتلیه‌های ثبت‌شده می‌توانند شما را پیدا و دعوت کنند. نیاز به دست‌کم یک توانایی و شهر دارد.', id='f-is_listed') }}
+      {% if errors.get('is_listed') %}<p class="field__error" role="alert">{{ icon('alert') }}<span>{{ errors.get('is_listed') }}</span></p>{% endif %}
+      {{ checkbox_field('پروفایل عمومی', 'is_public_profile', checked=form.get('is_public_profile', false), help='عکس پروفایل و نمونه‌کارهای عمومی برای بازدیدکنندگان بدون ورود هم نمایش داده می‌شود. شمارهٔ موبایل شما هرگز عمومی نمی‌شود.', id='f-is_public_profile') }}
+    </div>
+    {% endcall %}
+
+    <div class="form-actions form-actions--sticky">
+      <button class="btn btn--primary btn--lg" type="submit">ذخیرهٔ پروفایل</button>
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block scripts %}<script src="{{ url_for('static', filename='js/staff.js', v=asset_version|default('1')) }}" defer></script>{% endblock %}

@@ -1,0 +1,75 @@
+{#- One event card (AGENTS.md "کارت مراسم"): atelier, Jalali date, hall, status, crew per role and the invoice buttons;
+    the invoice itself sits below as an accordion that is closed by default. -#}
+{% from 'components/ui.html' import badge, icon, accordion %}
+{% from 'accounting/_invoice_detail.html' import invoice_detail %}
+
+{% macro event_card(card, atelier, tones) -%}
+{%- set ev = card.event -%}
+{%- set inv = card.invoice -%}
+{%- set title = ev.title or (ev.ceremony_type.label ~ ' - ' ~ ev.hall.name) -%}
+<article class="card acc-card{% if ev.status.value == 'cancelled' %} acc-card--muted{% endif %}" id="event-{{ ev.id }}" aria-labelledby="event-{{ ev.id }}-title">
+  <div class="card__header acc-card__head">
+    <div>
+      <h3 class="card__title" id="event-{{ ev.id }}-title">{{ title }}</h3>
+      <p class="card__subtitle">{{ atelier.name }}</p>
+    </div>
+    <div class="cluster cluster--sm">
+      {{ badge(ev.status.label, tones.get(ev.status.value, 'neutral')) }}
+      {% if inv and inv.status.value != 'submitted' %}{{ badge(inv.status.label, {'settled': 'success', 'draft': 'warning', 'void': 'danger'}.get(inv.status.value, 'neutral')) }}{% endif %}
+    </div>
+  </div>
+  <div class="card__body stack stack--sm">
+    <dl class="acc-meta">
+      <div><dt>تاریخ</dt><dd>{{ ev.date|jdate('weekday_long') }}</dd></div>
+      <div><dt>تالار</dt><dd>{{ ev.hall.name }}{% if ev.hall.city %} <span class="text-muted">· {{ ev.hall.city }}</span>{% endif %}</dd></div>
+      {% if ev.start_time %}<div><dt>ساعت</dt><dd class="num">{{ ev.start_time.strftime('%H:%M')|fa }}</dd></div>{% endif %}
+    </dl>
+
+    <div class="acc-crew" role="list" aria-label="نیروهای مراسم">
+      {% for group in card.crew %}
+      <div class="acc-crew__item" role="listitem">
+        <span class="acc-crew__role">{{ group.role.label }}</span>
+        {% if group.people %}
+        <span class="acc-crew__people">{% for p in group.people %}<span class="acc-crew__person{% if p.pending %} is-pending{% endif %}">{{ p.name }}{% if p.pending %} <small>(در انتظار پاسخ)</small>{% endif %}</span>{% endfor %}</span>
+        {% else %}
+        <span class="acc-crew__people text-faint">بدون نیرو</span>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+
+    {% if inv %}
+    <p class="acc-net text-sm">
+      <span class="text-muted">سود فاکتور:</span>
+      <strong class="num {{ 'text-success' if inv.net_profit >= 0 else 'text-danger' }}">{{ ('−' if inv.net_profit < 0 else '') ~ (inv.net_profit|abs|toman) }}</strong>
+      <span class="text-muted">تومان</span>
+    </p>
+    {% endif %}
+
+    {% if card.is_future and not inv and card.can_invoice %}
+    <p class="text-sm text-muted">{{ icon('clock') }} این مراسم هنوز برگزار نشده است.</p>
+    {% endif %}
+
+    <div class="cluster acc-card__actions">
+      {% if card.can_invoice %}
+      <a class="btn btn--primary btn--sm" href="{{ url_for('accounting.invoice_form', event_id=ev.id) }}" data-invoice-open data-invoice-title="{{ ('ویرایش فاکتور' if inv else 'ثبت فاکتور') ~ ' · ' ~ ev.hall.name ~ ' · ' ~ (ev.date|jdate) }}">
+        {{ icon('receipt') }}<span>{{ 'ویرایش فاکتور' if inv else 'ثبت فاکتور' }}</span></a>
+      {% elif not inv %}
+      <span class="text-sm text-muted">برای مراسم «{{ ev.status.label }}» فاکتور ثبت نمی‌شود.</span>
+      {% endif %}
+      {% if inv %}
+      <button type="button" class="btn btn--secondary btn--sm" data-accordion-toggle="inv-{{ ev.id }}" aria-expanded="false" aria-controls="inv-{{ ev.id }}-panel">
+        {{ icon('file') }}<span>فاکتور</span></button>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if inv %}
+  <div class="acc-card__invoice">
+    {% call accordion('inv-' ~ ev.id, 'فاکتور مراسم', meta=('سود ' ~ (('−' if inv.net_profit < 0 else '') ~ (inv.net_profit|abs|toman)) ~ ' تومان'), level=4) %}
+      {{ invoice_detail(inv, ev, card.can_invoice) }}
+    {% endcall %}
+  </div>
+  {% endif %}
+</article>
+{%- endmacro %}

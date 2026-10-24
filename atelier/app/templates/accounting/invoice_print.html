@@ -1,0 +1,95 @@
+{#- A4 invoice sheet (print.css): products, payments, expenses, payroll, result and the amounts in words. -#}
+{% extends 'base.html' %}
+{% from 'components/ui.html' import icon, badge %}
+{% block title %}فاکتور مراسم {{ invoice.id|fa }}{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='css/accounting.css', v=asset_version|default('1')) }}">{% endblock %}
+{% block content %}
+<div class="page stack stack--lg acc">
+  <div class="cluster cluster--between no-print">
+    <a class="back-link" href="{{ index_url }}">{{ icon('arrow-right') }}<span>بازگشت به حسابداری</span></a>
+    <div class="cluster cluster--sm">
+      <button type="button" class="btn btn--primary" data-print>{{ icon('printer') }}<span>چاپ</span></button>
+      <a class="btn" href="{{ url_for('accounting.invoice_csv', invoice_id=invoice.id) }}" download>{{ icon('download') }}<span>خروجی CSV</span></a>
+    </div>
+  </div>
+
+  <article class="sheet" aria-labelledby="sheet-title">
+    <div class="sheet__header">
+      <div>
+        <div class="sheet__title" id="sheet-title">فاکتور مراسم</div>
+        <small>{{ invoice.atelier.name }}</small>
+      </div>
+      <div class="text-end">
+        <div>شمارهٔ <span class="num">{{ invoice.id|fa }}</span></div>
+        <small class="text-muted">{{ invoice.status.label }}{% if invoice.status.value == 'void' %} · باطل{% endif %}</small>
+      </div>
+    </div>
+    <dl class="sheet__meta">
+      <div><dt>تاریخ مراسم</dt><dd>{{ event.date|jdate('weekday_long') }}</dd></div>
+      <div><dt>تالار</dt><dd>{{ event.hall.name }}</dd></div>
+      <div><dt>شهر</dt><dd>{{ event.hall.city or '—' }}</dd></div>
+      <div><dt>نسخهٔ فاکتور</dt><dd class="num">{{ invoice.revision|fa }}</dd></div>
+    </dl>
+
+    <h2 class="sheet__section">محصولات فروش‌رفته</h2>
+    <table class="sheet__table">
+      <thead><tr><th>محصول</th><th class="cell-num">تعداد</th><th class="cell-num">ضریب</th><th class="cell-num">واحد پورسانت</th></tr></thead>
+      <tbody>
+      {% for line in invoice.lines %}
+        <tr><td>{{ line.category.label }}{% if line.size_label %} <span class="num">{{ line.size_label|replace('x', '×')|fa }}</span>{% endif %}</td>
+            <td class="cell-num">{{ line.qty|fa }}</td><td class="cell-num">{{ line.commission_weight|fa }}</td>
+            <td class="cell-num">{{ (line.qty * line.commission_weight if line.counts_for_commission else 0)|fa }}</td></tr>
+      {% else %}
+        <tr><td colspan="4" class="text-muted">محصولی فروخته نشده است.</td></tr>
+      {% endfor %}
+      </tbody>
+      <tfoot><tr><th colspan="3">جمع واحدها</th><td class="cell-num"><strong>{{ invoice.units_total|fa }}</strong></td></tr></tfoot>
+    </table>
+
+    <h2 class="sheet__section">دریافتی‌ها</h2>
+    <table class="sheet__table">
+      <tbody>
+      {% for p in invoice.payments %}<tr><td>{{ p.method.label }}</td><td class="cell-num">{{ p.amount|toman }}</td></tr>{% endfor %}
+      </tbody>
+      <tfoot><tr><th>جمع دریافتی</th><td class="cell-num"><strong>{{ invoice.income_total|toman }}</strong></td></tr></tfoot>
+    </table>
+
+    <h2 class="sheet__section">هزینه‌ها</h2>
+    <table class="sheet__table">
+      <thead><tr><th>نوع</th><th>شرح</th><th class="cell-num">مبلغ</th></tr></thead>
+      <tbody>
+      {% for e in invoice.expenses|sort(attribute='kind.value') %}<tr><td>{{ e.kind.label }}</td><td>{{ e.label }}</td><td class="cell-num">{{ e.amount|toman }}</td></tr>{% endfor %}
+      </tbody>
+      <tfoot><tr><th colspan="2">جمع هزینه‌ها</th><td class="cell-num"><strong>{{ invoice.expense_total|toman }}</strong></td></tr></tfoot>
+    </table>
+
+    <h2 class="sheet__section">حقوق نیروها</h2>
+    <table class="sheet__table">
+      <thead><tr><th>نیرو</th><th>نقش</th><th class="cell-num">پایه</th><th class="cell-num">پورسانت</th><th class="cell-num">پاداش</th><th class="cell-num">جمع</th></tr></thead>
+      <tbody>
+      {% for pl in invoice.payroll_lines %}
+        <tr><td>{{ pl.person_name }}</td><td>{{ pl.role.label if pl.role else '' }}</td>
+            <td class="cell-num">{{ pl.base|toman }}</td><td class="cell-num">{{ pl.commission|toman }}</td>
+            <td class="cell-num">{{ pl.bonus|toman }}</td><td class="cell-num"><strong>{{ pl.total|toman }}</strong></td></tr>
+      {% else %}
+        <tr><td colspan="6" class="text-muted">نیرویی ثبت نشده است.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+
+    <div class="sheet__totals">
+      <div><span>درآمد</span><b>{{ invoice.income_total|toman }}</b></div>
+      <div><span>هزینه‌ها</span><b>{{ invoice.expense_total|toman }}</b></div>
+      <div class="is-total{% if invoice.net_profit < 0 %} is-negative{% endif %}"><span>سود خالص</span><b class="num">{{ '−' if invoice.net_profit < 0 }}{{ invoice.net_profit|abs|toman }} تومان</b></div>
+    </div>
+    <p class="text-sm sheet__words">
+      مبلغ درآمد به حروف: <strong>{{ invoice.income_total|toman_words }}</strong><br>
+      {% if invoice.net_profit >= 0 %}سود خالص به حروف: <strong>{{ invoice.net_profit|toman_words }}</strong>
+      {% else %}زیان خالص به حروف: <strong>{{ (0 - invoice.net_profit)|toman_words }}</strong>{% endif %}
+    </p>
+    {% if invoice.notes %}<p class="text-sm"><strong>یادداشت:</strong> {{ invoice.notes }}</p>{% endif %}
+
+    <div class="sheet__sign"><div>امضای مدیر اتلیه</div><div>امضای مدیر تالار</div></div>
+  </article>
+</div>
+{% endblock %}

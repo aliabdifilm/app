@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% from 'components/ui.html' import page_header, card, form_field, select_field, textarea_field, money_input, jdate_input, checkbox_field, alert, icon %}
+{% set editing = agreement is not none %}
+{% block title %}{{ 'ویرایش توافق‌نامه' if editing else 'ثبت توافق‌نامه' }}{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='css/halls.css', v=asset_version|default('1')) }}">{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/halls.js', v=asset_version|default('1')) }}" defer></script>{% endblock %}
+
+{% block content %}
+<div class="page page--narrow stack stack--lg">
+  {{ page_header('ویرایش توافق‌نامه' if editing else 'ثبت توافق‌نامه', 'با «' ~ atelier.name ~ '»', back_url=url_for('halls.agreements'), back_label='توافق‌نامه‌ها') }}
+
+  <form method="post" class="stack stack--lg" novalidate action="{{ url_for('halls.agreement_edit', agreement_id=agreement.id) if editing else url_for('halls.agreement_new') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    {% if not editing %}<input type="hidden" name="atelier_id" value="{{ atelier.id }}">{% endif %}
+
+    {% call card(title='بازه و تالار') %}
+      <div class="form-grid form-grid--2">
+        {% if not editing and hall_choices|length > 1 %}
+        {{ select_field('تالار', 'hall_id', hall_choices, selected=form.get('hall_id'), required=true, error=errors.get('hall_id')) }}
+        {% elif editing %}
+        <div class="field"><span class="field__label">تالار</span><p class="hl-note-box">{{ agreement.hall.name }}</p></div>
+        {% endif %}
+        {{ jdate_input('start_date', form.get('start_date'), label='تاریخ شروع', required=true, error=errors.get('start_date')) }}
+        {{ jdate_input('end_date', form.get('end_date'), label='تاریخ پایان', error=errors.get('end_date'), help='خالی = بدون تاریخ پایان') }}
+      </div>
+      {{ checkbox_field('انحصاری', 'is_exclusive', checked=form.get('is_exclusive', false),
+                        help='در این بازه فقط همین اتلیه می‌تواند مراسم این تالار را بگیرد؛ پیشنهاد به اتلیه‌های دیگر و برداشتن از فهرست باز بسته می‌شود.') }}
+    {% endcall %}
+
+    {% call card(title='شرایط مالی', subtitle='اجارهٔ هر مراسم یا درصد سهم؛ یکی از دو') %}
+      <div class="form-grid form-grid--2">
+        {{ money_input('rent_per_event', form.get('rent_per_event', ''), label='اجارهٔ هر مراسم', error=errors.get('rent_per_event'),
+                       help='در فاکتور اتلیه به‌عنوان اجارهٔ باغ/تالار پیشنهاد می‌شود (اتلیه می‌تواند عوضش کند).') }}
+        {{ form_field('درصد سهم تالار', name='revenue_share_percent', inputmode='numeric', dir='ltr', value=form.get('revenue_share_percent', ''), error=errors.get('revenue_share_percent'), maxlength=3, help='عدد ۰ تا ۱۰۰') }}
+        {{ money_input('deposit', form.get('deposit', ''), label='مبلغ بیعانه', error=errors.get('deposit')) }}
+      </div>
+    {% endcall %}
+
+    {% call card(title='تماس و توضیحات') %}
+      <div class="form-grid form-grid--2">
+        {{ form_field('نام مسئول', name='contact_name', value=form.get('contact_name', ''), error=errors.get('contact_name'), maxlength=120) }}
+        {{ form_field('تلفن مسئول', name='contact_phone', type='tel', inputmode='numeric', dir='ltr', value=form.get('contact_phone', ''), error=errors.get('contact_phone'), maxlength=30) }}
+        <div class="span-all">{{ textarea_field('توضیحات', 'notes', form.get('notes', ''), rows=3, error=errors.get('notes')) }}</div>
+      </div>
+    {% endcall %}
+
+    <div class="form-actions form-actions--sticky">
+      <button class="btn btn--primary" type="submit">{{ icon('check') }}<span>ذخیره</span></button>
+      <a class="btn" href="{{ url_for('halls.agreements') }}">انصراف</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

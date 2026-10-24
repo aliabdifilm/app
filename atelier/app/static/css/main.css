@@ -1,0 +1,4 @@
+/* Atelier Sayyar - main module (fallback dashboard tiles).  Tokens only. */
+.tile { display: block; color: var(--text); text-decoration: none; }
+.tile:hover { color: var(--accent-text); }
+.tile .icon { color: var(--accent-text); }

@@ -1,0 +1,185 @@
+{#-
+  Macros of the marketplace module.  Import what you need:
+      {% from 'marketplace/_macros.html' import job_card, terms_summary, terms_editor, section_tabs %}
+  Classes are prefixed `mk-` and live in static/css/marketplace.css (tokens only, no inline style).
+  User text is always escaped; nothing here uses |safe on it.
+-#}
+{% from 'components/ui.html' import icon, badge, money_input, rating_stars, avatar, tabs %}
+
+{# date_tile(day) - day number and month of a Gregorian date, shown in Jalali. #}
+{% macro date_tile(day) -%}
+{%- set parts = (day|jdate('short')).split(' ') -%}
+<span class="mk-date" aria-hidden="true">
+  <span class="mk-date__day">{{ parts[0] }}</span>
+  <span class="mk-date__month">{{ parts[1] if parts|length > 1 else '' }}</span>
+</span>
+{%- endmacro %}
+
+{# trust(c) - the "verified" badge and star rating of an atelier (c is a cards.JobCard). #}
+{% macro trust(c) -%}
+{%- if c.verified %}{{ badge('تأییدشده', 'success', 'shield') }}{% endif -%}
+{%- if c.rating %} {{ rating_stars(c.rating.average, count=c.rating.count) }}{% else %} <span class="text-faint text-sm">هنوز امتیازی ندارد</span>{% endif -%}
+{%- endmacro %}
+
+{# terms_summary(c, scenarios=None) - the pay terms in plain Persian with the worked example.
+   c is a cards.JobCard (terms, lines, example).  `scenarios` adds the "if N photos are sold" table. #}
+{% macro terms_summary(c, scenarios=none) -%}
+<div class="mk-pay">
+  {%- if c.has_terms %}
+  <ul class="mk-pay__lines">
+    {%- for line in c.lines %}<li>{{ line }}</li>{% endfor %}
+  </ul>
+  {%- if c.terms.bonus_tiers|length > 1 %}<p class="mk-pay__note">پله‌های پاداش جمع نمی‌شوند؛ فقط بالاترین پله‌ای که به آن برسید پرداخت می‌شود.</p>{% endif %}
+  {%- if c.example %}
+  <p class="mk-pay__example"><span class="mk-pay__label">نمونه</span> <strong>{{ c.example.sentence }}</strong></p>
+  {%- endif %}
+  {%- if scenarios %}
+  <div class="mk-scen">
+    <p class="mk-scen__caption">اگر این‌قدر عکس فروخته شود (پایه + پورسانت + پاداش = جمع):</p>
+    <ul class="mk-scen__list">
+      {%- for row in scenarios %}
+      <li class="mk-scen__row">
+        <span class="mk-scen__units">{{ row.units|fa }} عکس</span>
+        <strong class="mk-scen__total">{{ row.total|toman }} تومان</strong>
+        <span class="mk-scen__formula">{{ row.formula }}</span>
+      </li>
+      {%- endfor %}
+    </ul>
+  </div>
+  {%- endif %}
+  {%- else %}
+  <p class="mk-pay__none">مبلغ با توافق تعیین می‌شود.</p>
+  {%- endif %}
+</div>
+{%- endmacro %}
+
+{# job_card(c) - a post on the board (c is a cards.JobCard). #}
+{% macro job_card(c) -%}
+{%- set post = c.post -%}
+<article class="card mk-job{% if not c.is_open %} mk-job--closed{% endif %}" aria-labelledby="job-{{ post.id }}-title">
+  <div class="card__body mk-job__body">
+    <div class="mk-job__head">
+      {{ date_tile(post.date) }}
+      <div class="mk-job__title">
+        <h2 class="mk-job__name" id="job-{{ post.id }}-title"><a href="{{ url_for('marketplace.job_detail', post_id=post.id) }}">{{ post.title }}</a></h2>
+        <p class="mk-job__atelier"><span class="mk-job__atelier-name">{{ c.atelier.name }}</span> {{ trust(c) }}</p>
+      </div>
+    </div>
+    <p class="mk-chips">
+      {{ badge(post.role.label, 'accent') }}
+      <span class="mk-fact">{{ icon('calendar') }}{{ post.date|jweekday }} {{ post.date|jdate('long') }}</span>
+      {%- if post.city %}<span class="mk-fact">{{ icon('map-pin') }}{{ post.city }}</span>{% endif %}
+      {%- if c.hall_name %}<span class="mk-fact">{{ icon('building') }}{{ c.hall_name }}</span>{% endif %}
+      <span class="mk-fact">{{ icon('users') }}{{ c.slots_left|fa }} جای خالی از {{ post.slots|fa }}</span>
+    </p>
+    {{ terms_summary(c) }}
+    <div class="mk-actions">
+      {%- if c.is_open %}
+      <a class="btn btn--primary" href="{{ url_for('marketplace.job_detail', post_id=post.id) }}">{{ icon('send') }}<span>مشاهده و درخواست</span></a>
+      {%- else %}
+      <a class="btn btn--secondary" href="{{ url_for('marketplace.job_detail', post_id=post.id) }}"><span>مشاهده</span></a>
+      {{ badge('تکمیل شده' if c.slots_left == 0 else 'بسته', 'neutral') }}
+      {%- endif %}
+    </div>
+  </div>
+</article>
+{%- endmacro %}
+
+{# skill_badges(skills, highlight=None) - one badge per skill value. #}
+{% macro skill_badges(skills, highlight=none) -%}
+{%- for value in skills %}{{ badge(label_fa('skill', value), 'accent' if value == highlight else 'neutral') }} {% endfor -%}
+{%- endmacro %}
+
+{# contact_box(title, name, mobile, phone) - shown ONLY after an accepted application / committed assignment. #}
+{% macro contact_box(title, name, mobile, phone=none) -%}
+<div class="mk-contact" role="group" aria-label="{{ title }}">
+  <p class="mk-contact__title">{{ icon('phone') }}<strong>{{ title }}</strong></p>
+  <p class="mk-contact__name">{{ name }}</p>
+  <ul class="mk-contact__list">
+    {%- if mobile %}<li><a class="btn btn--secondary btn--sm" href="tel:{{ mobile }}">{{ icon('phone') }}<span>تماس با <bdo dir="ltr" class="num">{{ mobile|fa }}</bdo></span></a></li>{% endif %}
+    {%- if phone %}<li><a class="btn btn--ghost btn--sm" href="tel:{{ phone }}"><span>تلفن اتلیه: <bdo dir="ltr" class="num">{{ phone|fa }}</bdo></span></a></li>{% endif %}
+  </ul>
+</div>
+{%- endmacro %}
+
+{# section_tabs(section, ...) - the tabs that tie the pages of one role together. #}
+{% macro manager_tabs(active, pending=0) -%}
+{{ tabs([
+    {'key': 'posts', 'label': 'آگهی‌ها', 'url': url_for('marketplace.manage_jobs')},
+    {'key': 'inbox', 'label': 'درخواست‌ها', 'url': url_for('marketplace.inbox'), 'badge': (pending|fa) if pending else none},
+    {'key': 'reviews', 'label': 'نظرها', 'url': url_for('marketplace.reviews')}
+  ], active=active, label='بخش‌های بازار کار', id='mk-sections') }}
+{%- endmacro %}
+
+{% macro staff_tabs(active, invitations=0) -%}
+{{ tabs([
+    {'key': 'applications', 'label': 'درخواست‌ها', 'url': url_for('marketplace.my_applications')},
+    {'key': 'invitations', 'label': 'دعوت‌ها', 'url': url_for('marketplace.my_invitations'), 'badge': (invitations|fa) if invitations else none},
+    {'key': 'reviews', 'label': 'نظرها', 'url': url_for('marketplace.reviews')}
+  ], active=active, label='بخش‌های بازار کار', id='mk-sections') }}
+{%- endmacro %}
+
+{# ---------------------------------------------------------------- pay terms editor -#}
+{% macro tier_row(threshold, amount) -%}
+<div class="mk-tier" data-tier-row>
+  <div class="mk-tier__count">
+    <input class="input input--num" type="text" inputmode="numeric" dir="ltr" autocomplete="off"
+      name="tier_threshold[]" value="{{ threshold|fa }}" placeholder="مثلاً ۷۰" aria-label="تعداد عکس برای رسیدن به این پله">
+    <span class="mk-tier__unit">عکس به بالا</span>
+  </div>
+  <div class="input-group mk-tier__amount">
+    <input class="input" type="text" data-money name="tier_amount[]" value="{{ amount }}" placeholder="مثلاً ۱۵۰٬۰۰۰" aria-label="مبلغ پاداش این پله">
+    <span class="input-group__addon">تومان</span>
+  </div>
+  <button type="button" class="icon-btn" data-tier-remove aria-label="حذف این پله">{{ icon('trash') }}</button>
+</div>
+{%- endmacro %}
+
+{% macro tiers_editor(rows, error=none) -%}
+<div class="mk-tiers{% if error %} field--invalid{% endif %}" data-tiers>
+  <p class="field__label">پلهٔ پاداش (اختیاری)</p>
+  <p class="field__help">وقتی فروش مراسم به هر پله برسد، فقط مبلغ بالاترین پلهٔ رسیده‌شده به حقوق اضافه می‌شود؛ «۷۰ عکس به بالا» یعنی ۷۰ و بیشتر.</p>
+  <div class="mk-tiers__rows" data-tiers-rows>
+    {%- for row in rows or [] %}{{ tier_row(row.threshold, row.amount) }}{% endfor %}
+    {%- if not rows %}{{ tier_row('', '') }}{% endif %}
+  </div>
+  <template data-tiers-template>{{ tier_row('', '') }}</template>
+  <button type="button" class="btn btn--sm btn--secondary" data-tiers-add>{{ icon('plus') }}<span>افزودن پله</span></button>
+  {%- if error %}<p class="field__error" role="alert">{{ icon('alert') }}<span>{{ error }}</span></p>{% endif %}
+</div>
+{%- endmacro %}
+
+{# terms_editor(form, errors) - base + commission per photo + bonus tiers + the live worked example. #}
+{% macro terms_editor(form, errors, example=none) -%}
+<div class="mk-terms stack stack--sm" data-terms-editor>
+  <div class="form-grid form-grid--2">
+    {{ money_input('base', form.get('base'), label='حقوق پایه', error=errors.get('base'), help='مبلغ ثابت همکاری در این مراسم') }}
+    {{ money_input('commission', form.get('commission'), label='پورسانت هر عکس', error=errors.get('commission'), help='برای هر عکس فروخته‌شده') }}
+  </div>
+  {{ tiers_editor(form.get('tiers') or [], errors.get('tiers')) }}
+  <div class="mk-example" data-pay-example data-units="80" data-url="{{ url_for('marketplace.pay_preview') }}" aria-live="polite">
+    <p class="mk-example__title">نمونهٔ حقوق: اگر <span>۸۰</span> عکس فروخته شود</p>
+    <p class="mk-example__line text-muted" data-example-line>{% if example %}{{ example.sentence }}{% else %}با تکمیل مبالغ، نمونه این‌جا نمایش داده می‌شود.{% endif %}</p>
+  </div>
+</div>
+{%- endmacro %}
+
+{# star_row(review) - one visible review. #}
+{% macro review_item(review, who) -%}
+<li class="mk-review">
+  <div class="mk-review__head">
+    <strong>{{ who }}</strong>
+    {{ rating_stars(review.rating, show_value=false) }}
+    <span class="text-muted text-sm">{{ review.created_at|jdate }}</span>
+  </div>
+  {%- if review.comment %}<p class="mk-text">{{ review.comment }}</p>{% endif %}
+</li>
+{%- endmacro %}
+
+{# review_party(review, side) - the name of the author or subject of a review: the atelier's name when that
+   person is the atelier's manager, otherwise the person's name (never the mobile number). #}
+{% macro review_party(review, side) -%}
+{%- set user = review.author if side == 'author' else review.subject -%}
+{%- set atelier = review.assignment.event.atelier -%}
+{%- if atelier and user.id == atelier.manager_id %}{{ atelier.name }}{% else %}{{ user|mk_name }}{% endif -%}
+{%- endmacro %}

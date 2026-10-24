@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+{% from 'components/ui.html' import page_header, card, form_field, select_field, textarea_field, jdate_input, icon, alert %}
+{% block title %}افزودن چند تاریخ{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='css/halls.css', v=asset_version|default('1')) }}">{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/halls.js', v=asset_version|default('1')) }}" defer></script>{% endblock %}
+
+{% block content %}
+{% set picked = form.get('dates') or [] %}
+{% set chosen_days = form.get('rule_weekdays') or [] %}
+<div class="page page--narrow stack stack--lg">
+  {{ page_header('افزودن چند تاریخ', 'تاریخ‌های یک فصل یا یک ماه را یک‌جا ثبت کنید؛ بعد همه را به اتلیه‌ها پیشنهاد بدهید.', back_url=url_for('halls.events'), back_label='مراسم‌ها') }}
+
+  <form method="post" class="stack stack--lg" novalidate action="{{ url_for('halls.bulk_new') }}" data-bulk-form>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    {% call card(title='۱. تاریخ‌ها') %}
+      <div class="stack stack--lg">
+        {% if errors.get('dates') %}<p class="field__error" role="alert">{{ icon('alert') }}<span>{{ errors.get('dates') }}</span></p>{% endif %}
+
+        {#- the calendar picker is built by halls.js; without JavaScript the typed list below is used -#}
+        <div class="hl-md-shell">
+          <div class="hl-md" data-multidate data-min="{{ today.isoformat() }}" data-max="{{ max_dates }}" data-initial="{{ picked|join(',') }}">
+            <noscript></noscript>
+          </div>
+        </div>
+
+        <div class="hl-rule" data-rule data-expand-url="{{ expand_url }}">
+          <h3 class="hl-section-title">ساخت خودکار تاریخ‌ها</h3>
+          <p class="text-muted text-sm">مثلاً «همهٔ پنجشنبه‌ها و جمعه‌های تابستان». با دکمهٔ «افزودن به انتخاب» تاریخ‌ها به تقویم بالا اضافه می‌شود و می‌توانید روزهای تعطیل را برداشته یا تغییر دهید.</p>
+          <div class="form-grid form-grid--2">
+            {{ select_field('الگو', 'rule_mode', [('weekly', 'روزهای مشخص هر هفته'), ('monthly', 'روزهای مشخص هر ماه شمسی'), ('', 'بدون الگو')], selected=form.get('rule_mode', 'weekly'), error=errors.get('rule_mode')) }}
+            <div></div>
+            {{ jdate_input('rule_from', form.get('rule_from'), label='از تاریخ', min=today, error=errors.get('rule_from')) }}
+            {{ jdate_input('rule_to', form.get('rule_to'), label='تا تاریخ', min=today, error=errors.get('rule_to')) }}
+          </div>
+          <fieldset class="hl-weekdays" data-rule-weekly>
+            <legend>روزهای هفته</legend>
+            {% for index, label in weekday_choices %}
+            <label class="hl-weekday"><input type="checkbox" name="rule_weekdays" value="{{ index }}"{% if index|string in chosen_days %} checked{% endif %}><span>{{ label }}</span></label>
+            {% endfor %}
+            {% if errors.get('rule_weekdays') %}<p class="field__error" role="alert">{{ icon('alert') }}<span>{{ errors.get('rule_weekdays') }}</span></p>{% endif %}
+          </fieldset>
+          <div class="form-grid form-grid--2" data-rule-monthly>
+            {{ form_field('روزهای ماه', name='rule_days', value=form.get('rule_days', ''), placeholder='مثلاً ۱، ۱۵، ۳۰', error=errors.get('rule_days'),
+                          help='هر روز عددی از ۱ تا ۳۱ (تاریخ شمسی).') }}
+            {{ select_field('اگر ماه آن روز را نداشت', 'rule_short', [('clamp', 'آخرین روز همان ماه'), ('skip', 'آن ماه را نادیده بگیر')], selected=form.get('rule_short', 'clamp'),
+                            help='مثلاً ۳۱ در مهر یا ۳۰ در اسفند سال غیرکبیسه.') }}
+          </div>
+          <div><button class="btn btn--secondary hl-rule-submit-js" type="button" data-rule-apply>{{ icon('plus') }}<span>افزودن به انتخاب</span></button></div>
+        </div>
+
+        <div class="stack stack--sm">
+          {{ textarea_field('یا تاریخ‌ها را تایپ کنید', 'dates_text', form.get('dates_text', ''), rows=3, error=errors.get('dates_text'),
+                            help='هر تاریخ در یک خط یا با ویرگول جدا شود؛ شمسی (۱۴۰۴/۰۵/۱۲) یا میلادی (2025-08-03). اسفندِ سال غیرکبیسه ۲۹ روز دارد.') }}
+        </div>
+      </div>
+    {% endcall %}
+
+    {% call card(title='۲. تالار و مشخصات مراسم') %}
+      <div class="form-grid form-grid--2">
+        {% if hall_choices|length > 1 %}
+        {{ select_field('تالار', 'hall_id', hall_choices, selected=form.get('hall_id'), required=true, error=errors.get('hall_id')) }}
+        {% endif %}
+        {{ select_field('نوع مراسم', 'ceremony_type', ceremony_choices, selected=form.get('ceremony_type'), required=true, error=errors.get('ceremony_type')) }}
+        {{ form_field('ساعت شروع', name='start_time', type='time', dir='ltr', value=form.get('start_time', ''), error=errors.get('start_time'), help='اختیاری') }}
+        {{ form_field('ساعت دوم (مثلاً شام)', name='start_time_2', type='time', dir='ltr', value=form.get('start_time_2', ''), error=errors.get('start_time_2'),
+                      help='اگر در یک روز دو مراسم دارید، برای هر روز دو مراسم ساخته می‌شود.') }}
+        {{ form_field('تعداد میهمان (تقریبی)', name='guests', inputmode='numeric', dir='ltr', value=form.get('guests', ''), error=errors.get('guests'), maxlength=6) }}
+        {{ form_field('عنوان (اختیاری)', name='title', value=form.get('title', ''), error=errors.get('title'), maxlength=150) }}
+        <div class="span-all">{{ textarea_field('توضیحات', 'notes', form.get('notes', ''), rows=2, error=errors.get('notes')) }}</div>
+      </div>
+      <p class="text-muted text-sm">مراسمی که همان تالار، تاریخ و ساعت را دارد دوباره ساخته نمی‌شود؛ پس ارسال دوباره فرم بی‌خطر است. تاریخ‌های گذشته نادیده گرفته می‌شود.</p>
+    {% endcall %}
+
+    <div class="form-actions form-actions--sticky">
+      <button class="btn btn--primary" type="submit">{{ icon('check') }}<span>ثبت مراسم‌ها</span></button>
+      <a class="btn" href="{{ url_for('halls.events') }}">انصراف</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

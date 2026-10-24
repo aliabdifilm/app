@@ -1,0 +1,116 @@
+{#- The read-only invoice shown inside the event card's accordion: sold products, payments, expenses,
+    per-person payroll and the net result.  Print and CSV buttons; edit / reopen / void for the owner. -#}
+{% from 'components/ui.html' import badge, icon, alert %}
+
+{% macro money(value) -%}<span class="num">{{ value|toman }}</span>{%- endmacro %}
+
+{% macro invoice_detail(inv, ev, can_edit) -%}
+<div class="inv-detail stack">
+  {% if inv.status.value == 'void' %}
+  {{ alert('این فاکتور باطل شده است و در حقوق و گزارش‌ها حساب نمی‌شود.', 'danger') }}
+  {% elif inv.status.value == 'draft' %}
+  {{ alert('این فاکتور بازگشایی شده است؛ پس از اصلاح، آن را دوباره ثبت کنید.', 'warning') }}
+  {% endif %}
+
+  <dl class="kv inv-detail__kv">
+    <dt>شمارهٔ فاکتور</dt><dd class="num">{{ inv.id|fa }}</dd>
+    <dt>وضعیت</dt><dd>{{ inv.status.label }}</dd>
+    <dt>نسخه</dt><dd class="num">{{ inv.revision|fa }}</dd>
+    {% if inv.submitted_at %}<dt>آخرین ثبت</dt><dd class="num">{{ inv.submitted_at|jdatetime }}</dd>{% endif %}
+  </dl>
+
+  <section aria-label="محصولات فروش‌رفته">
+    <h5 class="inv-detail__title">محصولات فروش‌رفته</h5>
+    {% if inv.lines %}
+    <ul class="inv-lines">
+      {% for line in inv.lines %}
+      <li>
+        <span class="inv-lines__label">{{ line.category.label }}{% if line.size_label %} <span class="num">{{ line.size_label|replace('x', '×')|fa }}</span>{% endif %}{% if line.is_custom_size %} {{ badge('ابعاد دیگر', 'neutral') }}{% endif %}</span>
+        <span class="inv-lines__meta">{{ line.qty|fa }} عدد{% if line.commission_weight != 1 %} × ضریب {{ line.commission_weight|fa }}{% endif %}</span>
+        <b class="inv-lines__value">{% if line.counts_for_commission %}{{ (line.qty * line.commission_weight)|fa }} واحد{% else %}<span class="text-muted">بدون پورسانت</span>{% endif %}</b>
+      </li>
+      {% endfor %}
+      <li class="inv-lines__total"><span class="inv-lines__label">جمع واحدهای پورسانت</span><span class="inv-lines__meta"></span><b class="inv-lines__value">{{ inv.units_total|fa }} واحد</b></li>
+    </ul>
+    {% else %}<p class="text-muted text-sm">محصولی فروخته نشده است.</p>{% endif %}
+  </section>
+
+  <section aria-label="دریافتی‌ها">
+    <h5 class="inv-detail__title">دریافتی‌ها</h5>
+    <ul class="inv-lines">
+      {% for p in inv.payments %}<li><span class="inv-lines__label">{{ p.method.label }}</span><span class="inv-lines__meta"></span><b class="inv-lines__value">{{ money(p.amount) }} <small class="text-muted">تومان</small></b></li>{% endfor %}
+      <li class="inv-lines__total"><span class="inv-lines__label">جمع دریافتی</span><span class="inv-lines__meta"></span><b class="inv-lines__value">{{ money(inv.income_total) }} <small class="text-muted">تومان</small></b></li>
+    </ul>
+  </section>
+
+  <section aria-label="هزینه‌ها">
+    <h5 class="inv-detail__title">هزینه‌ها</h5>
+    {% set staff_total = inv.expenses|selectattr('kind.value', 'equalto', 'staff_pay')|map(attribute='amount')|sum %}
+    <ul class="inv-lines">
+      {% for e in inv.expenses if e.kind.value != 'staff_pay' %}
+      <li><span class="inv-lines__label">{{ e.label or e.kind.label }}{% if e.is_auto %} <small class="text-muted">(خودکار)</small>{% endif %}</span><span class="inv-lines__meta">{{ e.kind.label }}</span><b class="inv-lines__value">{{ money(e.amount) }}</b></li>
+      {% endfor %}
+      <li><span class="inv-lines__label">حقوق نیروها <small class="text-muted">(جزئیات در بخش بعد)</small></span><span class="inv-lines__meta">{{ ExpenseKind.STAFF_PAY.label }}</span><b class="inv-lines__value">{{ money(staff_total) }}</b></li>
+      <li class="inv-lines__total"><span class="inv-lines__label">جمع هزینه‌ها</span><span class="inv-lines__meta"></span><b class="inv-lines__value">{{ money(inv.expense_total) }} <small class="text-muted">تومان</small></b></li>
+    </ul>
+  </section>
+
+  <section aria-label="حقوق نیروها">
+    <h5 class="inv-detail__title">حقوق نیروها</h5>
+    {% if inv.payroll_lines %}
+    <ul class="inv-pay">
+      {% for pl in inv.payroll_lines %}
+      <li>
+        <div class="inv-pay__who"><strong>{{ pl.person_name }}</strong> <span class="text-muted">· {{ pl.role.label if pl.role else '' }}</span>
+          {% if pl.is_paid %}{{ badge('پرداخت شد', 'success', 'check') }} <small class="text-muted num">{{ pl.paid_at|jdate }}</small>{% else %}{{ badge('پرداخت نشده', 'warning') }}{% endif %}</div>
+        <div class="inv-pay__parts text-sm text-muted">
+          <span>پایه <b class="num">{{ pl.base|toman }}</b></span>
+          <span>پورسانت <b class="num">{{ pl.commission|toman }}</b> ({{ pl.units|fa }} واحد)</span>
+          <span>پاداش <b class="num">{{ pl.bonus|toman }}</b>{% if pl.applied_tier %} (پلهٔ {{ pl.applied_tier.threshold|fa }}+){% endif %}</span>
+        </div>
+        <b class="inv-pay__total num">{{ pl.total|toman }} <small class="text-muted">تومان</small></b>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}<p class="text-muted text-sm">نیروی تأییدشده‌ای برای این مراسم ثبت نشده بود.</p>{% endif %}
+  </section>
+
+  <div class="sheet__totals inv-detail__result" aria-label="نتیجهٔ مراسم">
+    <div><span>درآمد</span><b>{{ money(inv.income_total) }}</b></div>
+    <div><span>هزینه‌ها</span><b>{{ money(inv.expense_total) }}</b></div>
+    <div class="is-total{% if inv.net_profit < 0 %} is-negative{% endif %}"><span>سود خالص</span><b class="num">{{ '−' if inv.net_profit < 0 }}{{ inv.net_profit|abs|toman }} تومان</b></div>
+  </div>
+
+  {% if inv.notes %}<p class="text-sm"><strong>یادداشت:</strong> {{ inv.notes }}</p>{% endif %}
+
+  <div class="cluster no-print inv-detail__actions">
+    {% if can_edit and inv.status.value != 'void' %}
+    <a class="btn btn--primary btn--sm" href="{{ url_for('accounting.invoice_form', event_id=ev.id) }}" data-invoice-open data-invoice-title="ویرایش فاکتور · {{ ev.hall.name }} · {{ ev.date|jdate }}">{{ icon('edit') }}<span>ویرایش</span></a>
+    {% endif %}
+    <a class="btn btn--sm" href="{{ url_for('accounting.invoice_print', invoice_id=inv.id) }}" target="_blank" rel="noopener">{{ icon('printer') }}<span>چاپ</span></a>
+    <a class="btn btn--sm" href="{{ url_for('accounting.invoice_csv', invoice_id=inv.id) }}" download>{{ icon('download') }}<span>خروجی CSV</span></a>
+  </div>
+
+  {% if inv.status.value in ('submitted', 'draft') %}
+  <details class="inv-detail__lifecycle no-print">
+    <summary>بازگشایی یا ابطال فاکتور</summary>
+    <form method="post" class="stack stack--sm" data-no-lock>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="field">
+        <label class="field__label" for="reason-{{ inv.id }}">دلیل (الزامی)</label>
+        <input class="input" id="reason-{{ inv.id }}" name="reason" maxlength="300" required minlength="3" placeholder="مثلاً: اشتباه در شرایط پرداخت نیرو">
+        <p class="field__help">بازگشایی، قفل شرایط پرداخت نیروها را برمی‌دارد تا بتوانید آن را اصلاح کنید؛ ابطال، فاکتور را برای همیشه از حساب‌ها خارج می‌کند. هر دو در گزارش تغییرات ثبت می‌شوند.</p>
+      </div>
+      <div class="cluster cluster--sm">
+        {% if inv.status.value == 'submitted' %}
+        <button type="submit" class="btn btn--sm" formaction="{{ url_for('accounting.invoice_reopen', invoice_id=inv.id) }}"
+          data-confirm="فاکتور بازگشایی می‌شود و مراسم از «فاکتور شده» به «برگزار شده» برمی‌گردد. ادامه می‌دهید؟" data-confirm-title="بازگشایی فاکتور" data-confirm-label="بله، بازگشایی شود" data-confirm-tone="primary">بازگشایی فاکتور</button>
+        {% endif %}
+        <button type="submit" class="btn btn--sm btn--danger-soft" formaction="{{ url_for('accounting.invoice_void', invoice_id=inv.id) }}"
+          data-confirm="فاکتور باطل می‌شود و دیگر قابل ویرایش نیست. ادامه می‌دهید؟" data-confirm-title="ابطال فاکتور" data-confirm-label="بله، باطل شود">ابطال فاکتور</button>
+      </div>
+    </form>
+  </details>
+  {% endif %}
+</div>
+{%- endmacro %}

@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% from 'components/ui.html' import page_header, card, alert, badge, rating_input, rating_stars, textarea_field, icon %}
+{% block title %}ثبت نظر{% endblock %}
+{% block head %}<meta name="robots" content="noindex"><link rel="stylesheet" href="{{ url_for('static', filename='css/marketplace.css', v=asset_version|default('1')) }}">{% endblock %}
+
+{% block content %}
+<div class="page page--narrow stack stack--lg">
+  {{ page_header('ثبت نظر دربارهٔ ' ~ context.subject_name, assignment.role.label ~ ' · ' ~ event.date|jdate('long') ~ (' · ' ~ event.hall.name if event.hall else ''),
+                 back_url=url_for('marketplace.reviews'), back_label='نظرها') }}
+
+  {% if problem %}{% call alert(tone='danger', title='نظر ثبت نشد') %}{{ problem }}{% endcall %}{% endif %}
+
+  {% if existing %}
+  {% call card(title='نظر شما ثبت شده است', tone='success') %}
+    {{ rating_stars(existing.rating) }}
+    {% if existing.comment %}<p class="mk-text">{{ existing.comment }}</p>{% endif %}
+    <p class="text-muted text-sm">{{ existing.created_at|jdate('long') }} · هر همکاری فقط یک نظر دارد.</p>
+  {% endcall %}
+  {% elif not completed %}
+  {% call alert(tone='info', title='هنوز زود است') %}نظر را فقط پس از برگزاری مراسم و تکمیل همکاری می‌توان ثبت کرد.{% endcall %}
+  {% else %}
+  <form method="post" class="stack stack--lg" novalidate>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    {% call card(title='امتیاز شما') %}
+      <div class="field{% if errors.get('rating') %} field--invalid{% endif %}">
+        {{ rating_input('rating', form.get('rating'), label='امتیاز از ۱ تا ۵ ستاره') }}
+        {% if errors.get('rating') %}<p class="field__error" role="alert">{{ icon('alert') }}<span>{{ errors.get('rating') }}</span></p>{% endif %}
+      </div>
+      {{ textarea_field('نظر (اختیاری)', 'comment', form.get('comment', ''), rows=5, maxlength=1000, error=errors.get('comment'),
+                        placeholder='دقت‌در‌وقت، مهارت، همکاری تیمی، پرداخت به‌موقع و ...',
+                        help='نظر واقعی و محترمانه بنویسید؛ شمارهٔ تماس یا لینک نگذارید. نظر پس از ثبت قابل ویرایش نیست.') }}
+    {% endcall %}
+    <div class="form-actions form-actions--sticky">
+      <button class="btn btn--primary btn--lg" type="submit">{{ icon('check') }}<span>ثبت نظر</span></button>
+      <a class="btn btn--ghost btn--lg" href="{{ url_for('marketplace.reviews') }}">انصراف</a>
+    </div>
+  </form>
+  {% endif %}
+</div>
+{% endblock %}

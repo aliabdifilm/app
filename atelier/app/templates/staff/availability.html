@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+{% from 'components/ui.html' import page_header, alert, badge, icon, jdate_input, select_field, checkbox_field, form_field %}
+{% from 'staff/_macros.html' import schedule_tabs, csrf %}
+{% block title %}روزهای آزاد و مشغول{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='css/staff.css', v=asset_version|default('1')) }}">{% endblock %}
+
+{% block content %}
+<div class="page stack stack--lg">
+  {{ page_header('روزهای آزاد و مشغول', 'روزهایی را که نمی‌توانید کار کنید علامت بزنید؛ اتلیه‌ها هنگام افیش به شما هشدار می‌گیرند.') }}
+  {{ schedule_tabs('availability') }}
+
+  <div class="st-month">
+    <a class="icon-btn" href="{{ prev_url }}" rel="prev" aria-label="ماه قبل">{{ icon('chevron-right') }}</a>
+    <h2 class="st-month__title">{{ title }}</h2>
+    <a class="icon-btn" href="{{ next_url }}" rel="next" aria-label="ماه بعد">{{ icon('chevron-left') }}</a>
+  </div>
+  <p class="st-chips">
+    {{ badge(unavailable_count|fa ~ ' روز مشغول', 'danger' if unavailable_count else 'neutral') }}
+    {{ badge(free_count|fa ~ ' روز آزاد', 'success' if free_count else 'neutral') }}
+    {% if this_month_url %}<a class="btn btn--ghost btn--sm" href="{{ this_month_url }}">ماه جاری</a>{% endif %}
+  </p>
+
+  {#- ================================ day picker ================================ -#}
+  <form id="av-form" class="stack" method="post" action="{{ url_for('staff.availability_save') }}" data-availability>
+    {{ csrf() }}
+    <input type="hidden" name="y" value="{{ year }}">
+    <input type="hidden" name="m" value="{{ month }}">
+
+    <div class="av-grid" role="group" aria-label="روزهای {{ title }}">
+      {% for name in weekdays %}
+      <div class="av-dow{% if loop.last %} av-dow--weekend{% endif %}" aria-hidden="true">{{ name[0] }}</div>
+      {% endfor %}
+      {% for week in grid %}{% for day in week %}
+      {% if not day %}
+      <div class="av-day av-day--blank" aria-hidden="true"></div>
+      {% else %}
+      {% set mark = marks.get(day) %}
+      {% set work = busy.get(day) %}
+      {% set state = 'off' if (mark and mark.status.value == 'unavailable') else ('on' if mark else 'none') %}
+      {% set locked = day < today or day > horizon or work %}
+      {% set label = day|jweekday ~ ' ' ~ (day|jdate('long')) %}
+      {% if locked %}
+      <div class="av-day av-day--locked av-day--{{ state }}{% if work %} av-day--work{% endif %}{% if day == today %} av-day--today{% endif %}{% if loop.last %} av-day--weekend{% endif %}"
+           role="img" aria-label="{{ label }}{% if work %}: مراسم دارید{% elif state == 'off' %}: مشغول{% elif state == 'on' %}: آزاد{% elif day < today %}: گذشته{% endif %}">
+        <span class="av-day__num">{{ (day|jdate('short')).split(' ')[0] }}</span>
+        {% if work %}<span class="av-day__state">{{ work[0].role.label }}</span>
+        {% elif state == 'off' %}<span class="av-day__state">مشغول</span>
+        {% elif state == 'on' %}<span class="av-day__state">آزاد</span>{% endif %}
+      </div>
+      {% else %}
+      <label class="av-day av-day--{{ state }}{% if day == today %} av-day--today{% endif %}{% if loop.last %} av-day--weekend{% endif %}">
+        <input type="checkbox" name="days" value="{{ day.isoformat() }}" data-av-day>
+        <span class="visually-hidden">{{ label }}{% if state == 'off' %} (مشغول){% elif state == 'on' %} (آزاد){% endif %}</span>
+        <span class="av-day__num" aria-hidden="true">{{ (day|jdate('short')).split(' ')[0] }}</span>
+        {% if state == 'off' %}<span class="av-day__state" aria-hidden="true">مشغول</span>{% elif state == 'on' %}<span class="av-day__state" aria-hidden="true">آزاد</span>{% endif %}
+      </label>
+      {% endif %}
+      {% endif %}
+      {% endfor %}{% endfor %}
+    </div>
+
+    <div class="av-legend" aria-hidden="true">
+      <span class="av-legend__item"><span class="av-swatch av-swatch--off"></span>مشغول</span>
+      <span class="av-legend__item"><span class="av-swatch av-swatch--on"></span>آزاد</span>
+      <span class="av-legend__item"><span class="av-swatch av-swatch--work"></span>مراسم دارید</span>
+    </div>
+
+    <div class="av-note">
+      <label class="field__label" for="av-note">توضیح (اختیاری)</label>
+      <input class="input" id="av-note" type="text" name="note" maxlength="300" placeholder="مثلاً: سفر یا مراسم خانوادگی">
+    </div>
+
+    <div class="av-bar">
+      <p class="av-bar__count" data-av-count aria-live="polite">روزهای دلخواه را انتخاب کنید، سپس یکی از دکمه‌ها را بزنید.</p>
+      <div class="av-bar__buttons">
+        <button class="btn btn--danger-soft" type="submit" name="action" value="unavailable" data-av-action>{{ icon('close') }}<span>مشغول‌ام</span></button>
+        <button class="btn btn--secondary" type="submit" name="action" value="available" data-av-action>{{ icon('check') }}<span>آزادم</span></button>
+        <button class="btn btn--ghost" type="submit" name="action" value="clear" data-av-action aria-label="پاک‌کردن علامت روزهای انتخاب‌شده">{{ icon('refresh') }}<span>پاک‌کردن</span></button>
+      </div>
+    </div>
+  </form>
+
+  {#- ================================ range / weekdays ================================ -#}
+  <details class="card av-range"{% if range_open %} open{% endif %}>
+    <summary class="av-range__summary">{{ icon('calendar') }} علامت‌گذاری یک بازه یا روزهای تکراری هفته</summary>
+    <form class="card__body stack" method="post" action="{{ url_for('staff.availability_range') }}">
+      {{ csrf() }}
+      <input type="hidden" name="y" value="{{ year }}">
+      <input type="hidden" name="m" value="{{ month }}">
+      <p class="text-muted text-sm">مثلاً «هر جمعهٔ سه ماه آینده» یا «از ۱ تا ۱۰ مهر». روزهایی که مراسم دارید یا گذشته‌اند نادیده گرفته می‌شوند (حداکثر {{ max_range|fa }} روز).</p>
+      <div class="form-grid form-grid--2">
+        {{ jdate_input('start', form.get('start'), label='از تاریخ', min=today, required=true, error=errors.get('start')) }}
+        {{ jdate_input('end', form.get('end'), label='تا تاریخ', min=today, required=true, error=errors.get('end')) }}
+      </div>
+      <fieldset class="st-fieldset{% if errors.get('weekdays') %} field--invalid{% endif %}">
+        <legend class="field__label">فقط این روزهای هفته (اگر چیزی انتخاب نشود، همهٔ روزها)</legend>
+        <div class="st-checks">
+          {% for name in weekdays %}
+          {{ checkbox_field(name, 'weekdays', checked=(loop.index0|string in form.get('weekdays', [])), value=loop.index0, id='wd-' ~ loop.index0) }}
+          {% endfor %}
+        </div>
+        {% if errors.get('weekdays') %}<p class="field__error" role="alert">{{ icon('alert') }}<span>{{ errors.get('weekdays') }}</span></p>{% endif %}
+      </fieldset>
+      <div class="form-grid form-grid--2">
+        {{ select_field('عملیات', 'action', [('unavailable', 'در دسترس نیستم'), ('available', 'در دسترس هستم'), ('clear', 'پاک کردن علامت')], selected=form.get('action', 'unavailable'), required=true, error=errors.get('action')) }}
+        {{ form_field('توضیح (اختیاری)', name='note', value=form.get('note', ''), maxlength=300, error=errors.get('note')) }}
+      </div>
+      <div class="form-actions"><button class="btn btn--primary" type="submit">اعمال روی بازه</button></div>
+    </form>
+  </details>
+</div>
+{% endblock %}
+
+{% block scripts %}<script src="{{ url_for('static', filename='js/staff.js', v=asset_version|default('1')) }}" defer></script>{% endblock %}

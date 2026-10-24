@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+{% from 'components/ui.html' import page_header, card, alert, badge, form_field, select_field, jdate_input, textarea_field, stepper_field, icon %}
+{% from 'marketplace/_macros.html' import terms_editor, terms_summary %}
+{% set editing = post is not none %}
+{% block title %}{{ 'ویرایش آگهی' if editing else 'ثبت آگهی' }}{% endblock %}
+{% block head %}<meta name="robots" content="noindex"><link rel="stylesheet" href="{{ url_for('static', filename='css/marketplace.css', v=asset_version|default('1')) }}">{% endblock %}
+
+{% block content %}
+<div class="page page--narrow stack stack--lg">
+  {{ page_header('ویرایش آگهی' if editing else 'ثبت آگهی همکاری',
+                 'شرایط را روشن بنویسید؛ همین شرایط هنگام پذیرفتن نیرو روی افیش ثبت می‌شود.',
+                 back_url=url_for('marketplace.manage_jobs'), back_label='آگهی‌های من') }}
+
+  {% if problem %}
+  {% call alert(tone='danger', title='آگهی ذخیره نشد') %}{{ problem }}{% endcall %}
+  {% endif %}
+  {% if errors %}
+  {% call alert(tone='danger', title='لطفاً خطاهای فرم را اصلاح کنید') %}<ul class="mk-list">{% for message in errors.values() %}<li>{{ message }}</li>{% endfor %}</ul>{% endcall %}
+  {% endif %}
+
+  <form method="post" class="stack stack--lg" novalidate data-mk-form data-presets='{{ presets|tojson }}'>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    {% call card(title='اطلاعات آگهی') %}
+      <div class="form-grid form-grid--2">
+        {% if not editing and ateliers|length > 1 %}
+        {{ select_field('اتلیه', 'atelier_id', atelier_options, selected=form.get('atelier_id'), required=true, error=errors.get('atelier_id')) }}
+        {% endif %}
+        <div class="span-all">{{ form_field('عنوان آگهی', name='title', value=form.get('title', ''), required=true, maxlength=150, error=errors.get('title'), placeholder='مثلاً عکاس برای عروسی پنجشنبه') }}</div>
+        {% if locked %}
+        <div class="span-all">
+          {% call alert(tone='info', title='نقش، تاریخ، مراسم و شرایط پرداخت قفل است') %}
+            چون درخواست در انتظار یا پذیرفته‌شده دارید، متقاضیان همین شرایط را دیده‌اند و نمی‌توان آن را عوض کرد. برای شرایط دیگر، این آگهی را ببندید و آگهی تازه بگذارید.
+          {% endcall %}
+          <p class="mk-chips">{{ badge(post.role.label, 'accent') }}<span class="mk-fact">{{ icon('calendar') }}{{ post.date|jweekday }} {{ post.date|jdate('long') }}</span></p>
+        </div>
+        {% else %}
+        {{ select_field('نقش', 'role', Skill.choices(), selected=form.get('role'), required=true, placeholder='انتخاب نقش', error=errors.get('role')) }}
+        {{ jdate_input('date', form.get('date'), label='تاریخ همکاری', min=today, required=true, error=errors.get('date')) }}
+        {% endif %}
+        {{ form_field('شهر', name='city', value=form.get('city', ''), maxlength=80, error=errors.get('city'), help='اگر خالی بماند، شهر تالار یا اتلیه گذاشته می‌شود.') }}
+        {{ stepper_field('slots', form.get('slots', 1), min=(accepted if accepted > 1 else 1), max=50, label='تعداد نیروی مورد نیاز', default=1) }}
+        {% if not locked %}
+        <div class="span-all">
+          {{ select_field('مراسم مرتبط (اختیاری)', 'event', event_options, selected=form.get('event'), placeholder='بدون مراسم مشخص', error=errors.get('event'),
+                          help='با انتخاب مراسم، نیرویی که می‌پذیرید مستقیم در افیش همان مراسم ثبت می‌شود.') }}
+        </div>
+        {% elif post.event %}
+        <p class="span-all mk-chips"><span class="mk-fact">{{ icon('building') }}{{ post.event.hall.name }} · {{ post.event.date|jdate('long') }}</span></p>
+        {% endif %}
+        <div class="span-all">{{ textarea_field('توضیحات (اختیاری)', 'description', form.get('description', ''), rows=4, maxlength=2000, error=errors.get('description'),
+                                               placeholder='ساعت حضور، پوشش، تجهیزات لازم و ...', help='شمارهٔ تماس را در متن ننویسید؛ پس از پذیرفتن درخواست، شمارهٔ شما خودکار نمایش داده می‌شود.') }}</div>
+      </div>
+    {% endcall %}
+
+    {% if locked %}
+    {% call card(title='حقوق و شرایط پرداخت (قفل‌شده)') %}
+      <ul class="mk-pay__lines">{% for line in post.terms_dict()|mk_terms_lines %}<li>{{ line }}</li>{% endfor %}</ul>
+    {% endcall %}
+    {% else %}
+    {% call card(title='حقوق و شرایط پرداخت', subtitle='حقوق = پایه + (پورسانت × تعداد عکس فروخته‌شده) + پاداش بالاترین پلهٔ رسیده‌شده.') %}
+      {{ terms_editor(form, errors) }}
+    {% endcall %}
+    {% endif %}
+
+    <div class="form-actions form-actions--sticky">
+      <button class="btn btn--primary btn--lg" type="submit">{{ icon('check') }}<span>{{ 'ذخیرهٔ تغییرات' if editing else 'انتشار آگهی' }}</span></button>
+      <a class="btn btn--ghost btn--lg" href="{{ url_for('marketplace.manage_jobs') }}">انصراف</a>
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block scripts %}<script src="{{ url_for('static', filename='js/marketplace.js', v=asset_version|default('1')) }}" defer></script>{% endblock %}

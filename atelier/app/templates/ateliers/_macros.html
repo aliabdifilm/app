@@ -1,0 +1,112 @@
+{#-
+  Macros of the atelier panel.  Import what you need:
+      {% from 'ateliers/_macros.html' import meter, terms_editor, event_head, person_row %}
+  Classes are prefixed `at-` and live in static/css/ateliers.css (tokens only, no inline style).
+-#}
+{% from 'components/ui.html' import icon, badge, money_input, select_field %}
+
+{# meter(c, label=True) - one pip per staffing slot: filled (committed), invited (waiting), missing (nobody asked).
+   c is a board.Completeness. #}
+{% macro meter(c, label=true) -%}
+{%- if c.needed == 0 -%}
+<span class="at-meter at-meter--neutral"><span class="at-meter__text">برای این مراسم نیرویی خواسته نشده است</span></span>
+{%- else -%}
+<span class="at-meter at-meter--{{ c.tone }}" role="img"
+  aria-label="{{ c.filled|fa }} نفر از {{ c.needed|fa }} نفر قطعی{% if c.invited %}، {{ c.invited|fa }} نفر منتظر پاسخ{% endif %}{% if c.missing %}، {{ c.missing|fa }} جای خالی{% endif %}">
+  <span class="at-pips" aria-hidden="true">{% for state in c.pips() %}<span class="at-pip at-pip--{{ state }}"></span>{% endfor %}</span>
+  {%- if label %}
+  <span class="at-meter__text">{{ c.filled|fa }} از {{ c.needed|fa }} قطعی
+    {%- if c.invited %} · {{ c.invited|fa }} منتظر پاسخ{% endif %}
+    {%- if c.missing %} · {{ c.missing|fa }} جای خالی{% endif %}</span>
+  {%- endif %}
+</span>
+{%- endif -%}
+{%- endmacro %}
+
+{# date_tile(date) - day number, month and weekday of a Gregorian date, shown in Jalali. #}
+{% macro date_tile(day) -%}
+<span class="at-date" aria-hidden="true">
+  <span class="at-date__day">{{ (day|jdate('short')).split(' ')[0] }}</span>
+  <span class="at-date__month">{{ (day|jdate('short')).split(' ')[1] }}</span>
+</span>
+{%- endmacro %}
+
+{# event_sub(event) - the ceremony title (if any) and the weekday + Jalali date. #}
+{% macro event_sub(event) -%}
+{% if event.title %}{{ event.title }} · {% endif %}{{ event.date|jdate('weekday_long') }}
+{%- endmacro %}
+
+{# event_facts(event) - hall, city, time, ceremony and guests in one wrapped line. #}
+{% macro event_facts(event) -%}
+<span class="at-facts">
+  <span class="at-fact">{{ icon('building') }}{{ event.hall.name }}{% if event.hall.city %} · {{ event.hall.city }}{% endif %}</span>
+  {%- if event.start_time %}<span class="at-fact">{{ icon('clock') }}ساعت <bdo dir="ltr">{{ event.start_time|hhmm }}</bdo></span>{% endif %}
+  <span class="at-fact">{{ icon('heart') }}{{ event.ceremony_type.label }}</span>
+  {%- if event.guest_count_estimate %}<span class="at-fact">{{ icon('users') }}حدود {{ event.guest_count_estimate|fa }} میهمان</span>{% endif %}
+</span>
+{%- endmacro %}
+
+{# assignment_chip(a) - status of one afish row. #}
+{% macro status_chip(a) -%}
+{{ badge(a.status.label, a.status|assignment_tone) }}
+{%- endmacro %}
+
+{# ---------------------------------------------------------------- pay terms editor -#}
+{% macro tier_row(suffix, threshold, amount) -%}
+<div class="at-tier" data-tier-row>
+  <div class="at-tier__count">
+    <input class="input input--num" type="text" inputmode="numeric" dir="ltr" autocomplete="off"
+      name="tier_threshold{{ suffix }}[]" value="{{ threshold|fa }}" placeholder="مثلاً ۷۰" aria-label="تعداد عکس برای رسیدن به این پله">
+    <span class="at-tier__unit">عکس به بالا</span>
+  </div>
+  <div class="input-group at-tier__amount">
+    <input class="input" type="text" data-money name="tier_amount{{ suffix }}[]" value="{{ amount }}" placeholder="مثلاً ۱۵۰٬۰۰۰" aria-label="مبلغ پاداش این پله">
+    <span class="input-group__addon">تومان</span>
+  </div>
+  <button type="button" class="icon-btn" data-tier-remove aria-label="حذف این پله">{{ icon('trash') }}</button>
+</div>
+{%- endmacro %}
+
+{# tiers_editor(rows, suffix, error) - add / remove bonus tiers (threshold + amount rows). #}
+{% macro tiers_editor(rows, suffix='', error=none) -%}
+<div class="at-tiers{% if error %} field--invalid{% endif %}" data-tiers>
+  <p class="field__label">پلهٔ پاداش (اختیاری)</p>
+  <p class="field__help">وقتی فروش مراسم به هر پله برسد، فقط مبلغ بالاترین پلهٔ رسیده‌شده به حقوق اضافه می‌شود؛ «۷۰ عکس به بالا» یعنی ۷۰ و بیشتر.</p>
+  <div class="at-tiers__rows" data-tiers-rows>
+    {%- for row in rows or [] %}{{ tier_row(suffix, row.threshold, row.amount) }}{% endfor %}
+    {%- if not rows %}{{ tier_row(suffix, '', '') }}{% endif %}
+  </div>
+  <template data-tiers-template>{{ tier_row(suffix, '', '') }}</template>
+  <button type="button" class="btn btn--sm btn--secondary" data-tiers-add>{{ icon('plus') }}<span>افزودن پله</span></button>
+  {%- if error %}<p class="field__error" role="alert">{{ icon('alert') }}<span>{{ error }}</span></p>{% endif %}
+</div>
+{%- endmacro %}
+
+{# terms_editor(form, errors, suffix='', title=None, first=False) - base + commission per photo + bonus tiers. #}
+{% macro terms_editor(form, errors, suffix='', title=none) -%}
+<div class="at-terms stack stack--sm">
+  {%- if title %}<h3 class="at-terms__title">{{ title }}</h3>{% endif %}
+  <div class="form-grid form-grid--2">
+    {{ money_input('base' ~ suffix, form.get('base' ~ suffix), label='حقوق پایه', error=errors.get('base' ~ suffix), help='مبلغ ثابت مراسم') }}
+    {{ money_input('commission' ~ suffix, form.get('commission' ~ suffix), label='پورسانت هر عکس', error=errors.get('commission' ~ suffix), help='برای هر واحد فروش‌رفته') }}
+  </div>
+  {{ tiers_editor(form.get('tiers' ~ suffix) or [], suffix, errors.get('tiers' ~ suffix)) }}
+</div>
+{%- endmacro %}
+
+{# pay_example(example, units) - what the terms pay for `units` sold photos (server computed). #}
+{% macro pay_example(example, units) -%}
+<div class="at-example" data-pay-example data-units="{{ units }}" data-url="{{ url_for('ateliers.pay_preview') }}" aria-live="polite">
+  <p class="at-example__title">نمونهٔ حقوق: اگر <span data-example-units>{{ units|fa }}</span> عکس فروخته شود</p>
+  {%- if example %}
+  <p class="at-example__line">
+    <span data-example-line>پایه {{ example.base|toman }} + پورسانت {{ example.commission|toman }} + پاداش {{ example.bonus|toman }}</span>
+    = <strong><span data-example-total>{{ example.total|toman }}</span> تومان</strong>
+  </p>
+  {%- else %}
+  <p class="at-example__line text-muted" data-example-line>با تکمیل مبالغ، نمونه این‌جا نمایش داده می‌شود.</p>
+  {%- endif %}
+</div>
+{%- endmacro %}
+
+{# empty_slot / person rows are written in event_detail.html (they need the page context). #}

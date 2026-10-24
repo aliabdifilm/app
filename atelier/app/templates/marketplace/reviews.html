@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+{% from 'components/ui.html' import page_header, empty_state, badge, tabs, pagination, icon, rating_stars, avatar, select_field %}
+{% from 'marketplace/_macros.html' import manager_tabs, staff_tabs, review_item, review_party, date_tile %}
+{% block title %}نظرها{% endblock %}
+{% block head %}<meta name="robots" content="noindex"><link rel="stylesheet" href="{{ url_for('static', filename='css/marketplace.css', v=asset_version|default('1')) }}">{% endblock %}
+
+{% block content %}
+<div class="page stack stack--lg">
+  {{ page_header('نظرها', 'پس از هر همکاریِ انجام‌شده، هر دو طرف یک بار می‌توانند امتیاز (۱ تا ۵ ستاره) و نظر ثبت کنند.') }}
+  {% if user_role == Role.ATELIER_MANAGER %}{{ manager_tabs('reviews') }}{% else %}{{ staff_tabs('reviews') }}{% endif %}
+  {{ tabs([
+      {'key': 'pending', 'label': 'منتظر نظر', 'url': url_for('marketplace.reviews', tab='pending'), 'badge': pending_count|fa if pending_count else none},
+      {'key': 'written', 'label': 'نوشته‌ها', 'url': url_for('marketplace.reviews', tab='written')},
+      {'key': 'received', 'label': 'دریافتی', 'url': url_for('marketplace.reviews', tab='received')}
+    ], active=tab, label='نظرها', id='mk-reviews') }}
+
+  {% if page.items %}
+  {% if tab == 'pending' %}
+  <ul class="mk-grid" aria-label="همکاری‌های منتظر نظر">
+    {% for assignment in page.items %}
+    {% set event = assignment.event %}
+    <li>
+      <article class="card mk-app">
+        <div class="card__body mk-app__body">
+          <div class="mk-job__head">
+            {{ date_tile(event.date) }}
+            <div class="mk-job__title">
+              <h2 class="mk-job__name">
+                {% if user_role == Role.ATELIER_MANAGER %}{% if assignment.user %}{{ assignment.user|mk_name }}{% else %}{{ assignment.roster_member.display_name }}{% endif %}
+                {% else %}{{ event.atelier.name }}{% endif %}
+              </h2>
+              <p class="mk-chips">{{ badge(assignment.role.label, 'accent') }}
+                <span class="mk-fact">{{ icon('calendar') }}{{ event.date|jdate('long') }}</span>
+                <span class="mk-fact">{{ icon('building') }}{{ event.hall.name }}</span></p>
+            </div>
+          </div>
+          <div class="mk-actions"><a class="btn btn--primary btn--sm" href="{{ url_for('marketplace.review_new', assignment_id=assignment.id) }}">{{ icon('star') }}<span>ثبت نظر</span></a></div>
+        </div>
+      </article>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <ul class="card mk-reviews mk-reviews--card" aria-label="نظرها">
+    {% for review in page.items %}
+    {% if tab == 'written' %}
+      {{ review_item(review, 'دربارهٔ ' ~ review_party(review, 'subject')) }}
+    {% else %}
+      {{ review_item(review, review_party(review, 'author')) }}
+      <li class="mk-report">
+        <details>
+          <summary class="mk-report__summary">{{ icon('alert') }}<span>گزارش این نظر</span></summary>
+          <form method="post" action="{{ url_for('marketplace.review_report', review_id=review.id) }}" class="stack stack--sm">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            {{ select_field('دلیل', 'reason', report_reasons, required=true, placeholder='انتخاب دلیل', id='reason-' ~ review.id) }}
+            <button class="btn btn--sm btn--secondary" type="submit">ارسال گزارش</button>
+          </form>
+        </details>
+      </li>
+    {% endif %}
+    {% endfor %}
+  </ul>
+  {% endif %}
+  {{ pagination(page, 'marketplace.reviews', tab=tab) }}
+  {% elif tab == 'pending' %}
+  {{ empty_state('star', 'نظر بی‌پاسخی ندارید', 'بعد از برگزاری مراسم و تکمیل همکاری، می‌توانید دربارهٔ طرف مقابل نظر بدهید.') }}
+  {% elif tab == 'written' %}
+  {{ empty_state('star', 'هنوز نظری ننوشته‌اید', 'نظرهایی که بنویسید این‌جا جمع می‌شود.') }}
+  {% else %}
+  {{ empty_state('star', 'هنوز نظری دریافت نکرده‌اید', 'پس از همکاری‌های تکمیل‌شده، نظر طرف مقابل این‌جا نمایش داده می‌شود.') }}
+  {% endif %}
+</div>
+{% endblock %}

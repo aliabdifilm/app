@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% from 'components/ui.html' import page_header, card, calendar_month, badge, icon %}
+{% block title %}تقویم مراسم‌ها{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='css/ateliers.css', v=asset_version|default('1')) }}">{% endblock %}
+
+{% block content %}
+<div class="page stack stack--lg">
+  {{ page_header('تقویم مراسم‌ها', atelier.name ~ ' · ' ~ count|fa ~ ' مراسم در این ماه',
+                 actions=('<a class="btn btn--secondary" href="' ~ this_month_url ~ '">امروز</a> <a class="btn btn--secondary" href="' ~ url_for('ateliers.events') ~ '">فهرست مراسم‌ها</a>')|safe) }}
+
+  {% call card(padded=true) %}
+    {{ calendar_month(grid, entries, title=title, prev_url=prev_url, next_url=next_url, today=today) }}
+  {% endcall %}
+
+  <p class="at-legend" aria-label="راهنمای رنگ‌ها">
+    {{ badge('افیش کامل', 'success') }}
+    {{ badge('منتظر پاسخ نیروها', 'warning') }}
+    {{ badge('جای خالی دارد', 'danger') }}
+    {{ badge('پیشنهاد تالار', 'info') }}
+    {{ badge('برگزارشده', 'neutral') }}
+  </p>
+</div>
+{% endblock %}

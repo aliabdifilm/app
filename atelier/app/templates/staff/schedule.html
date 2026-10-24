@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+{% from 'components/ui.html' import page_header, empty_state, badge, tabs, pagination, icon, calendar_month %}
+{% from 'staff/_macros.html' import date_tile, clock, status_badge, terms_box, schedule_tabs %}
+{% block title %}برنامه من{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='css/staff.css', v=asset_version|default('1')) }}">{% endblock %}
+
+{% block content %}
+<div class="page stack stack--lg">
+  {% set header_actions %}
+    <a class="btn btn--secondary" href="{{ url_for('staff.schedule_ics') }}" download>{{ icon('calendar-check') }}<span>دریافت همهٔ مراسم‌ها (.ics)</span></a>
+  {% endset %}
+  {{ page_header('برنامه من', 'مراسم‌هایی که افیش شده‌اید، روی تقویم شمسی.', actions=header_actions|safe) }}
+  {{ schedule_tabs(view) }}
+
+  {#- ================================ month ================================ -#}
+  {% if view == 'month' %}
+  <div class="st-legend" aria-label="راهنمای رنگ‌ها">
+    <span class="st-legend__item"><span class="st-dot st-dot--success"></span>قطعی یا پذیرفته</span>
+    <span class="st-legend__item"><span class="st-dot st-dot--warning"></span>دعوت بی‌پاسخ</span>
+    <span class="st-legend__item"><span class="st-dot st-dot--info"></span>انجام‌شده</span>
+    <span class="st-legend__item"><span class="st-dot st-dot--neutral"></span>در دسترس نیستم</span>
+  </div>
+  {{ calendar_month(grid, events, title=title, prev_url=prev_url, next_url=next_url, today=today) }}
+  <div class="st-actions">
+    {% if this_month_url %}<a class="btn btn--ghost btn--sm" href="{{ this_month_url }}">برگشت به ماه جاری</a>{% endif %}
+    <a class="btn btn--secondary btn--sm" href="{{ url_for('staff.availability_page') }}">{{ icon('calendar-check') }}<span>ثبت روزهای مشغول</span></a>
+  </div>
+  {% if not month_count %}
+  <p class="text-muted text-sm">در این ماه مراسمی برای شما ثبت نشده است.</p>
+  {% endif %}
+
+  {#- ================================= list ================================= -#}
+  {% else %}
+  {{ tabs([
+      {'key': 'upcoming', 'label': 'پیش‌رو', 'url': url_for('staff.schedule', view='list')},
+      {'key': 'past', 'label': 'گذشته', 'url': url_for('staff.schedule', view='list', when='past')}
+    ], active=when, label='بازهٔ زمانی', id='st-when') }}
+  {% if cards %}
+  <ul class="st-grid" aria-label="فهرست مراسم‌ها">
+    {% for c in cards %}
+    {% set a = c.assignment %}
+    <li>
+      <article class="card st-card">
+        <div class="card__body st-card__body">
+          <div class="st-card__head">
+            {{ date_tile(c.event.date) }}
+            <div class="st-card__title">
+              <h2 class="st-card__name"><a href="{{ url_for('staff.assignment', assignment_id=a.id) }}">{{ a.role.label }} · {{ c.hall.name }}</a></h2>
+              <p class="st-card__sub">{{ c.event.date|jweekday }} {{ c.event.date|jdate('long') }}{% if c.hall.city %} · {{ c.hall.city }}{% endif %}</p>
+            </div>
+            {{ status_badge(a) }}
+          </div>
+          <p class="st-chips">
+            {% if c.call_time %}<span class="st-fact">{{ icon('clock') }}{{ 'حضور' if a.call_time else 'شروع' }} {{ clock(c.call_time) }}</span>{% endif %}
+            {% if c.atelier %}<span class="st-fact">{{ icon('briefcase') }}{{ c.atelier.name }}</span>{% endif %}
+            {% if c.clashes %}{{ badge('تداخل با افیش دیگر', 'warning', 'alert') }}{% endif %}
+          </p>
+          {% if c.venue %}
+          {% if c.hall.address %}<p class="st-fact">{{ icon('map-pin') }}{{ c.hall.address }}</p>{% endif %}
+          {% if c.hall.phone %}<p class="st-fact">{{ icon('phone') }}<a class="num" href="tel:{{ c.hall.phone }}">{{ c.hall.phone|fa }}</a></p>{% endif %}
+          {% endif %}
+          <div class="st-actions">
+            <a class="btn btn--secondary btn--sm" href="{{ url_for('staff.assignment', assignment_id=a.id) }}">{{ icon('eye') }}<span>جزئیات</span></a>
+            {% if when == 'upcoming' %}<a class="btn btn--secondary btn--sm" href="{{ url_for('staff.assignment_ics', assignment_id=a.id) }}" download>{{ icon('calendar-check') }}<span>افزودن به تقویم</span></a>{% endif %}
+            {% if c.venue and c.hall.map_url %}<a class="btn btn--secondary btn--sm" href="{{ c.hall.map_url }}" target="_blank" rel="noopener noreferrer">{{ icon('map-pin') }}<span>نقشه</span></a>{% endif %}
+          </div>
+        </div>
+      </article>
+    </li>
+    {% endfor %}
+  </ul>
+  {{ pagination(page, 'staff.schedule', view='list', when=when if when == 'past' else none) }}
+  {% elif when == 'upcoming' %}
+  {{ empty_state('calendar', 'مراسم پیش‌رویی ندارید',
+       'دعوت‌های جدید را در صفحهٔ دعوت‌ها می‌بینید؛ در بازار کار هم می‌توانید برای مراسم‌ها درخواست بدهید.',
+       action=('<a class="btn btn--primary" href="' ~ url_for('staff.invitations') ~ '">دعوت‌های من</a>')|safe) }}
+  {% else %}
+  {{ empty_state('inbox', 'مراسم گذشته‌ای ثبت نشده', 'مراسم‌هایی که انجام می‌دهید پس از برگزاری این‌جا می‌ماند.') }}
+  {% endif %}
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}<script src="{{ url_for('static', filename='js/staff.js', v=asset_version|default('1')) }}" defer></script>{% endblock %}

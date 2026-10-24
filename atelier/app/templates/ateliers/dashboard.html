@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+{% from 'components/ui.html' import page_header, card, stat_tile, badge, alert, empty_state, icon %}
+{% from 'ateliers/_macros.html' import meter, date_tile, event_facts %}
+{% block title %}داشبورد اتلیه{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='css/ateliers.css', v=asset_version|default('1')) }}">{% endblock %}
+
+{% block content %}
+<div class="page stack stack--lg">
+  {% set header_actions %}
+    {% if ateliers|length > 1 %}
+    <form class="at-switch" method="post" action="{{ url_for('ateliers.switch') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label class="visually-hidden" for="switch-atelier">اتلیهٔ فعال</label>
+      <div class="select-wrap">
+        <select class="select" id="switch-atelier" name="atelier_id" data-autosubmit>
+          {% for item in ateliers %}<option value="{{ item.id }}"{% if item.id == atelier.id %} selected{% endif %}>{{ item.name }}</option>{% endfor %}
+        </select>
+        {{ icon('chevron-down') }}
+      </div>
+      <noscript><button class="btn btn--sm" type="submit">تغییر</button></noscript>
+    </form>
+    {% endif %}
+    <a class="btn btn--primary" href="{{ url_for('ateliers.afish_board') }}">{{ icon('users') }}<span>افیش نیرو</span></a>
+  {% endset %}
+  {{ page_header(atelier.name, 'خلاصهٔ کارهای امروز اتلیه' ~ ((' · ' ~ atelier.city) if atelier.city else ''), actions=header_actions|safe) }}
+
+  {#- ---------------------------------------------------------- what needs attention -#}
+  {% if offers_total or alerts or overdue or awaiting_invoice %}
+  <section class="stack stack--sm" aria-label="نیازمند توجه">
+    {% if offers_total %}
+    {% call alert(tone='info', title=offers_total|fa ~ ' پیشنهاد مراسم منتظر پاسخ شماست') %}
+      <a href="{{ url_for('ateliers.events', tab='offers') }}">دیدن پیشنهادها و پاسخ‌دادن</a>
+    {% endcall %}
+    {% endif %}
+    {% for item in alerts %}
+    {% call alert(tone=item.tone, title=('مراسم ' ~ item.event.hall.name ~ ' · ' ~ (item.event.date|jdate('weekday_long')) ~ (' (امروز)' if item.days == 0 else (' (فردا)' if item.days == 1 else ' (' ~ item.days|fa ~ ' روز دیگر)')))) %}
+      <span class="at-chips">
+        {% for r in item.roles %}
+        {{ badge(r.role.label ~ ': ' ~ r.shortfall|fa ~ ' نفر کم' ~ ('، ' ~ r.waiting|fa ~ ' منتظر پاسخ' if r.waiting else ''), 'danger' if r.missing else 'warning') }}
+        {% endfor %}
+      </span>
+      <a class="at-alert-link" href="{{ url_for('ateliers.event_detail', event_id=item.event.id, _anchor='afish') }}">تکمیل افیش</a>
+    {% endcall %}
+    {% endfor %}
+    {% for event in overdue %}
+    {% call alert(tone='warning', title='مراسم برگزارشده هنوز بسته نشده') %}
+      {{ event.hall.name }} · {{ event.date|jdate('long') }} —
+      <a href="{{ url_for('ateliers.event_detail', event_id=event.id) }}">ثبت برگزاری و فاکتور</a>
+    {% endcall %}
+    {% endfor %}
+    {% for event in awaiting_invoice %}
+    {% call alert(tone='warning', title='فاکتور مراسم ثبت نشده است') %}
+      {{ event.hall.name }} · {{ event.date|jdate('long') }}
+      {% set inv = links.invoice(event) %}
+      {% if inv %}— <a href="{{ inv }}">ثبت فاکتور</a>{% else %}— <a href="{{ url_for('ateliers.event_detail', event_id=event.id, _anchor='invoice') }}">مشاهدهٔ مراسم</a>{% endif %}
+    {% endcall %}
+    {% endfor %}
+  </section>
+  {% endif %}
+
+  {#- ------------------------------------------------------------------ month KPIs -#}
+  <section aria-labelledby="kpi-title" class="stack stack--sm">
+    <h2 class="at-section-title" id="kpi-title">{{ month_title }}</h2>
+    <div class="grid grid--stats">
+      {{ stat_tile('مراسم این ماه', kpis.events|fa, icon='calendar', hint='به‌جز لغوشده‌ها') }}
+      {{ stat_tile('درآمد', kpis.income|toman, unit='تومان', tone='success', icon='coins', hint=('از ' ~ kpis.invoices|fa ~ ' فاکتور ثبت‌شده') if kpis.invoices else 'فاکتور ثبت‌شده‌ای نیست') }}
+      {{ stat_tile('هزینه‌ها', kpis.expenses|toman, unit='تومان', tone='warning', icon='wallet') }}
+      {{ stat_tile('سود', (kpis.net|abs)|toman, unit='تومان' ~ (' (زیان)' if kpis.net < 0 else ''), tone='danger' if kpis.net < 0 else 'info', icon='chart', hint=(kpis.units|fa ~ ' واحد فروش') if kpis.units else None) }}
+    </div>
+    <p class="text-muted text-sm">ارقام از فاکتورهای ثبت‌شده و تسویه‌شدهٔ مراسم‌های همین ماه جمع زده می‌شود؛ پیش‌نویس‌ها حساب نمی‌شوند.</p>
+  </section>
+
+  {#- ------------------------------------------------------------- quick actions -#}
+  <section aria-label="میان‌برها" class="at-quick">
+    <a class="btn btn--secondary" href="{{ url_for('ateliers.events', tab='offers') }}">{{ icon('inbox') }}<span>پیشنهادهای تالار{% if offers_total %} ({{ offers_total|fa }}){% endif %}</span></a>
+    <a class="btn btn--secondary" href="{{ url_for('ateliers.calendar') }}">{{ icon('calendar') }}<span>تقویم</span></a>
+    <a class="btn btn--secondary" href="{{ url_for('ateliers.roster_new') }}">{{ icon('user-plus') }}<span>نیروی ثابت جدید</span></a>
+    {% if links.jobs %}<a class="btn btn--secondary" href="{{ links.jobs }}">{{ icon('megaphone') }}<span>آگهی‌های بازار کار</span></a>{% endif %}
+    {% if links.inventory %}<a class="btn btn--secondary" href="{{ links.inventory }}">{{ icon('box') }}<span>انبار</span></a>{% endif %}
+    <a class="btn btn--secondary" href="{{ url_for('ateliers.settings') }}">{{ icon('settings') }}<span>تنظیمات</span></a>
+  </section>
+
+  <div class="grid grid--2">
+    {#- ----------------------------------------------------------- upcoming events -#}
+    {% call card(title='مراسم‌های پیش‌رو', actions=('<a class="btn btn--sm btn--ghost" href="' ~ url_for('ateliers.afish_board') ~ '">همه</a>')|safe, padded=false) %}
+      {% if upcoming %}
+      <ul class="at-list">
+        {% for event in upcoming %}
+        <li class="at-list__item">
+          <a class="at-row" href="{{ url_for('ateliers.event_detail', event_id=event.id) }}">
+            {{ date_tile(event.date) }}
+            <span class="at-row__body">
+              <strong>{{ event.hall.name }}</strong>
+              <span class="text-muted text-sm">{% if event.title %}{{ event.title }} · {% endif %}{{ event.date|jweekday }}{% if event.start_time %} · ساعت {{ event.start_time|hhmm }}{% endif %}</span>
+              {{ meter(boards[event.id].completeness) }}
+            </span>
+            {{ icon('chevron-left') }}
+          </a>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      {{ empty_state('calendar', 'مراسم پیش‌رویی ندارید', 'وقتی تالارها مراسمی به شما بسپارند یا مراسمی را بردارید، این‌جا می‌بینید.', action=('<a class="btn btn--primary" href="' ~ url_for('ateliers.events', tab='open') ~ '">دیدن مراسم‌های باز</a>')|safe) }}
+      {% endif %}
+    {% endcall %}
+
+    {#- --------------------------------------------------------------- hall offers -#}
+    {% call card(title='پیشنهادهای تالارها', actions=('<a class="btn btn--sm btn--ghost" href="' ~ url_for('ateliers.events', tab='offers') ~ '">همه</a>')|safe, padded=false) %}
+      {% if offers %}
+      <ul class="at-list">
+        {% for offer in offers %}
+        <li class="at-list__item">
+          <a class="at-row" href="{{ url_for('ateliers.event_detail', event_id=offer.event_id) }}">
+            {{ date_tile(offer.event.date) }}
+            <span class="at-row__body">
+              <strong>{{ offer.event.hall.name }}</strong>
+              <span class="text-muted text-sm">{{ offer.event.date|jweekday }} · {{ offer.event.ceremony_type.label }}</span>
+            </span>
+            {{ badge('منتظر پاسخ', 'warning') }}
+          </a>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      {{ empty_state('inbox', 'پیشنهاد بازی ندارید', 'پیشنهاد مستقیم مدیران تالار برای شما این‌جا می‌آید.') }}
+      {% endif %}
+    {% endcall %}
+  </div>
+
+  {#- -------------------------------------------------------------- notifications -#}
+  {% if unread %}
+  {% call card(title='اعلان‌های خوانده‌نشده', actions=('<a class="btn btn--sm btn--ghost" href="' ~ notifications_url ~ '">همه</a>')|safe, padded=false) %}
+    <ul class="at-list">
+      {% for note in unread %}
+      <li class="at-list__item at-note">
+        <strong>{% if note.url %}<a href="{{ note.url }}">{{ note.title }}</a>{% else %}{{ note.title }}{% endif %}</strong>
+        {% if note.body %}<span class="text-muted text-sm">{{ note.body }}</span>{% endif %}
+        <small class="text-faint">{{ note.created_at|jdatetime }}</small>
+      </li>
+      {% endfor %}
+    </ul>
+  {% endcall %}
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}<script src="{{ url_for('static', filename='js/ateliers.js', v=asset_version|default('1')) }}" defer></script>{% endblock %}

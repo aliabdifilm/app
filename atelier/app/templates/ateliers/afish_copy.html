@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+{% from 'components/ui.html' import page_header, card, badge, alert, empty_state, checkbox_field, icon %}
+{% from 'ateliers/_macros.html' import date_tile, status_chip, event_sub %}
+{% block title %}کپی افیش از مراسم قبلی{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='css/ateliers.css', v=asset_version|default('1')) }}">{% endblock %}
+
+{% block content %}
+<div class="page page--narrow stack stack--lg">
+  {{ page_header('کپی افیش از مراسم قبلی', 'مراسم ' ~ event.hall.name ~ ' · ' ~ (event.date|jdate('weekday_long')),
+                 back_url=url_for('ateliers.event_detail', event_id=event.id, _anchor='afish'), back_label='افیش مراسم') }}
+
+  {% if source is none %}
+    {% if previous %}
+    <p class="text-muted">یکی از مراسم‌های قبلی اتلیه را انتخاب کنید؛ بعد می‌توانید تعیین کنید کدام نفرها با همان شرایط دوباره افیش شوند.</p>
+    <ul class="at-cards">
+      {% for item in previous %}
+      <li>
+        {% call card(cls='at-event') %}
+          <div class="at-event__head">
+            {{ date_tile(item.date) }}
+            <div class="at-event__title">
+              <h2 class="at-event__name">{{ item.hall.name }}</h2>
+              <p class="text-muted">{{ event_sub(item) }}</p>
+            </div>
+            <a class="btn btn--sm btn--primary" href="{{ url_for('ateliers.afish_copy', event_id=event.id, source=item.id) }}">انتخاب</a>
+          </div>
+        {% endcall %}
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    {{ empty_state('copy', 'مراسم قبلی با افیش پیدا نشد', 'پس از افیش‌کردن نیروها در یک مراسم، می‌توانید آن را برای مراسم‌های بعدی کپی کنید.') }}
+    {% endif %}
+  {% else %}
+    <form method="post" action="{{ url_for('ateliers.afish_copy', event_id=event.id) }}" class="stack stack--lg">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="source" value="{{ source.id }}">
+      {% call card(title='افیش مراسم ' ~ source.hall.name ~ ' · ' ~ (source.date|jdate('long')), subtitle='همان شرایط پرداخت برای هر نفر کپی می‌شود. نیروهای سامانه دوباره دعوت می‌شوند و نیروهای ثابت فوراً قطعی می‌شوند.') %}
+        {% if plan %}
+        <ul class="at-copy">
+          {% for row in plan %}
+          {% set a = row.assignment %}
+          <li class="at-copy__row{% if not row.copyable %} is-skipped{% endif %}">
+            <label class="check" for="pick-{{ a.id }}">
+              <input type="checkbox" id="pick-{{ a.id }}" name="pick" value="{{ a.id }}"{% if row.copyable %} checked{% else %} disabled{% endif %}>
+              <span class="check__text">
+                <span class="check__label">{{ a.person_name }} · {{ a.role.label }}</span>
+                <span class="check__help">{{ a.terms_dict()|terms_text }}</span>
+                {% if row.skip_reason %}<span class="check__help text-danger">{{ row.skip_reason }}</span>{% endif %}
+              </span>
+            </label>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="text-muted">این مراسم نفر فعالی در افیش ندارد.</p>
+        {% endif %}
+      {% endcall %}
+      <div class="form-actions form-actions--sticky">
+        <button class="btn btn--primary btn--lg" type="submit"{% if not plan %} disabled{% endif %}>{{ icon('copy') }}<span>کپی انتخاب‌شده‌ها</span></button>
+        <a class="btn btn--ghost btn--lg" href="{{ url_for('ateliers.afish_copy', event_id=event.id) }}">مراسم دیگر</a>
+      </div>
+    </form>
+  {% endif %}
+</div>
+{% endblock %}

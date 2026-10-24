@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+{% from 'components/ui.html' import page_header, empty_state, alert, badge, tabs, pagination, icon, confirm_button %}
+{% from 'marketplace/_macros.html' import staff_tabs, date_tile, trust, contact_box, terms_summary %}
+{% block title %}{{ 'دعوت‌های من' if section == 'invitations' else 'درخواست‌های من' }}{% endblock %}
+{% block head %}<meta name="robots" content="noindex"><link rel="stylesheet" href="{{ url_for('static', filename='css/marketplace.css', v=asset_version|default('1')) }}">{% endblock %}
+
+{% block content %}
+<div class="page stack stack--lg">
+  {{ page_header('درخواست‌ها و دعوت‌ها', 'پیگیری درخواست‌های همکاری و دعوت‌هایی که اتلیه‌ها برایتان فرستاده‌اند.',
+                 actions=('<a class="btn btn--primary" href="' ~ url_for('marketplace.jobs') ~ '">آگهی‌های باز</a>')|safe) }}
+  {{ staff_tabs(section, invitation_count) }}
+
+  {#- ============================== applications ============================== -#}
+  {% if section == 'applications' %}
+  {{ tabs([
+      {'key': 'all', 'label': 'همه', 'url': url_for('marketplace.my_applications', tab='all')},
+      {'key': 'pending', 'label': 'در انتظار', 'url': url_for('marketplace.my_applications', tab='pending'), 'badge': counts.pending|fa if counts.pending else none},
+      {'key': 'accepted', 'label': 'پذیرفته', 'url': url_for('marketplace.my_applications', tab='accepted')},
+      {'key': 'rejected', 'label': 'ردشده', 'url': url_for('marketplace.my_applications', tab='rejected')},
+      {'key': 'withdrawn', 'label': 'انصراف', 'url': url_for('marketplace.my_applications', tab='withdrawn')}
+    ], active=tab, label='وضعیت درخواست', id='mk-mine') }}
+  {% if rows %}
+  <ul class="mk-grid" aria-label="درخواست‌های من">
+    {% for application, c in rows %}
+    {% set post = c.post %}
+    <li>
+      <article class="card mk-app">
+        <div class="card__body mk-app__body">
+          <div class="mk-job__head">
+            {{ date_tile(post.date) }}
+            <div class="mk-job__title">
+              <h2 class="mk-job__name"><a href="{{ url_for('marketplace.job_detail', post_id=post.id) }}">{{ post.title }}</a></h2>
+              <p class="mk-job__atelier"><span class="mk-job__atelier-name">{{ c.atelier.name }}</span> {{ trust(c) }}</p>
+            </div>
+          </div>
+          <p class="mk-chips">
+            {{ badge(application.status.label, application.status|mk_application_tone) }}
+            {{ badge(post.role.label, 'accent') }}
+            <span class="mk-fact">{{ icon('calendar') }}{{ post.date|jweekday }} {{ post.date|jdate('long') }}</span>
+            {% if post.city %}<span class="mk-fact">{{ icon('map-pin') }}{{ post.city }}</span>{% endif %}
+          </p>
+          <p class="text-muted text-sm">{{ c.terms|mk_terms }}</p>
+          {% if c.example %}<p class="mk-pay__example"><strong>{{ c.example.sentence }}</strong></p>{% endif %}
+          {% if application.message %}<p class="mk-quote">{{ application.message|mk_clip(160) }}</p>{% endif %}
+          <p class="text-muted text-sm">ارسال: {{ application.created_at|jdate('long') }}{% if application.decided_at %} · نتیجه: {{ application.decided_at|jdate('long') }}{% endif %}</p>
+          {% if application.status == ApplicationStatus.ACCEPTED %}
+          {{ contact_box('تماس با اتلیه', c.atelier.manager|mk_name, c.atelier.manager.mobile, c.atelier.phone) }}
+          {% endif %}
+          <div class="mk-actions">
+            <a class="btn btn--secondary btn--sm" href="{{ url_for('marketplace.job_detail', post_id=post.id) }}"><span>مشاهدهٔ آگهی</span></a>
+            {% if application.status in (ApplicationStatus.PENDING, ApplicationStatus.ACCEPTED) and post.date >= today %}
+            {{ confirm_button('انصراف', url_for('marketplace.application_withdraw', application_id=application.id),
+                              'درخواست خود را پس می‌گیرید؟' ~ (' افیش شما هم لغو می‌شود و اتلیه باخبر می‌شود.' if application.status == ApplicationStatus.ACCEPTED else ''),
+                              title='انصراف از درخواست', confirm_label='بله، پس گرفته شود') }}
+            {% endif %}
+          </div>
+        </div>
+      </article>
+    </li>
+    {% endfor %}
+  </ul>
+  {{ pagination(page, 'marketplace.my_applications', tab=tab) }}
+  {% elif tab == 'all' %}
+  {{ empty_state('send', 'هنوز درخواستی نفرستاده‌اید', 'آگهی‌های باز را ببینید و برای روزهایی که آزاد هستید درخواست بدهید.',
+                 action=('<a class="btn btn--primary" href="' ~ url_for('marketplace.jobs') ~ '">دیدن آگهی‌ها</a>')|safe) }}
+  {% else %}
+  {{ empty_state('inbox', 'درخواستی در این بخش نیست', 'سربرگ دیگری را ببینید.') }}
+  {% endif %}
+
+  {#- ============================== invitations ============================== -#}
+  {% else %}
+  {% if rows %}
+  <ul class="mk-grid" aria-label="دعوت‌های من">
+    {% for row in rows %}
+    {% set event = row.event %}
+    <li>
+      <article class="card mk-app">
+        <div class="card__body mk-app__body">
+          <div class="mk-job__head">
+            {{ date_tile(event.date) }}
+            <div class="mk-job__title">
+              <h2 class="mk-job__name">دعوت به‌عنوان {{ row.assignment.role.label }}</h2>
+              <p class="mk-job__atelier"><span class="mk-job__atelier-name">{{ row.atelier.name }}</span></p>
+            </div>
+          </div>
+          <p class="mk-chips">
+            <span class="mk-fact">{{ icon('calendar') }}{{ event.date|jweekday }} {{ event.date|jdate('long') }}</span>
+            <span class="mk-fact">{{ icon('building') }}{{ event.hall.name }}{% if event.hall.city %} · {{ event.hall.city }}{% endif %}</span>
+          </p>
+          <div class="mk-pay">
+            {% if row.lines %}<ul class="mk-pay__lines">{% for line in row.lines %}<li>{{ line }}</li>{% endfor %}</ul>{% else %}<p class="mk-pay__none">مبلغ با توافق تعیین می‌شود.</p>{% endif %}
+            {% if row.example %}<p class="mk-pay__example"><span class="mk-pay__label">نمونه</span> <strong>{{ row.example.sentence }}</strong></p>{% endif %}
+          </div>
+          {% if row.assignment.notes %}<p class="mk-quote">{{ row.assignment.notes }}</p>{% endif %}
+          {% if row.busy %}{% call alert(tone='warning', title='تداخل') %}در همین تاریخ مراسم قطعی دیگری دارید؛ پذیرفتن این دعوت ممکن نیست.{% endcall %}{% endif %}
+          <div class="mk-actions">
+            <form class="inline-form" method="post" action="{{ url_for('marketplace.invitation_accept', assignment_id=row.assignment.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn btn--primary" type="submit"{% if row.busy %} disabled{% endif %}>{{ icon('check') }}<span>پذیرفتن</span></button>
+            </form>
+            {{ confirm_button('رد کردن', url_for('marketplace.invitation_decline', assignment_id=row.assignment.id),
+                              'این دعوت رد می‌شود و اتلیه باخبر می‌شود. ادامه می‌دهید؟', title='رد دعوت', confirm_label='بله، رد شود') }}
+          </div>
+        </div>
+      </article>
+    </li>
+    {% endfor %}
+  </ul>
+  {{ pagination(page, 'marketplace.my_invitations') }}
+  {% else %}
+  {{ empty_state('mail', 'دعوت بی‌پاسخی ندارید', 'وقتی اتلیه‌ای شما را برای مراسمی دعوت کند، این‌جا و در اعلان‌ها می‌بینید. پروفایل کامل و «نمایش در جستجو» شانس دعوت را بیشتر می‌کند.') }}
+  {% endif %}
+  {% endif %}
+</div>
+{% endblock %}

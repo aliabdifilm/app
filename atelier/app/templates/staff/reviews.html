@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% from 'components/ui.html' import page_header, card, empty_state, rating_stars, pagination, icon %}
+{% from 'staff/_macros.html' import profile_tabs %}
+{% block title %}نظرهای دریافتی{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='css/staff.css', v=asset_version|default('1')) }}">{% endblock %}
+
+{% block content %}
+<div class="page stack stack--lg">
+  {{ page_header('نظرهای دریافتی', 'اتلیه‌ها پس از همکاری برای شما نظر می‌گذارند.') }}
+  {{ profile_tabs('reviews') }}
+
+  {% if profile and profile.rating_count %}
+  {% call card() %}
+  <div class="st-rating">
+    <span class="st-rating__num">{{ ('%.1f'|format(profile.rating_avg))|fa|replace('.', '٫') }}</span>
+    <div>{{ rating_stars(profile.rating_avg, count=profile.rating_count, show_value=false) }}<p class="text-muted text-sm">میانگین از {{ profile.rating_count|fa }} نظر</p></div>
+  </div>
+  {% endcall %}
+  {% endif %}
+
+  {% if page.items %}
+  <ul class="st-reviews" aria-label="نظرها">
+    {% for review in page.items %}
+    <li class="card">
+      <div class="card__body stack stack--sm">
+        <div class="st-review__head">
+          <strong>{{ person_label(review.author) }}</strong>
+          {{ rating_stars(review.rating, show_value=false) }}
+          <span class="text-muted text-sm">{{ review.created_at|jdate('long') }}</span>
+        </div>
+        {% if review.assignment and review.assignment.event %}
+        <p class="text-muted text-sm">{{ review.assignment.role.label }} · {{ review.assignment.event.hall.name }} · {{ review.assignment.event.date|jdate('long') }}</p>
+        {% endif %}
+        {% if review.comment %}<p class="st-quote">{{ review.comment }}</p>{% endif %}
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+  {{ pagination(page, 'staff.reviews') }}
+  {% else %}
+  {{ empty_state('star', 'هنوز نظری دریافت نکرده‌اید',
+       'پس از برگزاری هر مراسم، مدیر اتلیه می‌تواند دربارهٔ همکاری با شما نظر بگذارد.',
+       action=(('<a class="btn btn--secondary" href="' ~ reviews_url ~ '">نظرهای بازار کار</a>')|safe) if reviews_url else none) }}
+  {% endif %}
+  {% if reviews_url %}<p class="text-muted text-sm">گزارش یک نظر ناعادلانه یا نوشتن نظر دربارهٔ اتلیه‌ها: <a href="{{ reviews_url }}">نظرها در بازار کار</a></p>{% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}<script src="{{ url_for('static', filename='js/staff.js', v=asset_version|default('1')) }}" defer></script>{% endblock %}

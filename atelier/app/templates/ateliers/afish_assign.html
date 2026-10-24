@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+{% from 'components/ui.html' import page_header, card, badge, alert, form_field, textarea_field, checkbox_field, avatar, icon %}
+{% from 'ateliers/_macros.html' import terms_editor, pay_example %}
+{% set person_name = member.display_name if member else user.display_name %}
+{% block title %}افیش {{ role.label }}{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='css/ateliers.css', v=asset_version|default('1')) }}">{% endblock %}
+
+{% block content %}
+<div class="page page--narrow stack stack--lg">
+  {{ page_header('افیش ' ~ role.label, 'مراسم ' ~ event.hall.name ~ ' · ' ~ (event.date|jdate('weekday_long')),
+                 back_url=url_for('ateliers.afish_pick', event_id=event.id, role=role.value, via='roster' if member else 'search', replace=replace.id if replace else None),
+                 back_label='انتخاب نیرو') }}
+
+  {% if errors.get('person') %}{% call alert(tone='danger') %}{{ errors.get('person') }}{% endcall %}{% endif %}
+
+  {#- ============================ who + warnings ============================ -#}
+  {% call card(cls='at-pick') %}
+    <div class="at-member__head">
+      {{ avatar(person_name, size='lg') }}
+      <div class="at-member__title">
+        <h2 class="at-member__name">{{ person_name }}</h2>
+        <span class="at-chips">
+          {{ badge(role.label, 'accent') }}
+          {% if member %}{{ badge('نیروی ثابت', 'neutral') }}{% if member.user_id %}{{ badge('حساب کاربری متصل', 'success', 'user-check') }}{% endif %}{% else %}{{ badge('از سامانه', 'info') }}{% endif %}
+        </span>
+      </div>
+    </div>
+    <p class="text-muted text-sm">
+      {% if member and not member.user_id %}نیروی ثابت بدون حساب کاربری است؛ همین الان قطعی می‌شود و اعلانی برایش ارسال نمی‌شود.
+      {% elif member %}نیروی ثابت است؛ همین الان قطعی می‌شود و در پنل خودش افیش را می‌بیند.
+      {% else %}دعوت برایش ارسال می‌شود؛ پس از دیدن شرایط پرداخت و پذیرفتن، می‌توانید افیش را قطعی کنید.{% endif %}
+    </p>
+  {% endcall %}
+
+  <section class="stack stack--sm" aria-label="هشدارها">
+    {% if duplicates %}
+    {% call alert(tone='danger', title='این نفر قبلاً افیش شده است') %}همین نقش را در این مراسم دارد؛ نمی‌توان دوباره او را افیش کرد.{% endcall %}
+    {% endif %}
+    {% if conflicts %}
+    {% call alert(tone='warning', title='تداخل: ' ~ person_name ~ ' همان روز مشغول است') %}
+      <ul class="at-conflicts">
+        {% for c in conflicts %}
+        <li>{% if c.own %}{{ c.hall }}{% if c.time %} · ساعت {{ c.time|hhmm }}{% endif %} — {{ c.role }} ({{ c.status.label }}){% else %}مراسم دیگری (اتلیهٔ دیگر){% endif %}</li>
+        {% endfor %}
+      </ul>
+    {% endcall %}
+    {% endif %}
+    {% if unavailable %}
+    {% call alert(tone='warning', title='این نفر آن روز را «در دسترس نیستم» ثبت کرده است') %}{% if unavailable.note %}{{ unavailable.note }}{% else %}ممکن است نتواند بیاید؛ پیش از ادامه با او هماهنگ کنید.{% endif %}{% endcall %}
+    {% endif %}
+    {% if blocked %}
+    {% call alert(tone='danger', title='طبق تنظیمات اتلیه، افیش با تداخل مجاز نیست') %}در «تنظیمات اتلیه» می‌توانید این محدودیت را بردارید.{% endcall %}
+    {% endif %}
+    {% if others %}
+    {% call alert(tone='info') %}این نفر در همین مراسم نقش دیگری هم دارد ({% for o in others %}{{ o.role.label }}{{ '، ' if not loop.last }}{% endfor %}). هر نقش شرایط جدا دارد.{% endcall %}
+    {% endif %}
+    {% if not skill_ok %}
+    {% call alert(tone='info') %}برای «{{ person_name }}» مهارت {{ role.label }} ثبت نشده است.{% endcall %}
+    {% endif %}
+  </section>
+
+  {#- ============================== terms form =============================== -#}
+  <form method="post" action="{{ url_for('ateliers.afish_assign', event_id=event.id) }}" class="stack stack--lg" novalidate>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="role" value="{{ role.value }}">
+    {% if member %}<input type="hidden" name="member" value="{{ member.id }}">{% else %}<input type="hidden" name="user" value="{{ user.id }}">{% if token %}<input type="hidden" name="k" value="{{ token }}">{% endif %}{% endif %}
+    {% if replace %}<input type="hidden" name="replace" value="{{ replace.id }}">{% endif %}
+
+    {% call card(title='شرایط پرداخت', subtitle='پایه + پورسانت هر عکس + پاداش پله‌ای. همین مقادیر روی این افیش ثبت می‌شود و با تغییر بعدی پیش‌فرض‌ها عوض نمی‌شود.') %}
+      {% if source_text %}<p class="at-source text-sm">{{ icon('info') }} {{ source_text }}</p>{% endif %}
+      {% if expected and (expected.base or expected.commission_per_unit) %}
+      <p class="text-sm text-muted">درخواست نیرو در پروفایلش: {% if expected.base %}پایه {{ expected.base|toman }} تومان{% endif %}{% if expected.commission_per_unit %}{{ ' · ' if expected.base else '' }}پورسانت هر عکس {{ expected.commission_per_unit|toman }} تومان{% endif %}</p>
+      {% endif %}
+      <div class="stack">
+        {{ terms_editor(form, errors) }}
+        {{ pay_example(example, example_units) }}
+      </div>
+    {% endcall %}
+
+    {% call card(title='جزئیات حضور') %}
+      <div class="form-grid form-grid--2">
+        {{ form_field('ساعت حضور (اختیاری)', name='call_time', value=form.get('call_time', ''), dir='ltr', inputmode='numeric', placeholder='۱۸:۳۰', error=errors.get('call_time'), help='اگر خالی بماند ساعت شروع مراسم ملاک است.') }}
+        <div class="span-all">{{ textarea_field('یادداشت برای نیرو (اختیاری)', 'notes', form.get('notes', ''), rows=2, maxlength=500, error=errors.get('notes')) }}</div>
+      </div>
+    {% endcall %}
+
+    {% if needs_override and not blocked %}
+    <div class="at-override{% if errors.get('override') %} field--invalid{% endif %}">
+      {{ checkbox_field('افیش با علم به این تداخل', 'override', checked=override, help='مسئولیت هماهنگی با نیرو با شماست.', id='f-override') }}
+      {% if errors.get('override') %}<p class="field__error" role="alert">{{ icon('alert') }}<span>{{ errors.get('override') }}</span></p>{% endif %}
+    </div>
+    {% elif errors.get('override') %}
+    <p class="field__error" role="alert">{{ icon('alert') }}<span>{{ errors.get('override') }}</span></p>
+    {% endif %}
+
+    <div class="form-actions form-actions--sticky">
+      <button class="btn btn--primary btn--lg" type="submit"{% if duplicates or blocked %} disabled{% endif %}>
+        {{ icon('check') }}<span>{{ 'ارسال دعوت' if user else 'افیش و قطعی کردن' }}{% if replace %} (جایگزین {{ replace.person_name }}){% endif %}</span>
+      </button>
+      <a class="btn btn--ghost btn--lg" href="{{ url_for('ateliers.event_detail', event_id=event.id, _anchor='afish') }}">انصراف</a>
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block scripts %}<script src="{{ url_for('static', filename='js/ateliers.js', v=asset_version|default('1')) }}" defer></script>{% endblock %}

@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+{% from 'components/ui.html' import page_header, card, stat_tile, empty_state, select_field, icon, badge, rating_stars %}
+{% from 'halls/_macros.html' import hall_filter %}
+{% block title %}گزارش‌ها{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='css/halls.css', v=asset_version|default('1')) }}">{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/halls.js', v=asset_version|default('1')) }}" defer></script>{% endblock %}
+
+{% block content %}
+<div class="page stack stack--lg">
+  {{ page_header('گزارش‌ها', (selected.name if selected else 'همهٔ تالارها') ~ ' · سال ' ~ year|fa) }}
+
+  <form class="hl-filter" method="get" action="{{ url_for('halls.reports') }}" role="search" aria-label="بازهٔ گزارش">
+    {% if hall_choices|length > 1 %}{{ select_field('تالار', 'hall', hall_choices, selected=selected.id if selected else '', placeholder='همهٔ تالارها') }}{% endif %}
+    {{ select_field('سال', 'y', years, selected=year|string) }}
+    <button class="btn btn--secondary" type="submit">{{ icon('filter') }}<span>اعمال</span></button>
+  </form>
+
+  <div class="grid grid--stats">
+    {{ stat_tile('مراسم سال', total_events|fa, icon='calendar', hint=total_cancelled|fa ~ ' لغوشده') }}
+    {{ stat_tile('با اتلیهٔ قطعی', total_booked|fa, icon='check-circle', tone='success', hint=((100 * total_booked // total_events)|fa ~ '٪ از مراسم') if total_events else none) }}
+    {{ stat_tile('نرخ پذیرش پیشنهاد', ((totals.acceptance_rate|fa ~ '٪') if totals.acceptance_rate is not none else '—'), icon='send', tone='info',
+                 hint=(totals.accepted|fa ~ ' پذیرفته از ' ~ totals.answered|fa ~ ' پاسخ') if totals.answered else 'هنوز پاسخی نیست') }}
+    {{ stat_tile('زمان پاسخ', format_hours(totals.median_hours), icon='clock', hint=('میانگین ' ~ format_hours(totals.average_hours)) if totals.average_hours is not none else 'میانهٔ زمان پاسخ') }}
+    {{ stat_tile('تاریخ از دست رفته', lost|fa, icon='alert', tone='danger' if lost else none, hint='گذشته و بدون اتلیه') }}
+    {{ stat_tile('برداشت از فهرست باز', totals.claims|fa, icon='megaphone', hint='مراسمی که اتلیه‌ها خودشان برداشتند') }}
+  </div>
+
+  {% call card(title='مراسم‌ها در هر ماه', subtitle='نوار: مراسم دارای اتلیهٔ قطعی از کل مراسم ماه') %}
+    {% if total_events or total_cancelled %}
+    <ol class="hl-months">
+      {% for row in months %}
+      <li class="hl-month">
+        <span class="hl-month__name">{{ row.label }}</span>
+        <progress class="hl-bar hl-bar--success" value="{{ row.booked }}" max="{{ row.total if row.total else 1 }}" aria-label="{{ row.label }}: {{ row.booked|fa }} از {{ row.total|fa }} مراسم قطعی">{{ row.booked_percent|fa }}٪</progress>
+        <span class="hl-month__num">{{ row.total|fa }}</span>
+        {% if row.total or row.cancelled %}<span class="hl-month__detail">{{ row.booked|fa }} قطعی · {{ row.free|fa }} بدون اتلیه{% if row.cancelled %} · {{ row.cancelled|fa }} لغو{% endif %}</span>{% endif %}
+      </li>
+      {% endfor %}
+    </ol>
+    {% else %}
+    {{ empty_state('chart', 'در این سال مراسمی ثبت نشده', 'با ثبت مراسم‌ها، نمودار ماهانه این‌جا ساخته می‌شود.') }}
+    {% endif %}
+  {% endcall %}
+
+  {% call card(title='اتلیه‌ها', subtitle='پیشنهادهای مستقیم این سال و پاسخ هر اتلیه', padded=false) %}
+    {% if per_atelier %}
+    <div class="table-wrap">
+      <table class="table table--stack">
+        <thead><tr><th scope="col">اتلیه</th><th scope="col" class="cell-num">پیشنهاد</th><th scope="col" class="cell-num">پذیرفته</th><th scope="col" class="cell-num">رد</th><th scope="col" class="cell-num">نرخ پذیرش</th><th scope="col">زمان پاسخ</th><th scope="col">امتیاز</th></tr></thead>
+        <tbody>
+          {% for row in per_atelier %}
+          <tr>
+            <td data-label="اتلیه"><a href="{{ url_for('halls.atelier_show', atelier_id=row.atelier.id) }}">{{ row.atelier.name }}</a>{% if row.stats.claims %} <span class="text-muted text-xs">({{ row.stats.claims|fa }} برداشت)</span>{% endif %}</td>
+            <td class="cell-num" data-label="پیشنهاد">{{ row.stats.sent|fa }}</td>
+            <td class="cell-num" data-label="پذیرفته">{{ row.stats.accepted|fa }}</td>
+            <td class="cell-num" data-label="رد">{{ row.stats.declined|fa }}</td>
+            <td class="cell-num" data-label="نرخ پذیرش">{{ (row.stats.acceptance_rate|fa ~ '٪') if row.stats.acceptance_rate is not none else '—' }}</td>
+            <td data-label="زمان پاسخ">{{ format_hours(row.stats.median_hours) }}</td>
+            <td data-label="امتیاز">{% if row.rating %}{{ rating_stars(row.rating, count=row.rating_count) }}{% else %}—{% endif %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    {{ empty_state('send', 'پیشنهادی در این سال ثبت نشده', 'وقتی مراسمی را به اتلیه‌ای پیشنهاد دهید، آمار پاسخ او این‌جا می‌آید.') }}
+    {% endif %}
+  {% endcall %}
+
+  <p class="text-muted text-sm">نرخ پذیرش = پذیرفته ÷ (پذیرفته + رد)؛ پیشنهادهای بی‌پاسخ و پس‌گرفته حساب نمی‌شوند. زمان پاسخ = فاصلهٔ ارسال تا پاسخ اتلیه (میانه). تاریخ‌ها بر اساس روز مراسم در سال شمسی انتخاب‌شده‌اند.</p>
+</div>
+{% endblock %}

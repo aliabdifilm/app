@@ -1,0 +1,12 @@
+{#- 403: forbidden.  Keeps the app shell for logged-in users, the public header otherwise. -#}
+{% extends 'base.html' %}
+{% from 'components/ui.html' import error_page %}
+{% block title %}دسترسی ندارید{% endblock %}
+{% block content %}
+<div class="page">
+  {% call error_page(403, 'به این بخش دسترسی ندارید', 'این صفحه برای نقش کاربری شما فعال نیست. اگر فکر می‌کنید اشتباهی رخ داده، با مدیر سامانه تماس بگیرید یا با حساب دیگری وارد شوید.', icon='lock') %}
+    <a class="btn btn--primary" href="{{ home_url|default('/') }}">صفحهٔ اصلی</a>
+    <button type="button" class="btn" data-history-back>بازگشت به صفحهٔ قبل</button>
+  {% endcall %}
+</div>
+{% endblock %}

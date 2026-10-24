@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% from 'components/ui.html' import page_header, card, badge, empty_state, pagination, avatar, tabs, select_field, form_field, icon %}
+{% block title %}نیروهای ثابت{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='css/ateliers.css', v=asset_version|default('1')) }}">{% endblock %}
+
+{% block content %}
+<div class="page stack stack--lg">
+  {{ page_header('نیروهای ثابت', atelier.name ~ ' · نیروهایی که همیشه با شما کار می‌کنند و بدون انتظار پاسخ افیش می‌شوند.',
+                 actions=('<a class="btn btn--primary" href="' ~ url_for('ateliers.roster_new') ~ '">' ~ 'افزودن نیرو' ~ '</a>')|safe) }}
+
+  {{ tabs([
+      {'key': 'active', 'label': 'فعال', 'url': url_for('ateliers.roster', state='active', q=q or None, skill=skill or None), 'badge': counts.get(True, 0)|fa},
+      {'key': 'inactive', 'label': 'غیرفعال', 'url': url_for('ateliers.roster', state='inactive', q=q or None, skill=skill or None), 'badge': (counts.get(False, 0)|fa) if counts.get(False, 0) else None},
+      {'key': 'all', 'label': 'همه', 'url': url_for('ateliers.roster', state='all', q=q or None, skill=skill or None)}
+    ], active=state, label='وضعیت نیرو') }}
+
+  <form class="at-filter" method="get" role="search" action="{{ url_for('ateliers.roster') }}">
+    <input type="hidden" name="state" value="{{ state }}">
+    {{ form_field('جستجو', name='q', type='search', value=q, placeholder='نام یا شمارهٔ موبایل') }}
+    {{ select_field('مهارت', 'skill', Skill.choices(), selected=skill, placeholder='همهٔ مهارت‌ها') }}
+    <button class="btn btn--secondary" type="submit">{{ icon('search') }}<span>جستجو</span></button>
+  </form>
+
+  {% if members %}
+  <ul class="at-cards" aria-label="فهرست نیروهای ثابت">
+    {% for member in members %}
+    <li>
+      {% call card(tone=None if member.is_active else 'warning', cls='at-member') %}
+        <div class="at-member__head">
+          {{ avatar(member.display_name, size='lg') }}
+          <div class="at-member__title">
+            <h2 class="at-member__name">{{ member.display_name }}</h2>
+            {% if member.mobile %}<span class="num text-muted text-sm">{{ member.mobile|fa }}</span>{% else %}<span class="text-faint text-sm">بدون شمارهٔ موبایل</span>{% endif %}
+          </div>
+        </div>
+        <p class="at-chips">
+          {% for value in member.skills %}{{ badge(label_fa('skill', value), 'accent') }}{% endfor %}
+          {% if member.user_id %}{{ badge('حساب کاربری متصل', 'success', 'user-check') }}{% else %}{{ badge('بدون حساب کاربری', 'neutral') }}{% endif %}
+          {% if not member.is_active %}{{ badge('غیرفعال', 'warning') }}{% endif %}
+          {% if upcoming.get(member.id) %}{{ badge(upcoming[member.id]|fa ~ ' افیش پیش‌رو', 'info', 'calendar') }}{% endif %}
+        </p>
+        {% if member.notes %}<p class="text-muted text-sm">{{ member.notes }}</p>{% endif %}
+        <div class="at-actions">
+          <a class="btn btn--sm btn--secondary" href="{{ url_for('ateliers.roster_edit', member_id=member.id) }}">{{ icon('edit') }}<span>ویرایش</span></a>
+          <form class="inline-form" method="post" action="{{ url_for('ateliers.roster_toggle', member_id=member.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="next" value="{{ request.full_path.rstrip('?') }}">
+            <button class="btn btn--sm btn--ghost" type="submit">{{ 'غیرفعال کردن' if member.is_active else 'فعال کردن' }}</button>
+          </form>
+        </div>
+      {% endcall %}
+    </li>
+    {% endfor %}
+  </ul>
+  {{ pagination(page, 'ateliers.roster', q=q or None, skill=skill or None, state=state) }}
+  {% else %}
+  {% if q or skill or state != 'active' %}
+  {{ empty_state('search', 'نیرویی با این شرایط پیدا نشد', 'جستجو را تغییر دهید یا همهٔ نیروها را ببینید.', action=('<a class="btn" href="' ~ url_for('ateliers.roster', state='all') ~ '">دیدن همه</a>')|safe) }}
+  {% else %}
+  {{ empty_state('users', 'هنوز نیروی ثابتی ثبت نکرده‌اید', 'نیروهای همیشگی اتلیه (عکاس، ادیتور، پرزنتور، فروشنده) را این‌جا ثبت کنید تا با یک لمس افیش شوند؛ حساب کاربری لازم نیست.',
+                  action=('<a class="btn btn--primary" href="' ~ url_for('ateliers.roster_new') ~ '">افزودن اولین نیرو</a>')|safe) }}
+  {% endif %}
+  {% endif %}
+</div>
+{% endblock %}

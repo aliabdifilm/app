@@ -1,0 +1,12 @@
+{#- The invoice form as a full page: the no-JavaScript fallback of the popup, and where validation errors land. -#}
+{% extends 'base.html' %}
+{% from 'components/ui.html' import page_header %}
+{% block title %}{{ 'ویرایش فاکتور' if is_edit else 'ثبت فاکتور' }}{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='css/accounting.css', v=asset_version|default('1')) }}">{% endblock %}
+{% block content %}
+<div class="page stack stack--lg acc">
+  {{ page_header('ثبت فاکتور مراسم' if not is_edit else 'ویرایش فاکتور مراسم', event.hall.name ~ ' · ' ~ (event.date|jdate('weekday_long')), back_url=index_url, back_label='حسابداری') }}
+  <div class="card"><div class="card__body">{% include 'accounting/_invoice_form.html' %}</div></div>
+</div>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/accounting.js', v=asset_version|default('1')) }}" defer></script>{% endblock %}

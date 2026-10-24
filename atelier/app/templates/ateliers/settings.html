@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+{% from 'components/ui.html' import page_header, card, form_field, money_input, textarea_field, checkbox_field, select_field, confirm_button, empty_state, alert, icon, avatar %}
+{% from 'ateliers/_macros.html' import terms_editor %}
+{% block title %}تنظیمات اتلیه{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='css/ateliers.css', v=asset_version|default('1')) }}">{% endblock %}
+
+{% block content %}
+<div class="page page--narrow stack stack--lg">
+  {{ page_header('تنظیمات اتلیه', atelier.name, actions=('<a class="btn btn--secondary" href="' ~ url_for('ateliers.setup', new='1') ~ '">' ~ 'اتلیهٔ تازه' ~ '</a>')|safe) }}
+
+  <nav class="at-anchors" aria-label="بخش‌های تنظیمات">
+    <a href="#profile">مشخصات</a><a href="#halls">اجارهٔ تالارها</a><a href="#presets">پیش‌فرض حقوق</a>
+  </nav>
+
+  {#- ------------------------------------------------------------------ profile -#}
+  <div id="profile">
+  {% call card(title='مشخصات و تنظیمات') %}
+    <form method="post" action="{{ url_for('ateliers.settings_profile') }}" enctype="multipart/form-data" class="stack" novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="at-logo-row">
+        {{ avatar(atelier.name, size='xl', src=media_url(atelier.logo_path), alt='لوگوی ' ~ atelier.name) }}
+        <div class="stack stack--sm at-logo-row__fields">
+          {% call(fid) form_field('لوگو', name='logo', id='f-logo', error=errors.get('logo') if section == 'profile' else none, help='JPG، PNG یا WebP؛ تا ۵ مگابایت.') %}
+            <input class="input" type="file" id="{{ fid }}" name="logo" accept="image/jpeg,image/png,image/webp">
+          {% endcall %}
+          {% if atelier.logo_path %}{{ checkbox_field('حذف لوگوی فعلی', 'remove_logo') }}{% endif %}
+        </div>
+      </div>
+      <div class="form-grid form-grid--2">
+        {{ form_field('نام اتلیه', name='name', value=form.get('name', ''), required=true, error=errors.get('name'), maxlength=150) }}
+        {{ form_field('شهر', name='city', value=form.get('city', ''), required=true, error=errors.get('city'), maxlength=80) }}
+        {{ form_field('تلفن', name='phone', type='tel', inputmode='numeric', dir='ltr', value=form.get('phone', ''), error=errors.get('phone')) }}
+        {{ money_input('default_venue_rent', form.get('default_venue_rent'), label='اجارهٔ پیش‌فرض باغ/تالار', error=errors.get('default_venue_rent'),
+                       help='برای تالارهایی که اجارهٔ جدا ندارند؛ در فاکتور خودکار وارد می‌شود.') }}
+        <div class="span-all">{{ textarea_field('دربارهٔ اتلیه', 'description', form.get('description', ''), rows=3, error=errors.get('description'), maxlength=1000) }}</div>
+        <div class="span-all">
+          {{ checkbox_field('جلوگیری سخت از افیش با تداخل', 'block_double_booking', checked=form.get('block_double_booking'),
+                            help='روشن: نیرویی که همان روز مراسم دیگری دارد یا آن روز را «در دسترس نیستم» ثبت کرده افیش نمی‌شود. خاموش: فقط هشدار می‌گیرید و با تأیید صریح ادامه می‌دهید.') }}
+        </div>
+      </div>
+      <div class="form-actions"><button class="btn btn--primary" type="submit">{{ icon('check') }}<span>ذخیره مشخصات</span></button></div>
+    </form>
+  {% endcall %}
+  </div>
+
+  {#- ---------------------------------------------------------------- hall rents -#}
+  <div id="halls">
+  {% call card(title='اجارهٔ باغ و تالار', subtitle='اجارهٔ هر تالار جدا باشد، در فاکتور آن مراسم خودکار پر می‌شود؛ خالی بگذارید تا اجارهٔ پیش‌فرض اتلیه بیاید.') %}
+    <form method="post" action="{{ url_for('ateliers.settings_halls') }}" class="stack" novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      {% if hall_links %}
+      <ul class="at-rents">
+        {% for link in hall_links %}
+        <li class="at-rents__item">
+          <div class="at-rents__name"><strong>{{ link.hall.name }}</strong><span class="text-muted text-sm">{{ link.hall.city }}</span></div>
+          <div class="at-rents__input">{{ money_input('rent_' ~ link.id, form.get('rent_' ~ link.id), aria_label='اجارهٔ ' ~ link.hall.name, placeholder='پیش‌فرض', error=errors.get('rent_' ~ link.id)) }}</div>
+          <button class="icon-btn" type="submit" form="rm-hall-{{ link.id }}" data-confirm="اجارهٔ ثبت‌شده برای «{{ link.hall.name }}» حذف شود و اجارهٔ پیش‌فرض اتلیه اعمال شود؟" data-confirm-title="حذف اجارهٔ تالار" data-confirm-label="بله، حذف شود" aria-label="حذف {{ link.hall.name }}">{{ icon('trash') }}</button>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="text-muted">هنوز اجارهٔ جداگانه‌ای برای تالاری ثبت نکرده‌اید.</p>
+      {% endif %}
+      {% if hall_options %}
+      <div class="at-add-hall">
+        <h3 class="at-terms__title">افزودن تالار</h3>
+        <div class="form-grid form-grid--2">
+          {{ select_field('تالار', 'new_hall_id', hall_options, selected=form.get('new_hall_id'), placeholder='انتخاب تالار', error=errors.get('new_hall_id')) }}
+          {{ money_input('new_rent', form.get('new_rent'), label='اجاره', placeholder='پیش‌فرض اتلیه', error=errors.get('new_rent')) }}
+        </div>
+      </div>
+      {% endif %}
+      <div class="form-actions"><button class="btn btn--primary" type="submit">{{ icon('check') }}<span>ذخیره اجاره‌ها</span></button></div>
+    </form>
+    {% for link in hall_links %}
+    <form id="rm-hall-{{ link.id }}" method="post" action="{{ url_for('ateliers.settings_hall_delete', link_id=link.id) }}" hidden>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    </form>
+    {% endfor %}
+  {% endcall %}
+  </div>
+
+  {#- ------------------------------------------------------------------- presets -#}
+  <div id="presets">
+  {% call card(title='پیش‌فرض حقوق نقش‌ها', subtitle='فقط فرم افیش را از قبل پر می‌کند و هر بار قابل تغییر است. افیش‌های ثبت‌شده با همان شرایط زمان افیش می‌مانند.') %}
+    <form method="post" action="{{ url_for('ateliers.settings_presets') }}" class="stack" novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      {% for role in roles %}
+      {% set sfx = suffix(role) %}
+      <details class="at-details"{% if form.get('base' ~ sfx) or form.get('commission' ~ sfx) or form.get('tiers' ~ sfx) or errors.get('tiers' ~ sfx) or errors.get('base' ~ sfx) or errors.get('commission' ~ sfx) %} open{% endif %}>
+        <summary>{{ role.label }}
+          <span class="text-muted text-sm">
+            {% if form.get('base' ~ sfx) or form.get('commission' ~ sfx) or form.get('tiers' ~ sfx) %}تنظیم شده{% else %}پیش‌فرضی ندارد{% endif %}
+          </span>
+        </summary>
+        {{ terms_editor(form, errors, sfx) }}
+      </details>
+      {% endfor %}
+      <div class="form-actions"><button class="btn btn--primary" type="submit">{{ icon('check') }}<span>ذخیره پیش‌فرض‌ها</span></button></div>
+    </form>
+  {% endcall %}
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}<script src="{{ url_for('static', filename='js/ateliers.js', v=asset_version|default('1')) }}" defer></script>{% endblock %}

@@ -1,0 +1,131 @@
+{% extends 'base.html' %}
+{% from 'components/ui.html' import page_header, card, badge, empty_state, pagination, tabs, confirm_button, alert, icon %}
+{% from 'ateliers/_macros.html' import meter, date_tile, event_facts, event_sub %}
+{% block title %}مراسم‌ها{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='css/ateliers.css', v=asset_version|default('1')) }}">{% endblock %}
+
+{% block content %}
+<div class="page stack stack--lg">
+  {{ page_header('مراسم‌ها', 'پیشنهاد تالارها، مراسم‌های باز و برنامهٔ کاری ' ~ atelier.name,
+                 actions=('<a class="btn btn--secondary" href="' ~ url_for('ateliers.calendar') ~ '">' ~ 'تقویم' ~ '</a>')|safe) }}
+
+  {{ tabs([
+      {'key': 'offers', 'label': 'پیشنهادها', 'url': url_for('ateliers.events', tab='offers'), 'badge': offer_count|fa if offer_count else None},
+      {'key': 'open', 'label': 'باز', 'url': url_for('ateliers.events', tab='open'), 'badge': open_count|fa if open_count else None},
+      {'key': 'upcoming', 'label': 'پیش‌رو', 'url': url_for('ateliers.events', tab='upcoming')},
+      {'key': 'past', 'label': 'گذشته', 'url': url_for('ateliers.events', tab='past')}
+    ], active=tab, label='بخش‌های مراسم') }}
+
+  {#- ============================== direct offers ============================== -#}
+  {% if tab == 'offers' %}
+    {% if page.items %}
+    <ul class="at-cards" aria-label="پیشنهادهای مستقیم">
+      {% for offer in page.items %}
+      {% set event = offer.event %}
+      <li>
+        {% call card(tone='accent', cls='at-event') %}
+          <div class="at-event__head">
+            {{ date_tile(event.date) }}
+            <div class="at-event__title">
+              <h2 class="at-event__name"><a href="{{ url_for('ateliers.event_detail', event_id=event.id) }}">{{ event.hall.name }}</a></h2>
+              <p class="text-muted">{{ event_sub(event) }}</p>
+            </div>
+            {{ badge('منتظر پاسخ شما', 'warning') }}
+          </div>
+          {{ event_facts(event) }}
+          {% if offer.message %}<p class="at-note-box">«{{ offer.message }}»</p>{% endif %}
+          {% if event.notes %}<p class="text-muted text-sm">{{ event.notes }}</p>{% endif %}
+          {% if load.get(event.date) %}
+          {% call alert(tone='warning') %}در همین روز {{ load[event.date]|fa }} مراسم دیگر دارید؛ پیش از پذیرفتن، نیروهایتان را در نظر بگیرید.{% endcall %}
+          {% endif %}
+          <div class="at-actions">
+            {{ confirm_button('پذیرش مراسم', url_for('ateliers.offer_accept', offer_id=offer.id), 'با پذیرفتن، این مراسم در برنامهٔ ' ~ atelier.name ~ ' ثبت می‌شود و مدیر تالار باخبر می‌شود.', title='پذیرفتن پیشنهاد', confirm_label='بله، می‌پذیرم', tone='primary', cls='btn btn--primary', icon='check') }}
+            {{ confirm_button('رد پیشنهاد', url_for('ateliers.offer_decline', offer_id=offer.id), 'این پیشنهاد رد می‌شود و مدیر تالار باخبر می‌شود.', title='رد پیشنهاد', confirm_label='بله، رد شود', icon='close') }}
+            <a class="btn btn--sm btn--ghost" href="{{ url_for('ateliers.event_detail', event_id=event.id) }}">جزئیات</a>
+          </div>
+        {% endcall %}
+      </li>
+      {% endfor %}
+    </ul>
+    {{ pagination(page, 'ateliers.events', tab='offers') }}
+    {% else %}
+    {{ empty_state('inbox', 'پیشنهاد بازی ندارید', 'وقتی مدیر تالاری مراسمی را مستقیم برای شما بفرستد، این‌جا می‌بینید و می‌پذیرید یا رد می‌کنید. می‌توانید مراسم‌های باز را هم نگاه کنید.',
+                    action=('<a class="btn btn--primary" href="' ~ url_for('ateliers.events', tab='open') ~ '">مراسم‌های باز</a>')|safe) }}
+    {% endif %}
+
+  {#- ============================ open events (claim) ============================ -#}
+  {% elif tab == 'open' %}
+    <p class="at-scope">
+      {% if city %}نمایش مراسم‌های باز شهر <strong>{{ city }}</strong> ·
+      <a href="{{ url_for('ateliers.events', tab='open', city='all') }}">همهٔ شهرها</a>
+      {% else %}نمایش مراسم‌های باز همهٔ شهرها · {% if atelier.city %}<a href="{{ url_for('ateliers.events', tab='open') }}">فقط {{ atelier.city }}</a>{% endif %}{% endif %}
+    </p>
+    {% if page.items %}
+    <ul class="at-cards" aria-label="مراسم‌های باز">
+      {% for event in page.items %}
+      <li>
+        {% call card(cls='at-event') %}
+          <div class="at-event__head">
+            {{ date_tile(event.date) }}
+            <div class="at-event__title">
+              <h2 class="at-event__name"><a href="{{ url_for('ateliers.event_detail', event_id=event.id) }}">{{ event.hall.name }}</a></h2>
+              <p class="text-muted">{{ event_sub(event) }}</p>
+            </div>
+            {{ badge('باز برای همه', 'info') }}
+          </div>
+          {{ event_facts(event) }}
+          {% if event.notes %}<p class="text-muted text-sm">{{ event.notes }}</p>{% endif %}
+          {% if load.get(event.date) %}
+          {% call alert(tone='warning') %}در همین روز {{ load[event.date]|fa }} مراسم دیگر دارید.{% endcall %}
+          {% endif %}
+          <div class="at-actions">
+            {{ confirm_button('برداشتن مراسم', url_for('ateliers.event_claim', event_id=event.id), 'اگر این مراسم هنوز آزاد باشد، به نام ' ~ atelier.name ~ ' ثبت می‌شود و مدیر تالار باخبر می‌شود.', title='برداشتن مراسم', confirm_label='بله، برمی‌دارم', tone='primary', cls='btn btn--primary', icon='check', fields={'atelier_id': atelier.id}) }}
+            <a class="btn btn--sm btn--ghost" href="{{ url_for('ateliers.event_detail', event_id=event.id) }}">جزئیات</a>
+          </div>
+        {% endcall %}
+      </li>
+      {% endfor %}
+    </ul>
+    {{ pagination(page, 'ateliers.events', tab='open', city=city_arg or None) }}
+    {% else %}
+    {{ empty_state('calendar', 'مراسم بازی در این بخش نیست', 'مراسم‌هایی که مدیر تالار برای همهٔ اتلیه‌ها باز می‌کند این‌جا می‌آید. می‌توانید همهٔ شهرها را هم ببینید.',
+                    action=('<a class="btn" href="' ~ url_for('ateliers.events', tab='open', city='all') ~ '">همهٔ شهرها</a>')|safe if city else None) }}
+    {% endif %}
+
+  {#- ========================= my events (upcoming / past) ========================= -#}
+  {% else %}
+    {% if page.items %}
+    <ul class="at-cards" aria-label="مراسم‌های من">
+      {% for event in page.items %}
+      {% set board = boards[event.id] %}
+      <li>
+        {% call card(cls='at-event') %}
+          <div class="at-event__head">
+            {{ date_tile(event.date) }}
+            <div class="at-event__title">
+              <h2 class="at-event__name"><a href="{{ url_for('ateliers.event_detail', event_id=event.id) }}">{{ event.hall.name }}</a></h2>
+              <p class="text-muted">{{ event_sub(event) }}</p>
+            </div>
+            {{ badge(event.status.label, event.status|event_tone) }}
+          </div>
+          {{ event_facts(event) }}
+          {% if event.status.value not in ('cancelled',) %}{{ meter(board.completeness) }}{% endif %}
+          <div class="at-actions">
+            <a class="btn btn--sm btn--primary" href="{{ url_for('ateliers.event_detail', event_id=event.id, _anchor='afish') }}">{{ icon('users') }}<span>افیش و جزئیات</span></a>
+          </div>
+        {% endcall %}
+      </li>
+      {% endfor %}
+    </ul>
+    {{ pagination(page, 'ateliers.events', tab=tab) }}
+    {% else %}
+    {% if tab == 'upcoming' %}
+    {{ empty_state('calendar', 'مراسم پیش‌رویی ندارید', 'مراسم‌هایی که بپذیرید یا بردارید این‌جا نمایش داده می‌شوند.',
+                    action=('<a class="btn btn--primary" href="' ~ url_for('ateliers.events', tab='open') ~ '">دیدن مراسم‌های باز</a>')|safe) }}
+    {% else %}
+    {{ empty_state('inbox', 'مراسم گذشته‌ای ثبت نشده است', 'مراسم‌های برگزارشده، فاکتورشده و لغوشده این‌جا می‌آیند.') }}
+    {% endif %}
+    {% endif %}
+  {% endif %}
+</div>
+{% endblock %}

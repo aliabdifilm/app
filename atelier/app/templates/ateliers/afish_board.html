@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% from 'components/ui.html' import page_header, card, badge, empty_state, pagination, tabs, alert, icon %}
+{% from 'ateliers/_macros.html' import meter, date_tile, event_facts, event_sub %}
+{% block title %}افیش نیرو{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='css/ateliers.css', v=asset_version|default('1')) }}">{% endblock %}
+
+{% block content %}
+<div class="page stack stack--lg">
+  {{ page_header('افیش نیرو', 'نقش‌های هر مراسم را ببینید و جای خالی را پر کنید.',
+                 actions=('<a class="btn btn--secondary" href="' ~ url_for('ateliers.roster') ~ '">نیروهای ثابت</a>')|safe) }}
+
+  {{ tabs([
+      {'key': 'upcoming', 'label': 'پیش‌رو', 'url': url_for('ateliers.afish_board', range='upcoming')},
+      {'key': 'week', 'label': 'هفتهٔ آینده', 'url': url_for('ateliers.afish_board', range='week')},
+      {'key': 'past', 'label': 'گذشته', 'url': url_for('ateliers.afish_board', range='past')}
+    ], active=scope, label='بازهٔ مراسم‌ها') }}
+
+  {% if scope != 'past' and boards and gaps %}
+  {% call alert(tone='warning') %}در این صفحه {{ gaps|fa }} جای کار هنوز قطعی نشده است؛ مراسم‌های دارای جای خالی را باز کنید.{% endcall %}
+  {% endif %}
+
+  {% if page.items %}
+  <ul class="at-cards" aria-label="افیش مراسم‌ها">
+    {% for event in page.items %}
+    {% set board = boards[event.id] %}
+    <li>
+      {% call card(cls='at-event') %}
+        <div class="at-event__head">
+          {{ date_tile(event.date) }}
+          <div class="at-event__title">
+            <h2 class="at-event__name"><a href="{{ url_for('ateliers.event_detail', event_id=event.id, _anchor='afish') }}">{{ event.hall.name }}</a></h2>
+            <p class="text-muted">{{ event_sub(event) }}{% if event.start_time %} · ساعت {{ event.start_time|hhmm }}{% endif %}</p>
+          </div>
+          {{ badge(event.status.label, event.status|event_tone) }}
+        </div>
+        {{ meter(board.completeness) }}
+        <dl class="at-roles">
+          {% for slots in board.summary.roles.values() %}
+          <div class="at-roles__row{% if slots.shortfall %} at-roles__row--gap{% endif %}">
+            <dt>{{ slots.role.label }}</dt>
+            <dd>
+              {% for a in slots.assignments %}
+              <span class="at-pill at-pill--{{ a.status.value }}">{{ a.person_name }}<span class="visually-hidden"> ({{ a.status.label }})</span></span>
+              {% endfor %}
+              {% if slots.missing %}<span class="at-pill at-pill--missing">{{ slots.missing|fa }} جای خالی</span>{% endif %}
+              {% if not slots.assignments and not slots.missing %}<span class="text-faint">—</span>{% endif %}
+            </dd>
+          </div>
+          {% endfor %}
+        </dl>
+        <div class="at-actions">
+          <a class="btn btn--sm btn--primary" href="{{ url_for('ateliers.event_detail', event_id=event.id, _anchor='afish') }}">{{ icon('users') }}<span>{{ 'مشاهدهٔ افیش' if scope == 'past' else 'ویرایش افیش' }}</span></a>
+        </div>
+      {% endcall %}
+    </li>
+    {% endfor %}
+  </ul>
+  {{ pagination(page, 'ateliers.afish_board', range=scope) }}
+  {% else %}
+  {{ empty_state('users', 'مراسمی برای افیش نیست', 'مراسم‌هایی که بپذیرید یا بردارید این‌جا نمایش داده می‌شوند و می‌توانید برای هر نقش نیرو انتخاب کنید.',
+                  action=('<a class="btn btn--primary" href="' ~ url_for('ateliers.events') ~ '">دیدن پیشنهادها و مراسم‌های باز</a>')|safe) }}
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,319 @@
+{#- Source of docs/styleguide.html (built by docs/styleguide/build.py).  Every component of the design
+    system, rendered by the real macros.  Toggle light/dark with the moon button in the top bar. -#}
+{% extends 'base.html' %}
+{% from 'components/ui.html' import icon, page_header, card, stat_tile, badge, alert, empty_state, avatar,
+     rating_stars, rating_input, form_field, money_input, jdate_input, select_field, textarea_field,
+     checkbox_field, stepper_field, modal, collapse, accordion, confirm_button, tabs, tab_panel, pagination,
+     data_table, calendar_month %}
+
+{% block title %}راهنمای طراحی{% endblock %}
+
+{% block head %}
+<style>
+  /* styleguide-only helpers (the app itself ships no inline CSS) */
+  .sg-section { scroll-margin-top: 80px; }
+  .sg-section > h2 { font-size: var(--fs-xl); margin-block: var(--sp-6) var(--sp-3); padding-block-end: var(--sp-2); border-block-end: 2px solid var(--border); }
+  .sg-note { color: var(--text-muted); font-size: var(--fs-sm); margin-block-end: var(--sp-3); }
+  .sg-swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: var(--sp-3); }
+  .sg-sw { border: 1px solid var(--border); border-radius: var(--r-md); overflow: hidden; background: var(--surface); font-size: var(--fs-xs); }
+  .sg-sw i { display: block; height: 56px; border-block-end: 1px solid var(--border); }
+  .sg-sw span { display: block; padding: var(--sp-2); direction: ltr; text-align: left; }
+  .sg-icons { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: var(--sp-2); }
+  .sg-icon { display: grid; justify-items: center; gap: var(--sp-1); padding: var(--sp-3) var(--sp-1); border: 1px solid var(--border); border-radius: var(--r-md); background: var(--surface); font-size: 0.6875rem; direction: ltr; }
+  .sg-icon .icon { width: 26px; height: 26px; }
+  .sg-demo { display: flex; flex-wrap: wrap; gap: var(--sp-3); align-items: center; }
+  .sg-bg-accent { background: var(--accent); } .sg-bg-accent-soft { background: var(--accent-soft); }
+  .sg-bg-bg { background: var(--bg); } .sg-bg-surface { background: var(--surface); } .sg-bg-surface-2 { background: var(--surface-2); } .sg-bg-surface-3 { background: var(--surface-3); }
+  .sg-bg-text { background: var(--text); } .sg-bg-muted { background: var(--text-muted); } .sg-bg-border { background: var(--border-strong); }
+  .sg-bg-success { background: var(--success); } .sg-bg-warning { background: var(--warning); } .sg-bg-danger { background: var(--danger); } .sg-bg-info { background: var(--info); }
+  .sg-bg-side { background: var(--side-bg); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page stack stack--lg">
+
+  {{ page_header('راهنمای طراحی اتلیه سیار', 'همهٔ اجزای رابط کاربری با ماکروهای واقعی پروژه ساخته شده‌اند؛ پوستهٔ روشن و تاریک را با دکمهٔ ماه/خورشید بالای صفحه عوض کنید.') }}
+
+  {#- ------------------------------------------------------------ typography -#}
+  <section class="sg-section" id="typography">
+    <h2>تایپوگرافی</h2>
+    {% call card(title='وزیرمتن، راست‌به‌چپ') %}
+      <h1>عنوان اصلی؛ ۱۲۳٬۴۵۶ تومان</h1>
+      <h2 class="mt-2">عنوان بخش، تاریخ ۱۴۰۴/۰۵/۱۲</h2>
+      <h3 class="mt-2">عنوان کوچک‌تر</h3>
+      <p class="mt-2">متن معمولی برای توضیحات. اتلیه سیار در مراسم‌ها برای میهمانان عکاسی می‌کند، عکس‌ها را همان‌جا چاپ و می‌فروشد. <a href="#typography">یک پیوند</a> و <strong>متن پررنگ</strong>.</p>
+      <p class="mt-2 text-muted">متن کم‌رنگ‌تر برای راهنما و توضیح ثانویه (کنتراست AA).</p>
+      <p class="mt-2 text-sm">متن کوچک ۱۴ پیکسل؛ شماره موبایل: <span class="num">۰۹۱۲۳۴۵۶۷۸۹</span></p>
+    {% endcall %}
+  </section>
+
+  {#- ---------------------------------------------------------------- colors -#}
+  <section class="sg-section" id="colors">
+    <h2>رنگ‌ها</h2>
+    <p class="sg-note">توکن‌های CSS؛ در حالت تاریک خودکار عوض می‌شوند. هیچ رنگ ثابتی در کامپوننت‌ها استفاده نشده است.</p>
+    <div class="sg-swatches">
+      {% for cls, name in [('bg','--bg'),('surface','--surface'),('surface-2','--surface-2'),('surface-3','--surface-3'),('text','--text'),('muted','--text-muted'),('border','--border-strong'),('accent','--accent'),('accent-soft','--accent-soft'),('success','--success'),('warning','--warning'),('danger','--danger'),('info','--info'),('side','--side-bg')] %}
+      <div class="sg-sw"><i class="sg-bg-{{ cls }}"></i><span>{{ name }}</span></div>
+      {% endfor %}
+    </div>
+  </section>
+
+  {#- --------------------------------------------------------------- buttons -#}
+  <section class="sg-section" id="buttons">
+    <h2>دکمه‌ها</h2>
+    {% call card() %}
+      <div class="sg-demo">
+        <button class="btn btn--primary" type="button">{{ icon('plus') }}ثبت مراسم</button>
+        <button class="btn btn--secondary" type="button">ثانویه</button>
+        <button class="btn" type="button">معمولی</button>
+        <button class="btn btn--ghost" type="button">شفاف</button>
+        <button class="btn btn--danger" type="button">{{ icon('trash') }}حذف</button>
+        <button class="btn btn--danger-soft" type="button">انصراف از مراسم</button>
+        <button class="btn btn--primary" type="button" disabled>غیرفعال</button>
+        <button class="btn btn--primary is-loading" type="button">در حال ارسال</button>
+      </div>
+      <div class="sg-demo mt-4">
+        <button class="btn btn--primary btn--sm" type="button">کوچک</button>
+        <button class="btn btn--primary btn--lg" type="button">بزرگ</button>
+        <button class="btn btn--icon" type="button" aria-label="ویرایش">{{ icon('edit') }}</button>
+        <span class="badge badge--accent">اندازهٔ لمس ۴۴ پیکسل</span>
+      </div>
+      <div class="mt-4"><button class="btn btn--primary btn--block" type="button">دکمهٔ تمام‌عرض (موبایل)</button></div>
+    {% endcall %}
+  </section>
+
+  {#- ----------------------------------------------------------------- forms -#}
+  <section class="sg-section" id="forms">
+    <h2>فرم‌ها</h2>
+    <form method="post" action="#" class="card" data-no-lock>
+      <div class="card__body">
+        <div class="form-grid form-grid--2">
+          {{ form_field('نام و نام خانوادگی', name='full_name', value='علی عبدی', required=true, help='همان نامی که روی افیش دیده می‌شود.', autocomplete='name') }}
+          {{ form_field('شمارهٔ موبایل', name='mobile', value='09123456789', type='tel', inputmode='numeric', dir='ltr', help='ارقام فارسی و لاتین هر دو پذیرفته می‌شود.') }}
+          {{ form_field('ایمیل', name='email', value='bad', type='email', error='نشانی ایمیل معتبر نیست.') }}
+          {{ select_field('نقش', 'role', [('photographer', 'عکاس'), ('editor', 'ادیتور'), ('presenter', 'پرزنتور'), ('seller', 'فروشنده')], selected='editor', required=true) }}
+          {{ money_input('base_pay', 1000000, label='حقوق پایه', help='با تایپ، جداکنندهٔ هزارگان خودکار اضافه می‌شود.') }}
+          {{ money_input('commission', 9000, label='پورسانت هر عکس', error='مبلغ پورسانت لازم است.') }}
+          {{ jdate_input('event_date', '2025-07-17', label='تاریخ مراسم', required=true, help='روی فیلد بزنید تا تقویم شمسی باز شود.') }}
+          {{ jdate_input('birth_date', '', label='تاریخ تولد (سال‌های قبل)', max='2008-01-01', attrs={'data-years-back': '60', 'data-years-ahead': '0'}) }}
+          <div class="span-all">{{ textarea_field('توضیحات', 'notes', 'مراسم در باغ برگزار می‌شود.', rows=3, maxlength=300) }}</div>
+          {% call(fid) form_field('تعداد محاسبه برای حقوق نیرو', name='weight', id='sg-weight', help='پیش‌فرض ۱؛ قابل افزایش و کاهش.') %}
+            {{ stepper_field('weight', 1, min=1, max=20, id=fid, aria_label='وزن') }}
+          {% endcall %}
+          <div>
+            <span class="field__label">وضعیت</span>
+            {{ checkbox_field('نمایش در بازارچهٔ کاریابی', 'public', checked=true, help='دیگران می‌توانند پروفایل شما را ببینند.') }}
+            {{ checkbox_field('ارسال اعلان پیامکی', 'sms') }}
+          </div>
+          <div>
+            <span class="field__label">امتیاز (ورودی)</span>
+            {{ rating_input('rate', 4) }}
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn--primary" type="submit">ذخیره</button>
+          <button class="btn" type="reset">بازنشانی</button>
+        </div>
+      </div>
+    </form>
+  </section>
+
+  {#- --------------------------------------------------------------- surfaces -#}
+  <section class="sg-section" id="surfaces">
+    <h2>کارت، آمار، نشان، هشدار</h2>
+    <div class="grid grid--stats">
+      {{ stat_tile('مراسم این ماه', '۱۲', hint='۳ مراسم در انتظار فاکتور', icon='calendar') }}
+      {{ stat_tile('درآمد', '۱۰٬۵۰۰٬۰۰۰', unit='تومان', tone='success', icon='coins', hint='مرداد ۱۴۰۴') }}
+      {{ stat_tile('هزینه‌ها', '۹٬۴۸۰٬۰۰۰', unit='تومان', tone='warning', icon='wallet') }}
+      {{ stat_tile('اعلان‌ها', '۴', tone='info', icon='bell', href='#') }}
+    </div>
+    <div class="grid grid--2 mt-4">
+      {% call card(title='کارت با عنوان', subtitle='زیرعنوان کارت', actions=badge('تأیید شده', 'success', 'check'), footer='پانویس کارت') %}
+        <p>محتوای کارت. کارت‌ها پایهٔ همهٔ صفحه‌ها هستند.</p>
+      {% endcall %}
+      {% call card(title='کارت با تأکید', tone='accent') %}
+        <div class="sg-demo">
+          {{ badge('خنثی') }} {{ badge('تأکید', 'accent') }} {{ badge('موفق', 'success', 'check') }}
+          {{ badge('هشدار', 'warning', 'alert') }} {{ badge('خطا', 'danger', 'x-circle') }} {{ badge('اطلاعات', 'info', 'info') }}
+        </div>
+        <div class="sg-demo mt-4">
+          {{ avatar('علی عبدی') }} {{ avatar('مریم', tone='info') }} {{ avatar('رضا', size='lg', tone='warning') }}
+          {{ rating_stars(4.5, count=18) }} {{ rating_stars(3) }}
+        </div>
+      {% endcall %}
+    </div>
+    <div class="stack stack--sm mt-4">
+      {{ alert('تغییرات با موفقیت ذخیره شد.', 'success', title='انجام شد') }}
+      {{ alert('این مراسم با مراسم دیگری هم‌زمان است.', 'warning') }}
+      {{ alert('ثبت فاکتور ناموفق بود؛ دوباره تلاش کنید.', 'danger') }}
+      {{ alert('نیروهای ثابت می‌توانند حساب کاربری نداشته باشند.', 'info') }}
+    </div>
+    <div class="mt-4">
+      {{ empty_state('inbox', 'هنوز مراسمی ثبت نشده', 'با ثبت اولین مراسم، کارت آن این‌جا نمایش داده می‌شود.', action='<a class="btn btn--primary" href="#">ثبت مراسم</a>'|safe) }}
+    </div>
+  </section>
+
+  {#- ------------------------------------------------------------ disclosure -#}
+  <section class="sg-section" id="disclosure">
+    <h2>آکاردئون و تب‌ها</h2>
+    <p class="sg-note">آکاردئون به‌صورت پیش‌فرض بسته است و کشویی باز می‌شود. دکمهٔ بیرونی هم می‌تواند آن را باز کند.</p>
+    {% call card(title='کارت مراسم', subtitle='پنجشنبه ۲۶ تیر ۱۴۰۴ · اتلیه ستاره', actions='<button type="button" class="btn btn--secondary btn--sm" data-accordion-toggle="sg-invoice" aria-expanded="false" aria-controls="sg-invoice-panel">فاکتور</button>'|safe) %}
+      <div class="cluster cluster--sm">
+        {{ badge('پرزنتور: مریم') }} {{ badge('عکاس: علی') }} {{ badge('فروشنده: سارا') }} {{ badge('ادیتور: رضا') }}
+      </div>
+      <div class="mt-4">
+        {% call accordion('sg-invoice', 'فاکتور مراسم', meta='سود ۱٬۰۲۰٬۰۰۰ تومان') %}
+          <dl class="kv">
+            <dt>درآمد</dt><dd>۱۰٬۵۰۰٬۰۰۰ تومان</dd>
+            <dt>اجارهٔ باغ</dt><dd>۲٬۰۰۰٬۰۰۰ تومان</dd>
+            <dt>حقوق نیروها</dt><dd>۷٬۴۸۰٬۰۰۰ تومان</dd>
+            <dt>سود</dt><dd class="text-success">۱٬۰۲۰٬۰۰۰ تومان</dd>
+          </dl>
+        {% endcall %}
+        {{ accordion('sg-acc2', 'آکاردئون باز (open=True)', open=true) }}
+      </div>
+    {% endcall %}
+
+    <div class="mt-5">
+      {% call tabs([{'key': 'a', 'label': 'نیروها', 'icon': 'users'}, {'key': 'b', 'label': 'فروش', 'badge': '۸۰'}, {'key': 'c', 'label': 'هزینه‌ها'}], active='a', id='sg-tabs', label='بخش‌های مراسم') %}
+        {% call tab_panel('a', active=true, id='sg-tabs') %}محتوای تب نیروها.{% endcall %}
+        {% call tab_panel('b', id='sg-tabs') %}محتوای تب فروش.{% endcall %}
+        {% call tab_panel('c', id='sg-tabs') %}محتوای تب هزینه‌ها.{% endcall %}
+      {% endcall %}
+    </div>
+    <div class="mt-5">
+      {{ tabs([{'key': 'all', 'label': 'همه', 'url': '#'}, {'key': 'open', 'label': 'باز', 'url': '#', 'badge': '۵'}, {'key': 'done', 'label': 'انجام‌شده', 'url': '#'}], active='open', label='فیلتر وضعیت') }}
+    </div>
+    {{ pagination(demo_page, 'styleguide_page', q='عروسی') }}
+  </section>
+
+  {#- ----------------------------------------------------------------- overlays -#}
+  <section class="sg-section" id="overlays">
+    <h2>پنجره‌ها، تأیید، پیام</h2>
+    {% call card() %}
+      <div class="sg-demo">
+        <button type="button" class="btn btn--primary" data-modal-open="invoice-modal">{{ icon('receipt') }}ثبت فاکتور (پنجرهٔ بزرگ)</button>
+        <button type="button" class="btn" data-modal-open="small-modal">پنجرهٔ کوچک</button>
+        {{ confirm_button('حذف مراسم', '/sg', 'این مراسم و فاکتور آن برای همیشه حذف می‌شود. ادامه می‌دهید؟', title='حذف مراسم', confirm_label='بله، حذف شود', icon='trash') }}
+        {{ confirm_button('تأیید نهایی', '/sg', 'پس از تأیید نهایی، فاکتور قابل ویرایش نیست.', tone='primary', confirm_label='تأیید نهایی', cls='btn btn--primary') }}
+      </div>
+      <div class="sg-demo mt-4">
+        <button type="button" class="btn btn--sm" id="sg-toast-success">پیام موفق</button>
+        <button type="button" class="btn btn--sm" id="sg-toast-error">پیام خطا</button>
+        <button type="button" class="btn btn--sm" id="sg-toast-warning">هشدار</button>
+        <button type="button" class="btn btn--sm" id="sg-toast-info">اطلاع‌رسانی</button>
+      </div>
+    {% endcall %}
+  </section>
+
+  {#- --------------------------------------------------------------- data views -#}
+  <section class="sg-section" id="data">
+    <h2>جدول و تقویم</h2>
+    <p class="sg-note">در عرض موبایل، ردیف‌های جدول به کارت تبدیل می‌شوند.</p>
+    {% call(row, col) data_table(columns, rows, caption='مراسم‌های ماه') %}
+      {%- if col.key == 'status' -%}
+        {%- if row.status == 'invoiced' %}{{ badge('فاکتور شد', 'success') }}{% elif row.status == 'done' %}{{ badge('برگزار شد', 'info') }}{% else %}{{ badge('تأیید شده', 'accent') }}{% endif -%}
+      {%- elif col.actions -%}
+        <a class="btn btn--sm btn--secondary" href="#">مشاهده</a>
+      {%- endif -%}
+    {% endcall %}
+    <div class="mt-5">
+      {{ calendar_month(grid, calendar_events, title=calendar_title, prev_url='#', next_url='#', today=today) }}
+    </div>
+    <div class="mt-5">
+      {{ data_table(columns, [], empty='مراسمی برای نمایش وجود ندارد.') }}
+    </div>
+  </section>
+
+  {#- ------------------------------------------------------------ invoice sheet -#}
+  <section class="sg-section" id="sheet">
+    <h2>برگهٔ فاکتور (چاپ A4)</h2>
+    <div class="sheet">
+      <div class="sheet__header">
+        <div><div class="sheet__title">فاکتور مراسم</div><small class="text-muted">اتلیه ستاره</small></div>
+        <div class="text-end"><b>شمارهٔ ۱۲۳</b><br><small class="text-muted">{{ today|jdate }}</small></div>
+      </div>
+      <dl class="sheet__meta">
+        <div><dt>مراسم</dt><dd>عروسی · باغ تالار گل‌های سپید</dd></div>
+        <div><dt>تاریخ</dt><dd>{{ today|jdate }} ({{ today|jweekday }})</dd></div>
+        <div><dt>نیروها</dt><dd>۴ نفر</dd></div>
+      </dl>
+      <table class="sheet__table">
+        <thead><tr><th>محصول</th><th class="cell-num">تعداد</th><th class="cell-num">واحد حقوق</th></tr></thead>
+        <tbody>
+          <tr><td>چاپ ۲۰×۳۰</td><td class="cell-num">{{ 50|fa }}</td><td class="cell-num">{{ 50|fa }}</td></tr>
+          <tr><td>چاپ ۱۶×۲۱</td><td class="cell-num">{{ 20|fa }}</td><td class="cell-num">{{ 20|fa }}</td></tr>
+          <tr><td>فایل ادیت</td><td class="cell-num">{{ 10|fa }}</td><td class="cell-num">{{ 10|fa }}</td></tr>
+        </tbody>
+      </table>
+      <div class="sheet__totals">
+        <div><span>کارتخوان</span><b>{{ 6200000|toman }}</b></div>
+        <div><span>کارت‌به‌کارت</span><b>{{ 2800000|toman }}</b></div>
+        <div><span>نقد</span><b>{{ 1500000|toman }}</b></div>
+        <div class="is-negative"><span>هزینه‌ها</span><b class="num">−{{ 9480000|toman }}</b></div>
+        <div class="is-total"><span>سود مراسم</span><b>{{ 1020000|toman }} تومان</b></div>
+      </div>
+      <div class="sheet__sign"><div>امضای مدیر اتلیه</div><div>امضای مدیر تالار</div></div>
+    </div>
+    <p class="mt-4"><button type="button" class="btn" data-print>{{ icon('printer') }}چاپ این صفحه (پیش‌نمایش A4)</button></p>
+  </section>
+
+  {#- ----------------------------------------------------------------- icons -#}
+  <section class="sg-section" id="icons">
+    <h2>آیکن‌ها ({{ icon_names|length|fa }})</h2>
+    <div class="sg-icons">
+      {% for name in icon_names %}<div class="sg-icon">{{ icon(name) }}<span>{{ name }}</span></div>{% endfor %}
+    </div>
+  </section>
+</div>
+
+{#- modals live at the end of the content -#}
+{% call modal('invoice-modal', 'ثبت فاکتور مراسم', size='lg') %}
+  <form method="post" action="#" data-no-lock>
+    <p class="text-muted text-sm">در مقابل هر محصول، تعداد فروش‌رفته را وارد کنید.</p>
+    <div class="stack stack--sm mt-4">
+      {% for label in ['چاپ ۱۶×۲۱', 'چاپ ۲۰×۳۰', 'چاپ ۳۰×۴۰', 'فایل خام', 'فایل ادیت', 'قاب ۲۰×۳۰', 'شاسی ۳۰×۴۰'] %}
+      <div class="cluster cluster--between">
+        <span>{{ label }}</span>
+        {{ stepper_field('qty_' ~ loop.index, 0, min=0, max=500, default=0, aria_label='تعداد ' ~ label) }}
+      </div>
+      {% endfor %}
+      <div class="card card--flat"><div class="card__body">
+        <div class="form-grid form-grid--3">
+          {{ form_field('چاپ ابعاد دیگر', name='other_size', placeholder='مثلاً ۵۰×۷۰') }}
+          {{ stepper_field('other_qty', 1, min=0, max=500, label='تعداد فروش', default=1) }}
+          {{ stepper_field('other_weight', 1, min=0, max=50, label='تعداد برای حقوق', default=1) }}
+        </div>
+      </div></div>
+    </div>
+    <h3 class="mt-5">دریافتی‌ها</h3>
+    <div class="form-grid form-grid--3 mt-2">
+      {{ money_input('card_reader', 6200000, label='کارتخوان') }}
+      {{ money_input('card_to_card', 2800000, label='کارت‌به‌کارت') }}
+      {{ money_input('cash', 1500000, label='نقد') }}
+    </div>
+    <h3 class="mt-5">هزینه‌ها</h3>
+    <div class="form-grid form-grid--2 mt-2">
+      {{ money_input('venue_rent', 2000000, label='اجارهٔ باغ / تالار', help='از تنظیمات اتلیه پر شده؛ قابل تغییر.') }}
+      {{ money_input('other_expenses', 0, label='سایر هزینه‌ها') }}
+    </div>
+    <div class="modal__footer">
+      <button type="submit" class="btn btn--primary">ثبت فاکتور</button>
+      <button type="button" class="btn" data-modal-close>انصراف</button>
+    </div>
+  </form>
+{% endcall %}
+
+{% call modal('small-modal', 'ویرایش سریع', size='sm') %}
+  {{ form_field('عنوان', name='title', value='عروسی تالار گل‌های سپید') }}
+  <div class="modal__footer">
+    <button type="button" class="btn btn--primary" data-modal-close>ذخیره</button>
+    <button type="button" class="btn" data-modal-close>بستن</button>
+  </div>
+{% endcall %}
+{% endblock %}
+
+{% block scripts %}
+<script defer src="styleguide/demo.js"></script>
+{% endblock %}

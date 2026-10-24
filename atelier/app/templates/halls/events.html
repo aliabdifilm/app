@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+{% from 'components/ui.html' import page_header, card, empty_state, pagination, icon, select_field, form_field %}
+{% from 'halls/_macros.html' import event_card %}
+{% block title %}مراسم‌ها{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='css/halls.css', v=asset_version|default('1')) }}">{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/halls.js', v=asset_version|default('1')) }}" defer></script>{% endblock %}
+
+{% block content %}
+{% set selectable = tab in ('upcoming', 'free', 'offered') %}
+<div class="page stack stack--lg">
+  {{ page_header('مراسم‌ها', (selected.name if selected else 'همهٔ تالارها'),
+       actions=('<a class="btn btn--primary" href="' ~ url_for('halls.event_new', hall=selected.id if selected else none) ~ '">ثبت مراسم</a> <a class="btn btn--secondary" href="' ~ url_for('halls.bulk_new', hall=selected.id if selected else none) ~ '">افزودن چند تاریخ</a>')|safe) }}
+
+  <div class="cluster cluster--between">
+    <nav class="hl-views" aria-label="نمایش مراسم‌ها">
+      <a class="btn btn--sm btn--secondary" href="{{ url_for('halls.calendar', hall=selected.id if selected else none) }}">{{ icon('calendar') }}<span>تقویم</span></a>
+      <a class="btn btn--sm btn--primary" href="{{ url_for('halls.events', hall=selected.id if selected else none) }}" aria-current="page">{{ icon('list') }}<span>فهرست</span></a>
+    </nav>
+  </div>
+
+  <nav class="tabs" aria-label="بخش‌های مراسم">
+    <div class="tabs__list">
+      {% for key, label, number in tabs %}
+      <a class="tabs__tab" href="{{ url_for('halls.events', tab=key, hall=filters.hall, q=filters.q, m=filters.m, y=filters.y) }}"{% if key == tab %} aria-current="page"{% endif %}>
+        <span>{{ label }}</span>{% if number %}<span class="badge badge--accent">{{ number|fa }}</span>{% endif %}
+      </a>
+      {% endfor %}
+    </div>
+  </nav>
+
+  <form class="hl-filter" method="get" action="{{ url_for('halls.events') }}" role="search">
+    <input type="hidden" name="tab" value="{{ tab }}">
+    {% if hall_choices|length > 1 %}
+    {{ select_field('تالار', 'hall', hall_choices, selected=selected.id if selected else '', placeholder='همهٔ تالارها') }}
+    {% endif %}
+    {{ form_field('جستجو', name='q', type='search', value=q, placeholder='عنوان، تالار یا اتلیه') }}
+    {{ select_field('ماه', 'm', months, selected=month or '', placeholder='همهٔ ماه‌ها') }}
+    {{ select_field('سال', 'y', years, selected=year|string) }}
+    <div class="hl-filter__actions">
+      <button class="btn btn--secondary" type="submit">{{ icon('search') }}<span>جستجو</span></button>
+      {% if q or month or selected %}<a class="btn btn--ghost" href="{{ url_for('halls.events', tab=tab) }}">پاک کردن</a>{% endif %}
+    </div>
+  </form>
+
+  {% if page.items %}
+  <ul class="hl-cards" aria-label="مراسم‌ها">
+    {% for event in page.items %}
+    <li>{{ event_card(event, pending.get(event.id, 0), selectable=(selectable and event.atelier_id is none and event.status.value in ('draft', 'open', 'offered') and event.date >= today), show_hall=(halls|length > 1)) }}</li>
+    {% endfor %}
+  </ul>
+  {{ pagination(page, 'halls.events', tab=tab, hall=filters.hall, q=filters.q, m=filters.m, y=filters.y) }}
+
+  {% if selectable %}
+  <form id="bulk-form" method="post" action="{{ url_for('halls.events_action') }}" class="hl-bulkbar" data-bulkbar hidden aria-label="کارهای گروهی روی مراسم‌های انتخاب‌شده">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <span class="hl-bulkbar__count"><span data-bulk-count>۰</span> مراسم انتخاب شد</span>
+    <button class="btn btn--primary btn--sm" type="submit" name="action" value="offer">{{ icon('send') }}<span>پیشنهاد به اتلیه</span></button>
+    <button class="btn btn--secondary btn--sm" type="submit" name="action" value="open"
+            data-confirm="مراسم‌های انتخاب‌شده برای همهٔ اتلیه‌ها باز می‌شود و پیشنهادهای مستقیم در انتظارشان پس گرفته می‌شود. ادامه می‌دهید؟"
+            data-confirm-title="باز کردن برای همه" data-confirm-label="بله، باز شود" data-confirm-tone="primary">{{ icon('megaphone') }}<span>باز برای همه</span></button>
+    <button class="btn btn--danger-soft btn--sm" type="submit" name="action" value="cancel"
+            data-confirm="مراسم‌های انتخاب‌شده لغو می‌شود و اتلیه‌های ذی‌نفع باخبر می‌شوند. ادامه می‌دهید؟"
+            data-confirm-title="لغو مراسم‌ها" data-confirm-label="بله، لغو شود">{{ icon('x-circle') }}<span>لغو</span></button>
+    <button class="btn btn--danger-soft btn--sm" type="submit" name="action" value="delete"
+            data-confirm="مراسم‌های پیش‌نویس انتخاب‌شده برای همیشه حذف می‌شوند (مراسمی که سابقه دارد حذف نمی‌شود). ادامه می‌دهید؟"
+            data-confirm-title="حذف پیش‌نویس‌ها" data-confirm-label="بله، حذف شود">{{ icon('trash') }}<span>حذف</span></button>
+  </form>
+  <label class="hl-selectall" for="bulk-all"><input type="checkbox" id="bulk-all" data-bulk-all> <span>انتخاب همهٔ مراسم‌های این صفحه</span></label>
+  {% endif %}
+  {% else %}
+  {% if q or month %}
+    {{ empty_state('search', 'مراسمی پیدا نشد', 'جستجو یا ماه را عوض کنید.') }}
+  {% elif tab == 'upcoming' %}
+    {{ empty_state('calendar', 'مراسم پیش‌رویی ثبت نشده', 'با ثبت اولین مراسم یا چند تاریخ فصل، کارت آن‌ها این‌جا نمایش داده می‌شود.',
+                    action=('<a class="btn btn--primary" href="' ~ url_for('halls.event_new') ~ '">ثبت مراسم</a> <a class="btn" href="' ~ url_for('halls.bulk_new') ~ '">افزودن چند تاریخ</a>')|safe) }}
+  {% else %}
+    {{ empty_state('inbox', 'مراسمی در این بخش نیست', 'مراسم‌ها بر اساس وضعیت در بخش‌های بالا دسته‌بندی می‌شوند.') }}
+  {% endif %}
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,95 @@
+{#- Accounting home: month summary + one card per event, each with its (hidden by default) invoice. -#}
+{% extends 'base.html' %}
+{% from 'components/ui.html' import page_header, stat_tile, empty_state, icon, tabs, pagination, modal, alert, badge %}
+{% from 'accounting/_event_card.html' import event_card %}
+{% block title %}حسابداری{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='css/accounting.css', v=asset_version|default('1')) }}">{% endblock %}
+{% block content %}
+{% set atelier_arg = atelier.id if ateliers else none %}
+<div class="page stack stack--lg acc">
+  {{ page_header('حسابداری', 'فاکتور مراسم‌ها، حقوق نیروها و سود اتلیهٔ «' ~ atelier.name ~ '»') }}
+  {{ tabs(tab_items, active='invoices', label='بخش‌های حسابداری', id='acc-tabs') }}
+
+  <form class="card acc-filters" method="get" action="{{ url_for('accounting.index') }}" role="search" aria-label="فیلتر مراسم‌ها">
+    <div class="card__body">
+      <div class="acc-filters__grid">
+        {% if ateliers %}
+        <div class="field">
+          <label class="field__label" for="f-atelier">اتلیه</label>
+          <div class="select-wrap"><select class="select" id="f-atelier" name="atelier">
+            {% for a in ateliers %}<option value="{{ a.id }}"{% if a.id == atelier.id %} selected{% endif %}>{{ a.name }}</option>{% endfor %}
+          </select>{{ icon('chevron-down') }}</div>
+        </div>
+        {% endif %}
+        <div class="field">
+          <label class="field__label" for="f-y">سال</label>
+          <div class="select-wrap"><select class="select" id="f-y" name="y">
+            {% for year in years %}<option value="{{ year }}"{% if year == period.jy %} selected{% endif %}>{{ year|fa }}</option>{% endfor %}
+          </select>{{ icon('chevron-down') }}</div>
+        </div>
+        <div class="field">
+          <label class="field__label" for="f-m">ماه</label>
+          <div class="select-wrap"><select class="select" id="f-m" name="m">
+            {% for value, label in month_choices %}<option value="{{ value }}"{% if value == period.jm %} selected{% endif %}>{{ label }}</option>{% endfor %}
+          </select>{{ icon('chevron-down') }}</div>
+        </div>
+        <div class="field">
+          <label class="field__label" for="f-status">وضعیت</label>
+          <div class="select-wrap"><select class="select" id="f-status" name="status">
+            <option value="">همهٔ وضعیت‌ها</option>
+            {% for value, label in statuses %}<option value="{{ value }}"{% if value == status %} selected{% endif %}>{{ label }}</option>{% endfor %}
+          </select>{{ icon('chevron-down') }}</div>
+        </div>
+        <div class="field acc-filters__search">
+          <label class="field__label" for="f-q">جستجو</label>
+          <input class="input" id="f-q" type="search" name="q" value="{{ q }}" maxlength="80" placeholder="تالار، نام نیرو یا عنوان مراسم" autocomplete="off">
+        </div>
+        <div class="acc-filters__go"><button class="btn btn--primary" type="submit">{{ icon('search') }}<span>نمایش</span></button></div>
+      </div>
+    </div>
+  </form>
+
+  <section class="stack stack--sm" aria-labelledby="acc-summary-title">
+    <div class="cluster cluster--between">
+      <h2 class="acc-section-title" id="acc-summary-title">خلاصهٔ {{ period.label|fa }}</h2>
+      <div class="cluster cluster--sm acc-period-nav">
+        <a class="icon-btn" rel="prev" aria-label="{{ 'سال' if period.is_year else 'ماه' }} قبل" href="{{ url_for('accounting.index', y=prev_period.jy, m=prev_period.jm, status=status or none, q=q or none, atelier=atelier_arg) }}">{{ icon('chevron-right') }}</a>
+        <a class="icon-btn" rel="next" aria-label="{{ 'سال' if period.is_year else 'ماه' }} بعد" href="{{ url_for('accounting.index', y=next_period.jy, m=next_period.jm, status=status or none, q=q or none, atelier=atelier_arg) }}">{{ icon('chevron-left') }}</a>
+      </div>
+    </div>
+    <div class="grid grid--stats" data-summary-bar>
+      {{ stat_tile('درآمد', summary.income|toman, unit='تومان', tone='success', icon='coins', hint=(summary.invoices|fa ~ ' فاکتور')) }}
+      {{ stat_tile('هزینه‌ها', summary.expenses|toman, unit='تومان', tone='warning', icon='wallet') }}
+      {{ stat_tile('سود خالص', summary.net|toman, unit='تومان', tone=('success' if summary.net >= 0 else 'danger'), icon='award') }}
+      {{ stat_tile('محصولات فروش‌رفته', summary.units|fa, unit='عدد', icon='frame', hint=(summary.events|fa ~ ' مراسم')) }}
+    </div>
+    {% if summary.awaiting %}
+    <p class="text-sm text-muted">
+      {{ icon('alert') }}
+      {{ summary.awaiting|fa }} مراسم هنوز فاکتور ندارد.
+      <a href="{{ url_for('accounting.index', y=period.jy, m=period.jm, status='awaiting', atelier=atelier_arg) }}">نمایش آن‌ها</a>
+    </p>
+    {% endif %}
+  </section>
+
+  {% if cards %}
+  <section class="acc-cards" aria-label="مراسم‌ها">
+    {% for card in cards %}{{ event_card(card, atelier, status_tones) }}{% endfor %}
+  </section>
+  {{ pagination(page, 'accounting.index', y=period.jy, m=period.jm, status=status or none, q=q or none, atelier=atelier_arg) }}
+  {% else %}
+  {% if status or q %}
+  {% call empty_state('search', 'مراسمی با این فیلتر پیدا نشد', 'فیلتر یا عبارت جستجو را تغییر دهید.') %}
+    <a class="btn" href="{{ url_for('accounting.index', y=period.jy, m=period.jm, atelier=atelier_arg) }}">پاک کردن فیلتر</a>
+  {% endcall %}
+  {% else %}
+  {{ empty_state('inbox', 'در این بازه مراسمی ثبت نشده', 'وقتی تالارها مراسمی به اتلیهٔ شما بسپارند، کارت هر مراسم همین‌جا نمایش داده می‌شود؛ از آن‌جا فاکتور را ثبت می‌کنید.') }}
+  {% endif %}
+  {% endif %}
+</div>
+
+{% call modal('invoice-modal', 'ثبت فاکتور مراسم', size='xl') %}
+  <div data-invoice-host aria-live="polite"></div>
+{% endcall %}
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/accounting.js', v=asset_version|default('1')) }}" defer></script>{% endblock %}

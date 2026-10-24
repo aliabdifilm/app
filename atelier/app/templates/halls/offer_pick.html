@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% from 'components/ui.html' import page_header, card, empty_state, pagination, select_field, icon %}
+{% from 'halls/_macros.html' import state_badge %}
+{% block title %}انتخاب مراسم برای پیشنهاد{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='css/halls.css', v=asset_version|default('1')) }}">{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/halls.js', v=asset_version|default('1')) }}" defer></script>{% endblock %}
+
+{% block content %}
+<div class="page page--narrow stack stack--lg">
+  {{ page_header('پیشنهاد مراسم به اتلیه', 'گام ۱ از ۲: مراسم‌هایی را که می‌خواهید بدهید انتخاب کنید.', back_url=url_for('halls.offers'), back_label='پیشنهادها') }}
+
+  <form class="hl-filter" method="get" action="{{ url_for('halls.offer_new') }}" role="search">
+    {% if hall_choices|length > 1 %}{{ select_field('تالار', 'hall', hall_choices, selected=selected.id if selected else '', placeholder='همهٔ تالارها') }}{% endif %}
+    {{ select_field('ماه', 'm', months, selected=month or '', placeholder='همهٔ ماه‌ها') }}
+    {{ select_field('سال', 'y', years, selected=year|string) }}
+    <button class="btn btn--secondary" type="submit">{{ icon('filter') }}<span>اعمال</span></button>
+  </form>
+
+  {% if page.items %}
+  <form method="get" action="{{ url_for('halls.offer_new') }}" class="stack">
+    <label class="hl-selectall" for="pick-all"><input type="checkbox" id="pick-all" data-bulk-all> <span>انتخاب همهٔ مراسم‌های این صفحه</span></label>
+    <div class="hl-pick">
+      {% for event in page.items %}
+      <label class="hl-pickrow" for="ev-{{ event.id }}">
+        <input type="checkbox" id="ev-{{ event.id }}" name="event" value="{{ event.id }}" data-bulk-pick>
+        <span class="hl-pickrow__body">
+          <strong>{{ event.date|jdate('weekday_long') }}{% if event.start_time %} · {{ event.start_time|hl_time }}{% endif %}</strong>
+          <span class="text-muted text-sm">{{ event.hall.name }} · {{ event.ceremony_type.label }}</span>
+        </span>
+        {{ state_badge(event, pending.get(event.id, 0)) }}
+      </label>
+      {% endfor %}
+    </div>
+    {{ pagination(page, 'halls.offer_new', hall=filters.hall, m=filters.m, y=filters.y) }}
+    <div class="form-actions form-actions--sticky">
+      <button class="btn btn--primary" type="submit">{{ icon('chevron-left') }}<span>ادامه: انتخاب اتلیه (<span data-bulk-count>۰</span>)</span></button>
+    </div>
+  </form>
+  {% else %}
+  {{ empty_state('calendar', 'مراسمی برای پیشنهاد نیست', 'همهٔ مراسم‌های پیش‌رو اتلیه دارند یا هنوز مراسمی ثبت نشده است.',
+                  action=('<a class="btn btn--primary" href="' ~ url_for('halls.bulk_new') ~ '">افزودن چند تاریخ</a> <a class="btn" href="' ~ url_for('halls.event_new') ~ '">ثبت مراسم</a>')|safe) }}
+  {% endif %}
+</div>
+{% endblock %}

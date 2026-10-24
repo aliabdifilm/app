@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+{% from 'components/ui.html' import page_header, empty_state, alert, badge, tabs, pagination, icon, avatar, rating_stars, confirm_button %}
+{% from 'marketplace/_macros.html' import manager_tabs, skill_badges, terms_summary %}
+{% block title %}{{ post.title if post else 'درخواست‌های رسیده' }}{% endblock %}
+{% block head %}<meta name="robots" content="noindex"><link rel="stylesheet" href="{{ url_for('static', filename='css/marketplace.css', v=asset_version|default('1')) }}">{% endblock %}
+
+{% block content %}
+{% set base_url = url_for('marketplace.job_applicants', post_id=post.id) if post else url_for('marketplace.inbox') %}
+<div class="page stack stack--lg">
+  {% if post %}
+  {{ page_header('درخواست‌های «' ~ post.title ~ '»', post.role.label ~ ' · ' ~ post.date|jweekday ~ ' ' ~ post.date|jdate('long') ~ ' · ' ~ job.accepted|fa ~ ' از ' ~ post.slots|fa ~ ' نفر پذیرفته',
+                 back_url=url_for('marketplace.manage_jobs'), back_label='آگهی‌های من') }}
+  <div class="mk-actions">
+    {{ badge(post.status.label, post.status|mk_post_tone) }}
+    <a class="btn btn--secondary btn--sm" href="{{ url_for('marketplace.job_edit', post_id=post.id) }}">{{ icon('edit') }}<span>ویرایش آگهی</span></a>
+    <a class="btn btn--ghost btn--sm" href="{{ url_for('marketplace.job_detail', post_id=post.id) }}"><span>نمایش عمومی</span></a>
+    {% if post.status in (JobPostStatus.OPEN, JobPostStatus.FILLED) %}
+    {{ confirm_button('بستن آگهی', url_for('marketplace.job_close', post_id=post.id),
+                      'آگهی بسته می‌شود و درخواست‌های در انتظار رد می‌شوند و به متقاضیان اطلاع داده می‌شود. ادامه می‌دهید؟',
+                      title='بستن آگهی', confirm_label='بله، بسته شود', fields={'reject_pending': '1'}, icon='lock') }}
+    {% elif post.status == JobPostStatus.CLOSED %}
+    <form class="inline-form" method="post" action="{{ url_for('marketplace.job_reopen', post_id=post.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn btn--sm btn--secondary" type="submit">{{ icon('refresh') }}<span>باز کردن دوباره</span></button>
+    </form>
+    {% endif %}
+  </div>
+  {% if post.status == JobPostStatus.FILLED %}
+  {% call alert(tone='success', title='ظرفیت آگهی تکمیل شد') %}
+    {% if counts.pending %}هنوز {{ counts.pending|fa }} درخواست در انتظار دارید. با «بستن آگهی» همه‌ٔ آن‌ها رد می‌شوند و متقاضیان باخبر می‌شوند.{% else %}آگهی را می‌توانید ببندید.{% endif %}
+  {% endcall %}
+  {% endif %}
+  {% else %}
+  {{ page_header('بازار کار من', 'درخواست‌های رسیده برای همهٔ آگهی‌های شما.') }}
+  {{ manager_tabs('inbox', counts.pending) }}
+  {% endif %}
+
+  {{ tabs([
+      {'key': 'pending', 'label': 'در انتظار', 'url': base_url ~ '?tab=pending', 'badge': counts.pending|fa if counts.pending else none},
+      {'key': 'accepted', 'label': 'پذیرفته', 'url': base_url ~ '?tab=accepted'},
+      {'key': 'rejected', 'label': 'ردشده', 'url': base_url ~ '?tab=rejected'},
+      {'key': 'withdrawn', 'label': 'انصراف', 'url': base_url ~ '?tab=withdrawn'},
+      {'key': 'all', 'label': 'همه', 'url': base_url ~ '?tab=all'}
+    ], active=tab, label='وضعیت درخواست', id='mk-inbox') }}
+
+  {% if page.items %}
+  <ul class="mk-grid" aria-label="درخواست‌ها">
+    {% for application in page.items %}
+    {% set applicant = application.user %}
+    {% set profile = applicant.staff_profile %}
+    <li>
+      <article class="card mk-app">
+        <div class="card__body mk-app__body">
+          <div class="mk-person">
+            {{ avatar(applicant|mk_name, size='lg', src=media_url(applicant.avatar_path) if applicant.avatar_path else none) }}
+            <div class="mk-person__text">
+              <h2 class="mk-person__name">{{ applicant|mk_name }}</h2>
+              <p class="mk-chips">
+                {{ badge(application.status.label, application.status|mk_application_tone) }}
+                {% if applicant.is_verified %}{{ badge('تأییدشده', 'success', 'shield') }}{% endif %}
+                {% if profile and (profile.city or applicant.city) %}<span class="mk-fact">{{ icon('map-pin') }}{{ profile.city or applicant.city }}</span>{% endif %}
+                {% if profile and profile.experience_years %}<span class="mk-fact">{{ profile.experience_years|fa }} سال سابقه</span>{% endif %}
+              </p>
+            </div>
+          </div>
+          {% if profile %}
+          <p class="mk-chips">{{ skill_badges(profile.skills, application.post.role.value) }}
+            {% if profile.rating_count %}{{ rating_stars(profile.rating_avg, count=profile.rating_count) }}{% endif %}</p>
+          {% endif %}
+          {% if application.message %}<p class="mk-quote">{{ application.message|mk_clip(200) }}</p>{% endif %}
+          <p class="text-muted text-sm">
+            {% if not post %}برای «<a href="{{ url_for('marketplace.job_applicants', post_id=application.post_id) }}">{{ application.post.title }}</a>» · {% endif %}{{ application.created_at|jdatetime }}
+          </p>
+          <div class="mk-actions">
+            <a class="btn btn--primary btn--sm" href="{{ url_for('marketplace.manage_application', application_id=application.id) }}">{{ icon('eye') }}<span>{{ 'بررسی و تصمیم' if application.status == ApplicationStatus.PENDING else 'مشاهده' }}</span></a>
+          </div>
+        </div>
+      </article>
+    </li>
+    {% endfor %}
+  </ul>
+  {% if post %}{{ pagination(page, 'marketplace.job_applicants', post_id=post.id, tab=tab) }}{% else %}{{ pagination(page, 'marketplace.inbox', tab=tab) }}{% endif %}
+  {% elif tab == 'pending' %}
+  {{ empty_state('inbox', 'درخواست جدیدی در انتظار نیست', 'وقتی نیرویی درخواست بدهد، این‌جا و در اعلان‌ها می‌بینید. می‌توانید خودتان هم از «جستجوی نیرو» دعوت کنید.',
+                 action=('<a class="btn btn--secondary" href="' ~ url_for('marketplace.talent_index') ~ '">جستجوی نیرو</a>')|safe) }}
+  {% else %}
+  {{ empty_state('inbox', 'موردی در این بخش نیست', 'سربرگ دیگری را ببینید.') }}
+  {% endif %}
+</div>
+{% endblock %}

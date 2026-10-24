@@ -1,0 +1,186 @@
+/*
+ * Atelier Sayyar - atelier manager panel (module `ateliers`).
+ * Tokens only (no hex colours), logical properties (RTL first), mobile first (390px).
+ * Prefix `at-` keeps these classes out of the shared design system (css/app.css).
+ */
+
+/* -- small layout helpers -------------------------------------------------- */
+.at-section-title { font-size: var(--fs-lg); margin: 0; }
+.at-alert-link { display: inline-block; margin-block-start: var(--sp-2); }
+.at-quick { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); gap: var(--sp-2); }
+.at-quick .btn { justify-content: center; }
+.at-switch { display: inline-flex; align-items: center; }
+.at-switch .select-wrap { min-width: 11rem; }
+.at-cards { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--sp-4); grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); }
+.at-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); margin-block-start: var(--sp-2); }
+.at-chips { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); margin: 0; }
+.at-filter { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--sp-3); }
+.at-filter .field { flex: 1 1 200px; margin: 0; }
+.at-scope { margin: 0; color: var(--text-muted); font-size: var(--fs-sm); }
+.at-legend { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin: 0; }
+.at-anchors { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.at-anchors a {
+  display: inline-flex; align-items: center; min-height: var(--tap); padding-inline: var(--sp-4);
+  border: 1px solid var(--border-strong); border-radius: var(--r-pill);
+  color: var(--text); text-decoration: none; background: var(--surface);
+}
+.at-anchors a:hover { background: var(--surface-2); color: var(--accent-text); }
+.at-note-box {
+  margin: 0; padding: var(--sp-3) var(--sp-4); border-radius: var(--r-md);
+  background: var(--surface-2); color: var(--text); border-inline-start: 3px solid var(--border-strong);
+}
+
+/* -- lists inside cards ---------------------------------------------------- */
+.at-list { list-style: none; margin: 0; padding: 0; }
+.at-list__item + .at-list__item { border-block-start: 1px solid var(--border); }
+.at-row {
+  display: flex; align-items: center; gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4); color: inherit; text-decoration: none; min-height: var(--tap);
+}
+a.at-row:hover { background: var(--surface-2); color: inherit; }
+.at-row__body { display: flex; flex-direction: column; gap: var(--sp-1); min-width: 0; flex: 1; }
+.at-note { display: flex; flex-direction: column; gap: var(--sp-1); padding: var(--sp-3) var(--sp-4); }
+
+/* -- date tile, event header ---------------------------------------------- */
+.at-date {
+  display: inline-flex; flex-direction: column; align-items: center; justify-content: center; flex: none;
+  inline-size: 3.5rem; block-size: 3.5rem; border-radius: var(--r-md);
+  background: var(--accent-soft); color: var(--accent-ink); line-height: 1.1;
+}
+.at-date__day { font-size: var(--fs-xl); font-weight: 800; }
+.at-date__month { font-size: var(--fs-xs); font-weight: 600; }
+.at-event { display: flex; flex-direction: column; gap: var(--sp-3); }
+.at-event__head { display: flex; align-items: center; gap: var(--sp-3); }
+.at-event__title { flex: 1; min-width: 0; }
+.at-event__name { font-size: var(--fs-lg); margin: 0; }
+.at-event__name a { color: inherit; text-decoration: none; }
+.at-event__name a:hover { color: var(--accent-text); text-decoration: underline; }
+.at-event__title p { margin: 0; }
+.at-facts { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4); color: var(--text-muted); font-size: var(--fs-sm); }
+.at-fact { display: inline-flex; align-items: center; gap: var(--sp-1); }
+
+/* -- completeness meter ---------------------------------------------------- */
+.at-meter { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-3); }
+.at-pips { display: inline-flex; gap: 3px; }
+.at-pip { inline-size: 0.875rem; block-size: 0.5rem; border-radius: var(--r-pill); border: 1px solid transparent; }
+.at-pip--filled { background: var(--success); border-color: var(--success); }
+.at-pip--invited { background: var(--warning); border-color: var(--warning); }
+.at-pip--missing { background: transparent; border: 1px dashed var(--border-strong); }
+.at-meter__text { font-size: var(--fs-sm); color: var(--text); }
+.at-meter--danger .at-meter__text { color: var(--danger-ink); }
+.at-meter--success .at-meter__text { color: var(--success-ink); }
+.at-meter--warning .at-meter__text { color: var(--warning-ink); }
+.at-summary { margin-block-end: var(--sp-3); }
+
+/* -- members, picker ------------------------------------------------------- */
+.at-member__head { display: flex; align-items: center; gap: var(--sp-3); }
+.at-member__title { display: flex; flex-direction: column; gap: var(--sp-1); min-width: 0; }
+.at-member__name { font-size: var(--fs-lg); margin: 0; overflow-wrap: anywhere; }
+.at-pick, .at-member { display: flex; flex-direction: column; gap: var(--sp-2); }
+.at-skills { border: 0; padding: 0; margin: var(--sp-3) 0 0; }
+.at-skills legend { padding: 0; }
+
+/* -- the afish: role slots ------------------------------------------------- */
+.at-slots { display: grid; gap: var(--sp-4); grid-template-columns: 1fr; }
+@media (min-width: 900px) { .at-slots { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.at-slot {
+  display: flex; flex-direction: column; gap: var(--sp-3);
+  padding: var(--sp-4); border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--surface);
+}
+.at-slot__head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--sp-3); }
+.at-slot__title { font-size: var(--fs-md); margin: 0; }
+.at-slot__count { color: var(--text-muted); font-size: var(--fs-sm); }
+.at-people { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--sp-3); }
+.at-person {
+  display: flex; flex-direction: column; gap: var(--sp-2);
+  padding: var(--sp-3); border-radius: var(--r-md); background: var(--surface-2);
+  border-inline-start: 4px solid var(--border-strong);
+}
+.at-person--confirmed, .at-person--completed { border-inline-start-color: var(--success); }
+.at-person--accepted { border-inline-start-color: var(--info); }
+.at-person--invited { border-inline-start-color: var(--warning); }
+.at-person--declined { border-inline-start-color: var(--danger); }
+.at-person__main { display: flex; align-items: center; gap: var(--sp-3); }
+.at-person__text { display: flex; flex-direction: column; gap: var(--sp-1); min-width: 0; }
+.at-person__name { overflow-wrap: anywhere; }
+.at-person__meta { display: flex; flex-wrap: wrap; gap: var(--sp-1) var(--sp-2); }
+.at-person__terms, .at-person__extra { margin: 0; }
+.at-person__actions { display: flex; flex-wrap: wrap; align-items: flex-start; gap: var(--sp-2); }
+.at-more > summary { list-style: none; cursor: pointer; }
+.at-more > summary::-webkit-details-marker { display: none; }
+.at-more__menu { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin-block-start: var(--sp-2); }
+.at-more[open] { flex-basis: 100%; }
+.at-add {
+  display: flex; flex-direction: column; gap: var(--sp-2);
+  padding: var(--sp-3); border: 1px dashed var(--border-strong); border-radius: var(--r-md);
+}
+.at-add--needed { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-ink); }
+.at-add__text { margin: 0; }
+.at-add__buttons { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.at-history { color: var(--text-muted); }
+.at-history summary { cursor: pointer; min-height: var(--tap); display: flex; align-items: center; }
+.at-history__list { margin: 0; padding-inline-start: var(--sp-5); }
+.at-share { position: relative; }
+.at-gear { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); padding: var(--sp-3) var(--sp-4); }
+.at-gear__text { display: flex; flex-direction: column; gap: var(--sp-1); min-width: 0; }
+.at-attach { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--sp-3); border-block-start: 1px solid var(--border); }
+.at-attach .field { flex: 1 1 220px; margin: 0; }
+
+/* -- overview rows --------------------------------------------------------- */
+.at-roles { display: flex; flex-direction: column; gap: var(--sp-2); margin: 0; }
+.at-roles__row { display: grid; grid-template-columns: 5rem minmax(0, 1fr); gap: var(--sp-2); align-items: start; }
+.at-roles__row dt { color: var(--text-muted); font-size: var(--fs-sm); padding-block-start: 2px; }
+.at-roles__row dd { margin: 0; display: flex; flex-wrap: wrap; gap: var(--sp-1) var(--sp-2); }
+.at-pill {
+  display: inline-flex; align-items: center; padding: 2px var(--sp-3); border-radius: var(--r-pill);
+  font-size: var(--fs-sm); background: var(--surface-2); color: var(--text); border: 1px solid var(--border);
+}
+.at-pill--confirmed, .at-pill--completed { background: var(--success-soft); color: var(--success-ink); border-color: transparent; }
+.at-pill--accepted { background: var(--info-soft); color: var(--info-ink); border-color: transparent; }
+.at-pill--invited { background: var(--warning-soft); color: var(--warning-ink); border-color: transparent; }
+.at-pill--declined, .at-pill--missing { background: var(--danger-soft); color: var(--danger-ink); border-color: transparent; }
+.at-pill--missing { border: 1px dashed var(--danger); }
+
+/* -- assignment form ------------------------------------------------------- */
+.at-conflicts { margin: 0; padding-inline-start: var(--sp-5); }
+.at-override { padding: var(--sp-3) var(--sp-4); border: 2px solid var(--warning); border-radius: var(--r-md); background: var(--warning-soft); color: var(--warning-ink); }
+.at-override .check__help { color: var(--warning-ink); }
+.at-source { display: flex; align-items: flex-start; gap: var(--sp-2); margin: 0; color: var(--info-ink); background: var(--info-soft); padding: var(--sp-2) var(--sp-3); border-radius: var(--r-md); }
+.at-example { padding: var(--sp-3) var(--sp-4); border-radius: var(--r-md); background: var(--surface-2); border: 1px solid var(--border); }
+.at-example__title { margin: 0 0 var(--sp-1); font-size: var(--fs-sm); color: var(--text-muted); }
+.at-example__line { margin: 0; }
+
+/* -- pay terms editor ------------------------------------------------------ */
+.at-terms__title { font-size: var(--fs-md); margin: 0; }
+.at-tiers { display: flex; flex-direction: column; gap: var(--sp-2); }
+.at-tiers > p { margin: 0; }
+.at-tiers__rows { display: flex; flex-direction: column; gap: var(--sp-3); }
+.at-tier { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--sp-2); align-items: start; }
+.at-tier__count { grid-column: 1 / -1; display: flex; align-items: center; gap: var(--sp-2); }
+.at-tier__count .input { inline-size: 6rem; flex: none; }
+.at-tier__unit { font-size: var(--fs-sm); color: var(--text-muted); }
+.at-tier__amount { min-width: 0; }
+.at-details { border: 1px solid var(--border); border-radius: var(--r-md); padding: 0 var(--sp-4); background: var(--surface); }
+.at-details > summary {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); flex-wrap: wrap;
+  min-height: var(--tap); cursor: pointer; font-weight: 700;
+}
+.at-details[open] > summary { border-block-end: 1px solid var(--border); margin-block-end: var(--sp-4); }
+.at-details[open] { padding-block-end: var(--sp-4); }
+
+/* -- settings -------------------------------------------------------------- */
+.at-logo-row { display: flex; align-items: flex-start; gap: var(--sp-4); }
+.at-logo-row__fields { flex: 1; min-width: 0; }
+.at-rents { list-style: none; margin: 0; padding: 0; }
+.at-rents__item { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--sp-2); align-items: end; padding-block: var(--sp-3); border-block-end: 1px solid var(--border); }
+.at-rents__name { grid-column: 1 / -1; display: flex; gap: var(--sp-3); align-items: baseline; flex-wrap: wrap; }
+.at-add-hall { margin-block-start: var(--sp-4); }
+
+/* -- copy -------------------------------------------------------------------- */
+.at-copy { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--sp-2); }
+.at-copy__row { padding: var(--sp-2) var(--sp-3); border-radius: var(--r-md); background: var(--surface-2); }
+.at-copy__row.is-skipped { opacity: 0.85; }
+
+@media (min-width: 640px) {
+  .at-roles__row { grid-template-columns: 6rem minmax(0, 1fr); }
+}

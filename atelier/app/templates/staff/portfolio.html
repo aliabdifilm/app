@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+{% from 'components/ui.html' import page_header, card, alert, empty_state, icon, form_field, textarea_field, checkbox_field, confirm_button %}
+{% from 'staff/_macros.html' import profile_tabs, csrf %}
+{% block title %}نمونه‌کار{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='css/staff.css', v=asset_version|default('1')) }}">{% endblock %}
+
+{% block content %}
+<div class="page stack stack--lg">
+  {{ page_header('نمونه‌کار', 'چند عکس از بهترین کارهایتان؛ اتلیه‌ها پیش از دعوت آن‌ها را می‌بینند.') }}
+  {{ profile_tabs('portfolio') }}
+
+  {#- ===================================== add ===================================== -#}
+  {% call card(title='افزودن نمونه‌کار', subtitle=(items|length|fa ~ ' از ' ~ max_items|fa ~ ' نمونه')) %}
+  {% if full %}
+  <p class="text-muted">به سقف تعداد نمونه‌کار رسیده‌اید؛ برای افزودن یکی تازه، یکی از قبلی‌ها را حذف کنید.</p>
+  {% else %}
+  <form method="post" action="{{ url_for('staff.portfolio_add') }}" enctype="multipart/form-data" class="stack" novalidate>
+    {{ csrf() }}
+    <div class="field{% if errors.get('image') %} field--invalid{% endif %}">
+      <label class="field__label" for="f-image">عکس<span class="field__req" aria-hidden="true">*</span><span class="visually-hidden"> (الزامی)</span></label>
+      <input class="input" id="f-image" type="file" name="image" accept="image/jpeg,image/png,image/webp" required data-preview-target="portfolio-preview"
+             {% if errors.get('image') %}aria-invalid="true" aria-describedby="f-image-error"{% else %}aria-describedby="f-image-help"{% endif %}>
+      <p class="field__help" id="f-image-help">JPG، PNG یا WebP؛ حداکثر ۵ مگابایت و دست‌کم ۳۰۰ پیکسل از ضلع کوچک.</p>
+      {% if errors.get('image') %}<p class="field__error" id="f-image-error" role="alert">{{ icon('alert') }}<span>{{ errors.get('image') }}</span></p>{% endif %}
+    </div>
+    <img id="portfolio-preview" class="st-preview" alt="پیش‌نمایش عکس انتخاب‌شده" hidden>
+    <div class="form-grid form-grid--2">
+      {{ form_field('عنوان (اختیاری)', name='title', value=form.get('title', ''), maxlength=150, error=errors.get('title')) }}
+      {{ form_field('توضیح کوتاه (اختیاری)', name='caption', value=form.get('caption', ''), maxlength=500, error=errors.get('caption')) }}
+    </div>
+    {{ checkbox_field('نمایش در پروفایل عمومی', 'is_public', checked=form.get('is_public', true), help='اگر خاموش باشد فقط خودتان آن را می‌بینید.') }}
+    <div class="form-actions"><button class="btn btn--primary" type="submit">{{ icon('upload') }}<span>افزودن</span></button></div>
+  </form>
+  {% endif %}
+  {% endcall %}
+
+  {#- ==================================== gallery ==================================== -#}
+  {% if items %}
+  <ul class="st-gallery" aria-label="نمونه‌کارهای من">
+    {% for item in items %}
+    <li class="card st-gallery__item" id="item-{{ item.id }}">
+      <img src="{{ media_url(item.image_path) }}" alt="{{ item.title or 'نمونه‌کار ' ~ loop.index|fa }}" loading="lazy">
+      <div class="card__body stack stack--sm">
+        <p class="st-gallery__meta">
+          <strong>{{ item.title or 'بدون عنوان' }}</strong>
+          {% if item.is_public %}<span class="badge badge--success">عمومی</span>{% else %}<span class="badge">خصوصی</span>{% endif %}
+        </p>
+        {% if item.caption %}<p class="text-muted text-sm">{{ item.caption }}</p>{% endif %}
+        <div class="st-actions">
+          <form class="inline-form" method="post" action="{{ url_for('staff.portfolio_move', item_id=item.id) }}">
+            {{ csrf() }}<input type="hidden" name="direction" value="up">
+            <button class="icon-btn" type="submit" aria-label="جابه‌جایی به عقب" {% if loop.first %}disabled{% endif %}>{{ icon('chevron-right') }}</button>
+          </form>
+          <form class="inline-form" method="post" action="{{ url_for('staff.portfolio_move', item_id=item.id) }}">
+            {{ csrf() }}<input type="hidden" name="direction" value="down">
+            <button class="icon-btn" type="submit" aria-label="جابه‌جایی به جلو" {% if loop.last %}disabled{% endif %}>{{ icon('chevron-left') }}</button>
+          </form>
+          {{ confirm_button('حذف', url_for('staff.portfolio_delete', item_id=item.id), 'این نمونه‌کار برای همیشه حذف می‌شود. ادامه می‌دهید؟', title='حذف نمونه‌کار', confirm_label='بله، حذف شود', icon='trash') }}
+        </div>
+        <details class="st-edit">
+          <summary>ویرایش عنوان و نمایش</summary>
+          <form method="post" action="{{ url_for('staff.portfolio_update', item_id=item.id) }}" class="stack stack--sm">
+            {{ csrf() }}
+            {{ form_field('عنوان', name='title', value=item.title, maxlength=150, id='t-' ~ item.id, error=errors.get('title-' ~ item.id)) }}
+            {{ form_field('توضیح', name='caption', value=item.caption or '', maxlength=500, id='c-' ~ item.id, error=errors.get('caption-' ~ item.id)) }}
+            {{ checkbox_field('عمومی', 'is_public', checked=item.is_public, id='p-' ~ item.id) }}
+            <button class="btn btn--secondary btn--sm" type="submit">ذخیره</button>
+          </form>
+        </details>
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  {{ empty_state('image', 'هنوز نمونه‌کاری اضافه نکرده‌اید', 'با چند عکس خوب، اتلیه‌ها راحت‌تر شما را انتخاب می‌کنند.') }}
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}<script src="{{ url_for('static', filename='js/staff.js', v=asset_version|default('1')) }}" defer></script>{% endblock %}

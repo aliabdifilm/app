@@ -1,0 +1,130 @@
+/*
+ * Atelier Sayyar - marketplace (module `marketplace`): job board, manage pages, talent directory, reviews.
+ * Tokens only (no hex colours), logical properties (RTL first), mobile first (390px).
+ * Prefix `mk-` keeps these classes out of the shared design system (css/app.css).
+ */
+
+/* -- layout helpers -------------------------------------------------------- */
+.mk-grid { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--sp-4); grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); }
+.mk-grid > li { min-width: 0; display: flex; }
+.mk-grid > li > .card { flex: 1; }
+.mk-list { margin: 0; padding-inline-start: var(--sp-4); }
+.mk-chips { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); margin: 0; }
+.mk-fact { display: inline-flex; align-items: center; gap: var(--sp-1); color: var(--text-muted); font-size: var(--fs-sm); }
+.mk-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); margin-block-start: var(--sp-2); }
+.mk-text { margin: 0; white-space: pre-line; overflow-wrap: anywhere; }
+.mk-quote {
+  margin: 0; padding: var(--sp-3) var(--sp-4); border-radius: var(--r-md);
+  background: var(--surface-2); color: var(--text); border-inline-start: 3px solid var(--border-strong);
+  white-space: pre-line; overflow-wrap: anywhere;
+}
+.mk-lock { display: flex; align-items: center; gap: var(--sp-2); margin: 0; }
+.mk-share[hidden] { display: none; }
+
+/* -- filters (collapsible on phones) --------------------------------------- */
+.mk-filters { padding: 0; }
+.mk-filters__summary {
+  display: flex; align-items: center; gap: var(--sp-2); min-height: var(--tap);
+  padding: var(--sp-2) var(--sp-4); cursor: pointer; font-weight: 600; list-style: none;
+}
+.mk-filters__summary::-webkit-details-marker { display: none; }
+.mk-filters__form { display: flex; flex-direction: column; gap: var(--sp-4); border-block-start: 1px solid var(--border); }
+
+/* -- job card -------------------------------------------------------------- */
+.mk-job, .mk-app, .mk-person-card { min-width: 0; }
+.mk-job__body, .mk-app__body { display: flex; flex-direction: column; gap: var(--sp-3); }
+.mk-job--closed { opacity: 0.85; }
+.mk-job__head { display: flex; align-items: center; gap: var(--sp-3); }
+.mk-job__title { display: flex; flex-direction: column; gap: var(--sp-1); min-width: 0; flex: 1; }
+.mk-job__name { font-size: var(--fs-lg); margin: 0; overflow-wrap: anywhere; }
+.mk-job__name a { color: inherit; text-decoration: none; }
+.mk-job__name a:hover { color: var(--accent-text); text-decoration: underline; }
+.mk-job__atelier { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); color: var(--text-muted); font-size: var(--fs-sm); }
+.mk-job__atelier-name { color: var(--text); font-weight: 600; overflow-wrap: anywhere; }
+.mk-date {
+  display: inline-flex; flex-direction: column; align-items: center; justify-content: center; flex: none;
+  inline-size: 3.5rem; block-size: 3.5rem; border-radius: var(--r-md);
+  background: var(--accent-soft); color: var(--accent-ink); line-height: 1.1;
+}
+.mk-date__day { font-size: var(--fs-xl); font-weight: 800; }
+.mk-date__month { font-size: var(--fs-xs); font-weight: 600; }
+
+/* -- pay terms ------------------------------------------------------------- */
+.mk-pay { display: flex; flex-direction: column; gap: var(--sp-2); }
+.mk-pay__lines { margin: 0; padding-inline-start: var(--sp-4); display: flex; flex-direction: column; gap: var(--sp-1); }
+.mk-pay__note { margin: 0; color: var(--text-muted); font-size: var(--fs-sm); }
+.mk-pay__none { margin: 0; color: var(--text-muted); }
+.mk-pay__example {
+  margin: 0; padding: var(--sp-2) var(--sp-3); border-radius: var(--r-md);
+  background: var(--success-soft); color: var(--success-ink);
+}
+.mk-pay__label { font-size: var(--fs-xs); font-weight: 700; padding-inline-end: var(--sp-1); }
+.mk-scen { display: flex; flex-direction: column; gap: var(--sp-2); }
+.mk-scen__caption { margin: 0; color: var(--text-muted); font-size: var(--fs-sm); }
+.mk-scen__list { list-style: none; margin: 0; padding: 0; border: 1px solid var(--border); border-radius: var(--r-md); background: var(--surface); }
+.mk-scen__row {
+  display: grid; grid-template-columns: 1fr auto; gap: var(--sp-1) var(--sp-3); align-items: baseline;
+  padding: var(--sp-2) var(--sp-3);
+}
+.mk-scen__row + .mk-scen__row { border-block-start: 1px solid var(--border); }
+.mk-scen__formula { grid-column: 1 / -1; color: var(--text-muted); font-size: var(--fs-xs); }
+
+/* -- free slots ------------------------------------------------------------ */
+.mk-slots { display: flex; align-items: center; gap: var(--sp-3); }
+.mk-slots__pips { display: inline-flex; flex-wrap: wrap; gap: 3px; }
+.mk-pip { inline-size: 0.875rem; block-size: 0.5rem; border-radius: var(--r-pill); border: 1px dashed var(--border-strong); }
+.mk-pip--filled { background: var(--success); border: 1px solid var(--success); }
+
+/* -- people ---------------------------------------------------------------- */
+.mk-person { display: flex; align-items: center; gap: var(--sp-3); }
+.mk-person__text { display: flex; flex-direction: column; gap: var(--sp-1); min-width: 0; }
+.mk-person__name { font-size: var(--fs-lg); margin: 0; overflow-wrap: anywhere; }
+.mk-person__name a { color: inherit; text-decoration: none; }
+.mk-person__name a:hover { color: var(--accent-text); text-decoration: underline; }
+.mk-contact {
+  display: flex; flex-direction: column; gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-4); border-radius: var(--r-md);
+  background: var(--success-soft); color: var(--success-ink); border: 1px solid var(--success);
+}
+.mk-contact p { margin: 0; }
+.mk-contact__title { display: flex; align-items: center; gap: var(--sp-2); }
+.mk-contact__list { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+
+/* -- pay terms editor ------------------------------------------------------ */
+.mk-tiers { display: flex; flex-direction: column; gap: var(--sp-2); }
+.mk-tiers > p { margin: 0; }
+.mk-tiers__rows { display: flex; flex-direction: column; gap: var(--sp-3); }
+.mk-tier { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--sp-2); align-items: start; }
+.mk-tier__count { grid-column: 1 / -1; display: flex; align-items: center; gap: var(--sp-2); }
+.mk-tier__count .input { inline-size: 6rem; flex: none; }
+.mk-tier__unit { font-size: var(--fs-sm); color: var(--text-muted); }
+.mk-tier__amount { min-width: 0; }
+.mk-example {
+  padding: var(--sp-3) var(--sp-4); border-radius: var(--r-md);
+  background: var(--surface-2); border-inline-start: 3px solid var(--accent);
+}
+.mk-example p { margin: 0; }
+.mk-example__title { font-size: var(--fs-sm); color: var(--text-muted); }
+.mk-example__line { font-weight: 600; color: var(--text); }
+.mk-example__line.text-muted { font-weight: 400; color: var(--text-muted); }
+
+/* -- reports ---------------------------------------------------------------- */
+.mk-report { padding: var(--sp-1) var(--sp-4) var(--sp-3); }
+.mk-report__summary { display: inline-flex; align-items: center; gap: var(--sp-1); min-height: var(--tap); cursor: pointer; color: var(--text-muted); font-size: var(--fs-sm); }
+.mk-report form { margin-block-start: var(--sp-2); }
+
+/* -- reviews, portfolio ---------------------------------------------------- */
+.mk-reviews { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.mk-reviews--card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); }
+.mk-review { display: flex; flex-direction: column; gap: var(--sp-1); padding: var(--sp-3) var(--sp-4); }
+.mk-review + .mk-review { border-block-start: 1px solid var(--border); }
+.mk-review__head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-3); }
+.mk-gallery { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--sp-3); grid-template-columns: repeat(auto-fill, minmax(min(100%, 140px), 1fr)); }
+.mk-gallery__item { margin: 0; display: flex; flex-direction: column; gap: var(--sp-1); min-width: 0; }
+.mk-gallery__item img { inline-size: 100%; aspect-ratio: 1; object-fit: cover; border-radius: var(--r-md); background: var(--surface-3); }
+.mk-gallery__caption { font-size: var(--fs-xs); color: var(--text-muted); overflow-wrap: anywhere; }
+
+@media (min-width: 640px) {
+  .mk-tier { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .mk-tier__count { grid-column: auto; }
+}

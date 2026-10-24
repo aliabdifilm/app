@@ -1,0 +1,157 @@
+{#- Reports: yearly profit trend (inline SVG), per-event and per-hall profitability, staff leaderboard. -#}
+{% extends 'base.html' %}
+{% from 'components/ui.html' import page_header, stat_tile, empty_state, icon, tabs, pagination, badge %}
+{% block title %}گزارش‌های حسابداری{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='css/accounting.css', v=asset_version|default('1')) }}">{% endblock %}
+{% block content %}
+{% set atelier_arg = atelier.id if ateliers else none %}
+<div class="page stack stack--lg acc">
+  {{ page_header('حسابداری', 'روند سود و سودآوری مراسم‌های «' ~ atelier.name ~ '»') }}
+  {{ tabs(tab_items, active='reports', label='بخش‌های حسابداری', id='acc-tabs') }}
+
+  <form class="card acc-filters" method="get" action="{{ url_for('accounting.reports_index') }}" role="search" aria-label="بازهٔ گزارش">
+    <div class="card__body">
+      <div class="acc-filters__grid acc-filters__grid--short">
+        {% if ateliers %}
+        <div class="field"><label class="field__label" for="f-atelier">اتلیه</label>
+          <div class="select-wrap"><select class="select" id="f-atelier" name="atelier">
+            {% for a in ateliers %}<option value="{{ a.id }}"{% if a.id == atelier.id %} selected{% endif %}>{{ a.name }}</option>{% endfor %}
+          </select>{{ icon('chevron-down') }}</div></div>
+        {% endif %}
+        <div class="field"><label class="field__label" for="f-y">سال</label>
+          <div class="select-wrap"><select class="select" id="f-y" name="y">
+            {% for year in years %}<option value="{{ year }}"{% if year == period.jy %} selected{% endif %}>{{ year|fa }}</option>{% endfor %}
+          </select>{{ icon('chevron-down') }}</div></div>
+        <div class="field"><label class="field__label" for="f-m">ماه</label>
+          <div class="select-wrap"><select class="select" id="f-m" name="m">
+            {% for value, label in month_choices %}<option value="{{ value }}"{% if value == period.jm %} selected{% endif %}>{{ label }}</option>{% endfor %}
+          </select>{{ icon('chevron-down') }}</div></div>
+        <div class="acc-filters__go"><button class="btn btn--primary" type="submit">{{ icon('search') }}<span>نمایش</span></button></div>
+      </div>
+    </div>
+  </form>
+
+  <section class="stack stack--sm" aria-labelledby="rep-summary">
+    <h2 class="acc-section-title" id="rep-summary">جمع {{ period.label|fa }}</h2>
+    <div class="grid grid--stats">
+      {{ stat_tile('درآمد', totals.income|toman, unit='تومان', tone='success', icon='coins', hint=(totals.events|fa ~ ' فاکتور')) }}
+      {{ stat_tile('هزینه‌ها', totals.expenses|toman, unit='تومان', tone='warning', icon='wallet') }}
+      {{ stat_tile('سود خالص', totals.net|toman, unit='تومان', tone=('success' if totals.net >= 0 else 'danger'), icon='award') }}
+      {{ stat_tile('محصولات فروش‌رفته', totals.units|fa, unit='عدد', icon='frame') }}
+    </div>
+  </section>
+
+  <section class="card" aria-labelledby="rep-trend">
+    <div class="card__header"><div><h2 class="card__title" id="rep-trend">روند ماهانهٔ سال {{ period.jy|fa }}</h2>
+      <p class="card__subtitle">درآمد و هزینه (ستون‌ها) و سود خالص (خط) به {{ chart.unit }}</p></div></div>
+    <div class="card__body stack">
+      {% if chart.has_data %}
+      <figure class="acc-chart">
+        <svg viewBox="0 0 {{ chart.width }} {{ chart.height }}" role="img" aria-labelledby="chart-title chart-desc" focusable="false" preserveAspectRatio="xMidYMid meet">
+          <title id="chart-title">نمودار ماهانهٔ درآمد، هزینه و سود سال {{ period.jy|fa }}</title>
+          <desc id="chart-desc">برای هر ماه یک ستون درآمد، یک ستون هزینه و یک نقطهٔ سود خالص؛ جدول زیر نمودار همین داده‌هاست.</desc>
+          {% for g in chart.grid %}
+          <line class="acc-chart__grid{% if g.zero %} acc-chart__grid--zero{% endif %}" x1="{{ chart.left }}" x2="{{ chart.right }}" y1="{{ g.y }}" y2="{{ g.y }}"/>
+          <text class="acc-chart__axis" x="{{ chart.left - 6 }}" y="{{ g.y + 4 }}" text-anchor="end">{{ g.label }}</text>
+          {% endfor %}
+          {% for b in chart.bars %}
+          <rect class="acc-chart__bar acc-chart__bar--{{ b.kind }}" x="{{ b.x }}" y="{{ b.y }}" width="{{ b.w }}" height="{{ b.h }}" rx="2"><title>{{ b.month }}: {{ ('درآمد' if b.kind == 'income' else 'هزینه') }} {{ b.value|toman }} تومان</title></rect>
+          {% endfor %}
+          {% if chart.net_line %}<polyline class="acc-chart__net" points="{{ chart.net_line }}"/>{% endif %}
+          {% for d in chart.dots %}<circle class="acc-chart__dot{% if d.value < 0 %} acc-chart__dot--neg{% endif %}" cx="{{ d.x }}" cy="{{ d.y }}" r="4"><title>{{ d.month }}: سود خالص {{ d.value|toman }} تومان</title></circle>{% endfor %}
+          {% for l in chart.labels %}<text class="acc-chart__label" x="{{ l.x }}" y="{{ l.y }}" text-anchor="middle">{{ l.text }}</text>{% endfor %}
+        </svg>
+        <figcaption class="acc-chart__legend">
+          <span><i class="acc-chart__swatch acc-chart__swatch--income"></i>درآمد</span>
+          <span><i class="acc-chart__swatch acc-chart__swatch--expense"></i>هزینه</span>
+          <span><i class="acc-chart__swatch acc-chart__swatch--net"></i>سود خالص</span>
+        </figcaption>
+      </figure>
+      {% else %}
+      {{ empty_state('file', 'هنوز فاکتوری برای این سال ثبت نشده', 'با ثبت فاکتور مراسم‌ها، نمودار روند ماهانه این‌جا ساخته می‌شود.') }}
+      {% endif %}
+
+      <details class="acc-table-details">
+        <summary>جدول داده‌های نمودار</summary>
+        <div class="table-wrap"><table class="table table--stack">
+          <caption class="visually-hidden">درآمد، هزینه و سود هر ماه</caption>
+          <thead><tr><th scope="col">ماه</th><th scope="col" class="cell-num">مراسم</th><th scope="col" class="cell-num">واحد</th><th scope="col" class="cell-num">درآمد</th><th scope="col" class="cell-num">هزینه</th><th scope="col" class="cell-num">سود خالص</th></tr></thead>
+          <tbody>
+          {% for m in months %}
+            <tr><th scope="row" data-label="ماه">{{ m.label }}</th><td data-label="مراسم" class="cell-num">{{ m.events|fa }}</td><td data-label="واحد" class="cell-num">{{ m.units|fa }}</td>
+              <td data-label="درآمد" class="cell-num">{{ m.income|toman }}</td><td data-label="هزینه" class="cell-num">{{ m.expenses|toman }}</td>
+              <td data-label="سود خالص" class="cell-num {{ 'text-danger' if m.net < 0 }}">{{ '−' if m.net < 0 }}{{ m.net|abs|toman }}</td></tr>
+          {% endfor %}
+          </tbody>
+        </table></div>
+      </details>
+    </div>
+  </section>
+
+  <section class="card" aria-labelledby="rep-events">
+    <div class="card__header"><h2 class="card__title" id="rep-events">سودآوری مراسم‌ها · {{ period.label|fa }}</h2>
+      <div class="card__actions"><a class="btn btn--sm" href="{{ url_for('accounting.reports_csv', y=period.jy, m=period.jm, atelier=atelier_arg) }}" download>{{ icon('download') }}<span>خروجی CSV</span></a></div></div>
+    <div class="card__flush">
+      {% if page.items %}
+      <div class="table-wrap"><table class="table table--stack">
+        <caption class="visually-hidden">سودآوری هر مراسم</caption>
+        <thead><tr><th scope="col">مراسم</th><th scope="col" class="cell-num">واحد</th><th scope="col" class="cell-num">درآمد</th><th scope="col" class="cell-num">هزینه</th><th scope="col" class="cell-num">سود خالص</th><th scope="col" class="cell-num">حاشیهٔ سود</th></tr></thead>
+        <tbody>
+        {% for r in page.items %}
+          <tr>
+            <td data-label="مراسم"><strong>{{ r.hall }}</strong><br><small class="text-muted">{{ r.date|jdate('weekday_long') }}{% if r.title %} · {{ r.title }}{% endif %}</small></td>
+            <td data-label="واحد" class="cell-num">{{ r.units|fa }}</td>
+            <td data-label="درآمد" class="cell-num">{{ r.income|toman }}</td>
+            <td data-label="هزینه" class="cell-num">{{ r.expenses|toman }}</td>
+            <td data-label="سود خالص" class="cell-num"><strong class="{{ 'text-danger' if r.net < 0 else 'text-success' }}">{{ '−' if r.net < 0 }}{{ r.net|abs|toman }}</strong></td>
+            <td data-label="حاشیهٔ سود" class="cell-num">{% if r.margin is none %}—{% else %}<span class="num">{{ ('−' if r.margin < 0 else '') ~ (r.margin|abs|fa) }}٪</span>{% endif %}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table></div>
+      {% else %}
+      <div class="card__body"><p class="text-muted">در این بازه فاکتوری ثبت نشده است.</p></div>
+      {% endif %}
+    </div>
+  </section>
+  {{ pagination(page, 'accounting.reports_index', y=period.jy, m=period.jm, atelier=atelier_arg) }}
+
+  <div class="grid grid--2">
+    <section class="card" aria-labelledby="rep-halls">
+      <div class="card__header"><h2 class="card__title" id="rep-halls">سودآوری به تفکیک تالار</h2></div>
+      <div class="card__flush">
+        {% if halls %}
+        <div class="table-wrap"><table class="table table--stack">
+          <thead><tr><th scope="col">تالار</th><th scope="col" class="cell-num">مراسم</th><th scope="col" class="cell-num">سود خالص</th><th scope="col" class="cell-num">میانگین هر مراسم</th></tr></thead>
+          <tbody>
+          {% for h in halls %}
+            <tr><th scope="row" data-label="تالار">{{ h.hall }}</th><td data-label="مراسم" class="cell-num">{{ h.events|fa }}</td>
+              <td data-label="سود خالص" class="cell-num {{ 'text-danger' if h.net < 0 }}">{{ '−' if h.net < 0 }}{{ h.net|abs|toman }}</td>
+              <td data-label="میانگین" class="cell-num">{{ '−' if h.average_net < 0 }}{{ h.average_net|abs|toman }}</td></tr>
+          {% endfor %}
+          </tbody>
+        </table></div>
+        {% else %}<div class="card__body"><p class="text-muted">دیتایی برای نمایش نیست.</p></div>{% endif %}
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="rep-staff">
+      <div class="card__header"><h2 class="card__title" id="rep-staff">نیروهای برتر بر اساس فروش</h2></div>
+      <div class="card__flush">
+        {% if leaders %}
+        <div class="table-wrap"><table class="table table--stack">
+          <thead><tr><th scope="col">#</th><th scope="col">نیرو</th><th scope="col" class="cell-num">مراسم</th><th scope="col" class="cell-num">واحد فروش</th><th scope="col" class="cell-num">حقوق</th></tr></thead>
+          <tbody>
+          {% for p in leaders %}
+            <tr><td data-label="رتبه" class="cell-num">{{ loop.index|fa }}</td><th scope="row" data-label="نیرو">{{ p.name }}</th>
+              <td data-label="مراسم" class="cell-num">{{ p.events|fa }}</td><td data-label="واحد فروش" class="cell-num"><strong>{{ p.units|fa }}</strong></td>
+              <td data-label="حقوق" class="cell-num">{{ p.earned|toman }}</td></tr>
+          {% endfor %}
+          </tbody>
+        </table></div>
+        {% else %}<div class="card__body"><p class="text-muted">هنوز نیرویی در فاکتورهای این بازه نیست.</p></div>{% endif %}
+      </div>
+    </section>
+  </div>
+</div>
+{% endblock %}

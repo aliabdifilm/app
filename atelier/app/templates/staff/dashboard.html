@@ -1,0 +1,121 @@
+{% extends 'base.html' %}
+{% from 'components/ui.html' import page_header, card, stat_tile, badge, alert, empty_state, icon %}
+{% from 'staff/_macros.html' import date_tile, clock, status_badge, terms_box %}
+{% block title %}داشبورد{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='css/staff.css', v=asset_version|default('1')) }}">{% endblock %}
+
+{% block content %}
+<div class="page stack stack--lg">
+  {{ page_header('سلام ' ~ (current_user.full_name or 'همکار گرامی'), 'امروز ' ~ today|jweekday ~ ' ' ~ today|jdate('long')) }}
+
+  {#- ----------------------------------------------------------- what needs attention -#}
+  {% if pending %}
+  {% call alert(tone='warning', title=pending|fa ~ ' دعوت منتظر پاسخ شماست') %}
+    اتلیه‌ها منتظرند؛ هرچه زودتر پاسخ دهید شانس همکاری بیشتر می‌شود.
+    <a href="{{ url_for('staff.invitations') }}">دیدن دعوت‌ها و پاسخ‌دادن</a>
+  {% endcall %}
+  {% endif %}
+
+  {#- ---------------------------------------------------------------------- numbers -#}
+  <section class="stack stack--sm" aria-label="خلاصهٔ وضعیت">
+    <div class="grid grid--stats">
+      {{ stat_tile('دعوت‌های بی‌پاسخ', pending|fa, icon='mail', tone='warning' if pending else none, href=url_for('staff.invitations'), hint='منتظر تصمیم شما') }}
+      {{ stat_tile('درآمد ' ~ month_title, month_totals.total|toman, unit='تومان', icon='coins', tone='success' if month_totals.total else none, href=url_for('staff.earnings_page'),
+                   hint=(month_totals.count|fa ~ ' مراسم') if month_totals.count else 'هنوز مراسمی ثبت نشده') }}
+      {{ stat_tile('پرداخت‌نشده', unpaid|toman, unit='تومان', icon='wallet', tone='warning' if unpaid else none, href=url_for('staff.earnings_page', status='unpaid'), hint='جمع طلب شما از همهٔ مراسم‌ها') }}
+      {{ stat_tile('مراسم انجام‌شده', done_count|fa, icon='award', hint=(upcoming_count|fa ~ ' مراسم پیش‌رو') if upcoming_count else 'مراسم پیش‌رویی ندارید') }}
+    </div>
+  </section>
+
+  <div class="grid grid--2">
+    {#- ----------------------------------------------------------------- next afish -#}
+    <div class="stack stack--lg">
+      {% if next_row %}
+      {% set event = next_row.event %}
+      {% call card(title='افیش بعدی شما', tone='accent') %}
+      <div class="st-next">
+        <div class="st-next__head">
+          {{ date_tile(event.date) }}
+          <div class="st-next__title">
+            <h3 class="st-next__name"><a href="{{ url_for('staff.assignment', assignment_id=next_row.id) }}">{{ next_row.role.label }} · {{ event.hall.name }}</a></h3>
+            <p class="text-muted text-sm">{{ event.date|jweekday }} {{ event.date|jdate('long') }}{% if event.hall.city %} · {{ event.hall.city }}{% endif %}</p>
+          </div>
+          {{ status_badge(next_row) }}
+        </div>
+        <dl class="kv">
+          {% if next_row.call_time or event.start_time %}
+          <div><dt>{{ 'ساعت حضور' if next_row.call_time else 'شروع مراسم' }}</dt><dd>{{ clock(next_row.call_time or event.start_time) }}</dd></div>
+          {% endif %}
+          {% if event.atelier %}<div><dt>اتلیه</dt><dd>{{ event.atelier.name }}</dd></div>{% endif %}
+          {% if next_venue and event.hall.address %}<div><dt>آدرس</dt><dd>{{ event.hall.address }}</dd></div>{% endif %}
+        </dl>
+        {{ terms_box(next_terms, next_example) }}
+        <div class="st-actions">
+          <a class="btn btn--primary" href="{{ url_for('staff.assignment', assignment_id=next_row.id) }}">{{ icon('eye') }}<span>جزئیات افیش</span></a>
+          <a class="btn btn--secondary" href="{{ url_for('staff.assignment_ics', assignment_id=next_row.id) }}">{{ icon('calendar-check') }}<span>افزودن به تقویم</span></a>
+          {% if next_venue and event.hall.map_url %}<a class="btn btn--secondary" href="{{ event.hall.map_url }}" target="_blank" rel="noopener noreferrer">{{ icon('map-pin') }}<span>نقشه</span></a>{% endif %}
+        </div>
+      </div>
+      {% endcall %}
+      {% else %}
+      {% call card(title='افیش بعدی شما') %}
+        {{ empty_state('calendar', 'افیش پیش‌رویی ندارید',
+             'وقتی اتلیه‌ای شما را برای مراسمی افیش کند و دعوت را بپذیرید، این‌جا نشان داده می‌شود. می‌توانید در بازار کار هم برای مراسم‌ها درخواست بدهید.',
+             action=('<a class="btn btn--primary" href="' ~ url_for('staff.invitations') ~ '">دعوت‌های من</a>')|safe) }}
+      {% endcall %}
+      {% endif %}
+
+      {% if upcoming %}
+      {% call card(title='مراسم‌های بعدی', actions=('<a class="btn btn--sm btn--ghost" href="' ~ url_for('staff.schedule') ~ '">برنامهٔ کامل</a>')|safe, padded=false) %}
+      <ul class="st-list">
+        {% for row in upcoming %}
+        <li class="st-list__item">
+          <a class="st-row" href="{{ url_for('staff.assignment', assignment_id=row.id) }}">
+            {{ date_tile(row.event.date) }}
+            <span class="st-row__body">
+              <strong>{{ row.role.label }} · {{ row.event.hall.name }}</strong>
+              <span class="text-muted text-sm">{{ row.event.date|jweekday }}{% if row.call_time or row.event.start_time %} · {{ clock(row.call_time or row.event.start_time) }}{% endif %}</span>
+            </span>
+            {{ icon('chevron-left') }}
+          </a>
+        </li>
+        {% endfor %}
+      </ul>
+      {% endcall %}
+      {% endif %}
+    </div>
+
+    {#- ---------------------------------------------------------- profile and tips -#}
+    <div class="stack stack--lg">
+      {% call card(title='تکمیل پروفایل', subtitle='پروفایل کامل‌تر یعنی دعوت بیشتر', actions=('<a class="btn btn--sm btn--ghost" href="' ~ url_for('staff.profile') ~ '">ویرایش</a>')|safe) %}
+      <div class="st-meter-row">
+        <progress class="st-meter" max="100" value="{{ completeness.percent }}" aria-label="تکمیل پروفایل">{{ completeness.percent|fa }}٪</progress>
+        <strong class="st-meter-row__value">{{ completeness.percent|fa }}٪</strong>
+      </div>
+      {% if completeness.missing %}
+      <ul class="st-todo">
+        {% for step in completeness.missing[:4] %}
+        <li><a href="{{ url_for(step.endpoint) }}{% if step.anchor %}#{{ step.anchor }}{% endif %}">{{ icon('plus') }}<span>{{ step.label }}</span></a><small class="text-muted">{{ step.hint }}</small></li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="text-success">{{ icon('check-circle') }} پروفایل شما کامل است. آفرین!</p>
+      {% endif %}
+      {% endcall %}
+
+      {% call card(title='پیشنهادهای امروز') %}
+      <ul class="st-tips">
+        {% for tip in tips %}
+        <li class="st-tip">
+          <span class="st-tip__icon">{{ icon(tip.icon) }}</span>
+          <span class="st-tip__text">{{ tip.text }}{% if tip.endpoint %} <a href="{{ url_for(tip.endpoint) }}">{{ tip.label }}</a>{% endif %}</span>
+        </li>
+        {% endfor %}
+      </ul>
+      {% endcall %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}<script src="{{ url_for('static', filename='js/staff.js', v=asset_version|default('1')) }}" defer></script>{% endblock %}

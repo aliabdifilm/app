@@ -1,0 +1,242 @@
+{% extends 'base.html' %}
+{% from 'components/ui.html' import page_header, card, badge, alert, empty_state, confirm_button, stat_tile, select_field, stepper_field, icon, avatar %}
+{% from 'ateliers/_macros.html' import meter, date_tile, event_facts, status_chip %}
+{% block title %}مراسم {{ event.hall.name }}{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='css/ateliers.css', v=asset_version|default('1')) }}">{% endblock %}
+
+{#- one row of the afish: a person on a role, with the actions their state allows -#}
+{% macro person_row(a, staffable) %}
+{% set locked = a.is_terms_locked %}
+<li class="at-person at-person--{{ a.status.value }}" id="a-{{ a.id }}">
+  <div class="at-person__main">
+    {{ avatar(a.person_name, tone='success' if a.status.value in ('confirmed', 'completed') else ('warning' if a.status.value == 'invited' else None)) }}
+    <div class="at-person__text">
+      <strong class="at-person__name">{{ a.person_name }}</strong>
+      <span class="at-person__meta">
+        {{ status_chip(a) }}
+        {% if a.roster_member_id %}{{ badge('نیروی ثابت', 'neutral') }}{% else %}{{ badge('از سامانه', 'info') }}{% endif %}
+        {% if locked %}{{ badge('شرایط قفل‌شده', 'neutral', 'lock') }}{% endif %}
+      </span>
+    </div>
+  </div>
+  <p class="at-person__terms text-sm text-muted">{{ a.terms_dict()|terms_text }}</p>
+  {% if a.call_time or a.notes or a.responded_at %}
+  <p class="at-person__extra text-sm text-faint">
+    {% if a.call_time %}حضور ساعت <bdo dir="ltr">{{ a.call_time|hhmm }}</bdo>{% endif %}
+    {% if a.responded_at %}{{ ' · ' if a.call_time else '' }}پاسخ در {{ a.responded_at|jdatetime }}{% endif %}
+    {% if a.notes %}{{ ' · ' if (a.call_time or a.responded_at) else '' }}{{ a.notes }}{% endif %}
+  </p>
+  {% endif %}
+  {% if staffable %}
+  <div class="at-person__actions">
+    {% if a.status.value in ('invited', 'accepted') %}
+    <form class="inline-form" method="post" action="{{ url_for('ateliers.afish_action', event_id=event.id, assignment_id=a.id, action='confirm') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn btn--sm btn--primary" type="submit">{{ icon('check') }}<span>{{ 'قطعی کردن' if a.status.value == 'accepted' else 'قطعی (بدون انتظار)' }}</span></button>
+    </form>
+    {% elif a.status.value == 'declined' %}
+    <form class="inline-form" method="post" action="{{ url_for('ateliers.afish_action', event_id=event.id, assignment_id=a.id, action='reinvite') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn btn--sm btn--secondary" type="submit">{{ icon('refresh') }}<span>دعوت دوباره</span></button>
+    </form>
+    {% endif %}
+    {% if a.status.value in ('invited', 'accepted', 'confirmed', 'declined') and not locked %}
+    <details class="at-more">
+      <summary class="btn btn--sm btn--ghost">{{ icon('more') }}<span>بیشتر</span></summary>
+      <div class="at-more__menu">
+        <a class="btn btn--sm btn--secondary" href="{{ url_for('ateliers.afish_pick', event_id=event.id, role=a.role.value, replace=a.id) }}">{{ icon('refresh') }}<span>جایگزین کردن</span></a>
+        <a class="btn btn--sm btn--secondary" href="{{ url_for('ateliers.afish_terms', event_id=event.id, assignment_id=a.id) }}">{{ icon('coins') }}<span>شرایط پرداخت</span></a>
+        {{ confirm_button('حذف از افیش', url_for('ateliers.afish_action', event_id=event.id, assignment_id=a.id, action='cancel'),
+                          '«' ~ a.person_name ~ '» از افیش ' ~ a.role.label ~ ' حذف می‌شود' ~ ('' if not a.person_user_id else ' و به او اطلاع داده می‌شود') ~ '. ادامه می‌دهید؟',
+                          title='حذف از افیش', confirm_label='بله، حذف شود', icon='trash') }}
+      </div>
+    </details>
+    {% elif locked and a.status.value != 'cancelled' %}
+    <a class="btn btn--sm btn--ghost" href="{{ url_for('ateliers.afish_terms', event_id=event.id, assignment_id=a.id) }}">{{ icon('eye') }}<span>شرایط</span></a>
+    {% endif %}
+  </div>
+  {% endif %}
+</li>
+{% endmacro %}
+
+{% block content %}
+<div class="page stack stack--lg">
+  {% set header_actions %}
+    {{ badge(event.status.label, event.status|event_tone) }}
+    <details class="at-more at-share">
+      <summary class="btn btn--secondary">{{ icon('send') }}<span>ارسال افیش</span></summary>
+      <div class="at-more__menu">
+        <button type="button" class="btn btn--sm btn--secondary" data-share data-share-title="افیش مراسم" data-share-text="{{ share_text }}" hidden>{{ icon('send') }}<span>اشتراک‌گذاری</span></button>
+        <button type="button" class="btn btn--sm btn--secondary" data-copy-text="{{ share_text }}">{{ icon('copy') }}<span>کپی متن افیش</span></button>
+        <a class="btn btn--sm btn--secondary" href="https://t.me/share/url?url=%20&amp;text={{ share_text|urlencode }}" target="_blank" rel="noopener noreferrer"><span>تلگرام</span></a>
+        <a class="btn btn--sm btn--secondary" href="https://wa.me/?text={{ share_text|urlencode }}" target="_blank" rel="noopener noreferrer"><span>واتساپ</span></a>
+      </div>
+    </details>
+  {% endset %}
+  {{ page_header('مراسم ' ~ event.hall.name, (event.date|jdate('weekday_long')) ~ ((' · ساعت ' ~ (event.start_time|hhmm)) if event.start_time else ''),
+                 back_url=url_for('ateliers.events', tab='upcoming'), back_label='مراسم‌ها', actions=header_actions|safe) }}
+
+  {#- ================================ event facts ================================ -#}
+  {% call card(cls='at-event') %}
+    <div class="at-event__head">
+      {{ date_tile(event.date) }}
+      <div class="at-event__title">
+        <h2 class="at-event__name">{{ event.title or event.hall.name }}</h2>
+        <p class="text-muted">{{ event.date|jdate('weekday_long') }}</p>
+      </div>
+    </div>
+    {{ event_facts(event) }}
+    <dl class="kv">
+      {% if event.hall.address %}<dt>نشانی</dt><dd>{{ event.hall.address }}</dd>{% endif %}
+      {% if event.hall.phone %}<dt>تلفن تالار</dt><dd><span class="num">{{ event.hall.phone|fa }}</span></dd>{% endif %}
+      <dt>اجارهٔ باغ/تالار</dt><dd>{{ atelier.rent_for_hall(event.hall)|toman }} تومان</dd>
+    </dl>
+    {% if event.notes %}<p class="at-note-box">{{ event.notes }}</p>{% endif %}
+  {% endcall %}
+
+  {#- ============================== the afish itself =============================== -#}
+  <div id="afish" class="stack">
+    {% set head_actions %}
+      {% if staffable %}
+        <form class="inline-form" method="post" action="{{ url_for('ateliers.afish_confirm_all', event_id=event.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="btn btn--sm btn--secondary" type="submit">{{ icon('check-circle') }}<span>قطعی کردن پذیرفته‌ها</span></button>
+        </form>
+        {% if has_previous %}<a class="btn btn--sm btn--secondary" href="{{ url_for('ateliers.afish_copy', event_id=event.id) }}">{{ icon('copy') }}<span>کپی از مراسم قبلی</span></a>{% endif %}
+      {% endif %}
+    {% endset %}
+    {% call card(title='افیش نیرو', subtitle='هر نقش را با نیروی ثابت، جستجو در سامانه یا آگهی در بازار کار پر کنید.', actions=head_actions|safe) %}
+      <div class="at-summary">{{ meter(completeness) }}</div>
+      {% if not staffable %}
+      {% call alert(tone='info') %}این مراسم بسته شده است؛ افیش فقط برای مشاهده است.{% endcall %}
+      {% endif %}
+      <div class="at-slots">
+        {% for role in roles %}
+        {% set slots = board.summary.roles[role.value] %}
+        {% set history = board.history(role) %}
+        <section class="at-slot" aria-labelledby="slot-{{ role.value }}">
+          <header class="at-slot__head">
+            <h3 class="at-slot__title" id="slot-{{ role.value }}">{{ role.label }}</h3>
+            <span class="at-slot__count">{{ slots.filled|fa }} از {{ slots.needed|fa }}{% if slots.invited %} · {{ slots.invited|fa }} در انتظار{% endif %}</span>
+          </header>
+          <ul class="at-people">
+            {% for a in slots.assignments %}{{ person_row(a, staffable) }}{% endfor %}
+            {% for a in history if a.status.value == 'declined' %}{{ person_row(a, staffable) }}{% endfor %}
+          </ul>
+          {% if staffable %}
+          <div class="at-add{% if slots.missing %} at-add--needed{% endif %}">
+            <p class="at-add__text">
+              {% if slots.missing %}<strong>{{ slots.missing|fa }} جای خالی</strong> برای {{ role.label }}
+              {% elif slots.needed == 0 and not slots.assignments %}برای {{ role.label }} نیرویی خواسته نشده است
+              {% else %}افزودن {{ role.label }} دیگر{% endif %}
+            </p>
+            <div class="at-add__buttons">
+              <a class="btn btn--sm {{ 'btn--primary' if slots.missing else 'btn--secondary' }}" href="{{ url_for('ateliers.afish_pick', event_id=event.id, role=role.value, via='roster') }}">{{ icon('user-check') }}<span>نیروی ثابت</span></a>
+              <a class="btn btn--sm btn--secondary" href="{{ url_for('ateliers.afish_pick', event_id=event.id, role=role.value, via='search') }}">{{ icon('search') }}<span>جستجوی نیرو</span></a>
+              {% if job_urls.get(role.value) %}
+              <a class="btn btn--sm btn--secondary" href="{{ job_urls[role.value] }}">{{ icon('megaphone') }}<span>انتشار آگهی در بازار کار</span></a>
+              {% endif %}
+            </div>
+          </div>
+          {% endif %}
+          {% set cancelled = history|selectattr('status.value', 'equalto', 'cancelled')|list %}
+          {% if cancelled %}
+          <details class="at-history">
+            <summary class="text-sm text-muted">سابقهٔ لغوشده‌ها ({{ cancelled|length|fa }})</summary>
+            <ul class="at-history__list">
+              {% for a in cancelled %}<li class="text-sm text-muted">{{ a.person_name }} · {{ a.terms_dict()|terms_text }}</li>{% endfor %}
+            </ul>
+          </details>
+          {% endif %}
+        </section>
+        {% endfor %}
+      </div>
+    {% endcall %}
+
+    {#- head-count per role -#}
+    {% if staffable %}
+    <div id="needs">
+    {% call card(title='تعداد نیروی هر نقش', subtitle='اگر برای این مراسم از یک نقش بیش از یک نفر لازم است، این‌جا تغییر دهید.') %}
+      <form method="post" action="{{ url_for('ateliers.event_needs', event_id=event.id) }}" class="stack">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="grid grid--4">
+          {% for role in roles %}
+          {{ stepper_field('need__' ~ role.value, needs[role.value], min=0, max=max_need, label=role.label) }}
+          {% endfor %}
+        </div>
+        <div class="form-actions"><button class="btn btn--secondary" type="submit">{{ icon('check') }}<span>ذخیره تعداد‌ها</span></button></div>
+      </form>
+    {% endcall %}
+    </div>
+    {% endif %}
+  </div>
+
+  {#- ================================== equipment =================================== -#}
+  <div id="equipment">
+  {% call card(title='تجهیزات مراسم', actions=(('<a class="btn btn--sm btn--ghost" href="' ~ inventory_url ~ '">انبار و تجهیزات</a>')|safe) if inventory_url else none, padded=false) %}
+    {% if usages %}
+    <ul class="at-list">
+      {% for usage in usages %}
+      <li class="at-list__item at-gear">
+        <span class="at-gear__text"><strong>{{ usage.equipment.name }}</strong>
+          <span class="text-muted text-sm">{{ usage.equipment.kind.label }} · {{ usage.equipment.ownership.label }}{% if usage.rent_cost_snapshot %} · اجاره {{ usage.rent_cost_snapshot|toman }} تومان{% endif %}</span></span>
+        {% if equipment_open %}{{ confirm_button('برداشتن', url_for('ateliers.event_equipment_detach', event_id=event.id, equipment_id=usage.equipment_id), '«' ~ usage.equipment.name ~ '» از این مراسم برداشته می‌شود. ادامه می‌دهید؟', title='برداشتن تجهیزات', confirm_label='بله، برداشته شود', icon='trash') }}{% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <div class="card__body"><p class="text-muted">هنوز تجهیزاتی برای این مراسم ثبت نشده است.</p></div>
+    {% endif %}
+    {% if equipment_open and available_equipment %}
+    <form class="at-attach card__body" method="post" action="{{ url_for('ateliers.event_equipment_attach', event_id=event.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      {{ select_field('افزودن تجهیزات', 'equipment_id', equipment_options, placeholder='انتخاب کنید') }}
+      <button class="btn btn--secondary" type="submit">{{ icon('plus') }}<span>افزودن</span></button>
+    </form>
+    {% endif %}
+  {% endcall %}
+  </div>
+
+  {#- ==================================== invoice ==================================== -#}
+  <div id="invoice">
+  {% call card(title='فاکتور مراسم') %}
+    {% if invoice %}
+      <div class="cluster cluster--between">
+        {{ badge(invoice.status.label, 'success' if invoice.status.value in ('submitted', 'settled') else 'neutral') }}
+        {% if invoice_url %}<a class="btn btn--sm btn--secondary" href="{{ invoice_url }}">{{ icon('receipt') }}<span>مشاهدهٔ فاکتور</span></a>{% endif %}
+      </div>
+      <div class="grid grid--stats">
+        {{ stat_tile('درآمد', invoice.income_total|toman, unit='تومان', tone='success') }}
+        {{ stat_tile('هزینه', invoice.expense_total|toman, unit='تومان', tone='warning') }}
+        {{ stat_tile('سود', (invoice.net_profit|abs)|toman, unit='تومان' ~ (' (زیان)' if invoice.net_profit < 0 else ''), tone='danger' if invoice.net_profit < 0 else 'info') }}
+      </div>
+    {% elif event.status.value in ('confirmed', 'done') %}
+      {% if event.status.value == 'done' or event.date <= today %}
+      <p class="text-muted">برای این مراسم هنوز فاکتوری ثبت نشده است.</p>
+      {% if invoice_url %}<a class="btn btn--primary" href="{{ invoice_url }}">{{ icon('receipt') }}<span>ثبت فاکتور</span></a>{% endif %}
+      {% else %}
+      <p class="text-muted">فاکتور را پس از برگزاری مراسم ثبت کنید؛ حقوق نیروها از افیش و فروش مراسم خودکار حساب می‌شود.</p>
+      {% endif %}
+    {% else %}
+      <p class="text-muted">فاکتوری برای این مراسم وجود ندارد.</p>
+    {% endif %}
+  {% endcall %}
+  </div>
+
+  {#- ================================ event lifecycle ================================ -#}
+  {% if can_mark_done or can_hand_back %}
+  {% call card(title='وضعیت مراسم') %}
+    <div class="at-actions">
+      {% if can_mark_done %}
+      {{ confirm_button('ثبت برگزاری مراسم', url_for('ateliers.event_done', event_id=event.id), 'افیش‌های پذیرفته و قطعی «انجام‌شده» می‌شوند و دعوت‌های بی‌پاسخ لغو می‌شوند. ادامه می‌دهید؟', title='ثبت برگزاری', confirm_label='بله، برگزار شد', tone='primary', cls='btn btn--primary', icon='check') }}
+      {% endif %}
+      {% if can_hand_back %}
+      {{ confirm_button('بازگرداندن مراسم به تالار', url_for('ateliers.event_handback', event_id=event.id), 'مراسم از اتلیهٔ شما برداشته می‌شود، همهٔ افیش‌های آن لغو می‌شود و نیروها باخبر می‌شوند. ادامه می‌دهید؟', title='بازگرداندن مراسم', confirm_label='بله، بازگردانده شود', icon='arrow-right') }}
+      {% endif %}
+    </div>
+  {% endcall %}
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}<script src="{{ url_for('static', filename='js/ateliers.js', v=asset_version|default('1')) }}" defer></script>{% endblock %}

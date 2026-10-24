@@ -1,0 +1,136 @@
+{% extends 'base.html' %}
+{% from 'components/ui.html' import page_header, card, badge, empty_state, alert, tabs, form_field, rating_stars, avatar, icon %}
+{% block title %}انتخاب {{ role.label }}{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='css/ateliers.css', v=asset_version|default('1')) }}">{% endblock %}
+
+{% block content %}
+<div class="page stack stack--lg">
+  {{ page_header('انتخاب ' ~ role.label, 'مراسم ' ~ event.hall.name ~ ' · ' ~ (event.date|jdate('weekday_long')),
+                 back_url=url_for('ateliers.event_detail', event_id=event.id, _anchor='afish'), back_label='افیش مراسم') }}
+
+  {% if replace %}
+  {% call alert(tone='info', title='جایگزینی') %}«{{ replace.person_name }}» پس از افیش شدن نفر تازه از این نقش حذف می‌شود.{% endcall %}
+  {% endif %}
+
+  {{ tabs([
+      {'key': 'roster', 'label': 'نیروهای ثابت', 'url': url_for('ateliers.afish_pick', event_id=event.id, role=role.value, via='roster', replace=replace.id if replace else None), 'icon': 'user-check'},
+      {'key': 'search', 'label': 'جستجو در سامانه', 'url': url_for('ateliers.afish_pick', event_id=event.id, role=role.value, via='search', replace=replace.id if replace else None), 'icon': 'search'}
+    ], active=via, label='منبع نیرو') }}
+
+  {#- ================================ roster ================================ -#}
+  {% if via == 'roster' %}
+    {% if rows %}
+    <ul class="at-cards" aria-label="نیروهای ثابت">
+      {% for row in rows %}
+      {% set member = row.member %}
+      <li>
+        {% call card(cls='at-pick') %}
+          <div class="at-member__head">
+            {{ avatar(member.display_name, size='lg') }}
+            <div class="at-member__title">
+              <h2 class="at-member__name">{{ member.display_name }}</h2>
+              <span class="at-chips">
+                {% for value in member.skills %}{{ badge(label_fa('skill', value), 'accent' if value == role.value else 'neutral') }}{% endfor %}
+              </span>
+            </div>
+          </div>
+          <p class="at-chips">
+            {% if row.taken %}{{ badge('در این نقش افیش شده', 'success', 'check') }}{% endif %}
+            {% if row.busy %}{{ badge('همان روز مشغول است', 'danger', 'alert') }}{% endif %}
+            {% if row.unavailable %}{{ badge('آن روز را «در دسترس نیستم» ثبت کرده', 'warning', 'alert') }}{% endif %}
+            {% if not row.can_do %}{{ badge('این مهارت را ثبت نکرده', 'neutral') }}{% endif %}
+          </p>
+          <p class="text-sm text-muted">{{ row.terms|terms_text if row.terms else 'پیش‌فرض حقوقی ندارد؛ در مرحلهٔ بعد وارد می‌کنید.' }}</p>
+          <div class="at-actions">
+            {% if row.taken %}
+            <span class="btn btn--sm" aria-disabled="true">افیش شده</span>
+            {% else %}
+            <a class="btn btn--sm btn--primary" href="{{ url_for('ateliers.afish_assign', event_id=event.id, role=role.value, member=member.id, replace=replace.id if replace else None) }}">{{ icon('check') }}<span>افیش به‌عنوان {{ role.label }}</span></a>
+            {% endif %}
+          </div>
+        {% endcall %}
+      </li>
+      {% endfor %}
+    </ul>
+    {% if hidden_count %}
+    <p class="text-muted text-sm">{{ hidden_count|fa }} نیروی ثابت دیگر مهارت {{ role.label }} را ثبت نکرده‌اند. <a href="{{ url_for('ateliers.afish_pick', event_id=event.id, role=role.value, via='roster', all=1, replace=replace.id if replace else None) }}">نمایش همه</a></p>
+    {% endif %}
+    {% elif roster_total %}
+    {{ empty_state('users', 'نیروی ثابتی با مهارت ' ~ role.label ~ ' ندارید', hidden_count|fa ~ ' نیروی ثابت دیگر هست که این مهارت را ثبت نکرده است.',
+                    action=('<a class="btn btn--primary" href="' ~ url_for('ateliers.afish_pick', event_id=event.id, role=role.value, via='roster', all=1) ~ '">نمایش همهٔ نیروهای ثابت</a>')|safe) }}
+    {% else %}
+    {{ empty_state('users', 'هنوز نیروی ثابتی ندارید', 'نیروهای همیشگی اتلیه را ثبت کنید تا با یک لمس افیش شوند، یا از جستجو و بازار کار استفاده کنید.',
+                    action=('<a class="btn btn--primary" href="' ~ url_for('ateliers.roster_new', skill=role.value) ~ '">افزودن نیروی ثابت</a>')|safe) }}
+    {% endif %}
+
+  {#- ================================ directory ================================ -#}
+  {% else %}
+    <form class="at-filter" method="get" role="search" action="{{ url_for('ateliers.afish_pick', event_id=event.id) }}">
+      <input type="hidden" name="role" value="{{ role.value }}">
+      <input type="hidden" name="via" value="search">
+      {% if replace %}<input type="hidden" name="replace" value="{{ replace.id }}">{% endif %}
+      {{ form_field('جستجو', name='q', type='search', value=q, placeholder='نام، شهر یا شمارهٔ کامل موبایل') }}
+      <button class="btn btn--secondary" type="submit">{{ icon('search') }}<span>جستجو</span></button>
+    </form>
+    <p class="text-muted text-sm">نیروهایی که پروفایل خود را عمومی کرده‌اند نمایش داده می‌شوند. برای نیروی دیگر، شمارهٔ کامل موبایل او را بنویسید.</p>
+    {% if rows %}
+    <ul class="at-cards" aria-label="نتیجهٔ جستجو">
+      {% for row in rows %}
+      {% set hit = row.hit %}
+      <li>
+        {% call card(cls='at-pick') %}
+          <div class="at-member__head">
+            {{ avatar(hit.user.display_name, size='lg', src=media_url(hit.user.avatar_path) if hit.user.avatar_path else none) }}
+            <div class="at-member__title">
+              <h2 class="at-member__name">{{ hit.user.display_name }}</h2>
+              <span class="text-muted text-sm">{{ hit.profile.city or hit.user.city or '' if hit.profile else (hit.user.city or '') }}</span>
+              {% if hit.profile and hit.profile.rating_count %}{{ rating_stars(hit.profile.rating_avg, count=hit.profile.rating_count) }}{% endif %}
+            </div>
+          </div>
+          <p class="at-chips">
+            {% for skill in hit.skills %}{{ badge(skill.label, 'accent' if skill == role else 'neutral') }}{% endfor %}
+            {% if hit.profile and hit.profile.experience_years %}{{ badge(hit.profile.experience_years|fa ~ ' سال سابقه', 'neutral') }}{% endif %}
+            {% if row.taken %}{{ badge('در این نقش افیش شده', 'success', 'check') }}{% endif %}
+            {% if row.busy %}{{ badge('همان روز مشغول است', 'danger', 'alert') }}{% endif %}
+            {% if row.unavailable %}{{ badge('آن روز را «در دسترس نیستم» ثبت کرده', 'warning', 'alert') }}{% endif %}
+            {% if not hit.listed %}{{ badge('پروفایل عمومی ندارد', 'neutral') }}{% endif %}
+          </p>
+          {% if hit.profile and (hit.profile.expected_base or hit.profile.expected_commission_per_unit) %}
+          <p class="text-sm text-muted">درخواست نیرو:
+            {% if hit.profile.expected_base %}پایه {{ hit.profile.expected_base|toman }} تومان{% endif %}
+            {% if hit.profile.expected_commission_per_unit %}{{ ' · ' if hit.profile.expected_base else '' }}پورسانت هر عکس {{ hit.profile.expected_commission_per_unit|toman }} تومان{% endif %}
+          </p>
+          {% endif %}
+          <div class="at-actions">
+            {% if row.taken %}
+            <span class="btn btn--sm" aria-disabled="true">افیش شده</span>
+            {% else %}
+            <a class="btn btn--sm btn--primary" href="{{ url_for('ateliers.afish_assign', event_id=event.id, role=role.value, user=hit.user.id, k=hit.token, replace=replace.id if replace else None) }}">{{ icon('send') }}<span>دعوت به‌عنوان {{ role.label }}</span></a>
+            {% endif %}
+            <form class="inline-form" method="post" action="{{ url_for('ateliers.roster_add_user') }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="user_id" value="{{ hit.user.id }}">
+              {% if hit.token %}<input type="hidden" name="k" value="{{ hit.token }}">{% endif %}
+              <button class="btn btn--sm btn--ghost" type="submit">{{ icon('user-plus') }}<span>افزودن به نیروهای ثابت</span></button>
+            </form>
+          </div>
+        {% endcall %}
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    {{ empty_state('search', 'نیرویی پیدا نشد', 'عبارت دیگری را امتحان کنید، یا برای این نقش آگهی بدهید تا نیروها خودشان درخواست بدهند.') }}
+    {% endif %}
+  {% endif %}
+
+  {#- ============================== marketplace ============================== -#}
+  {% call card(title='انتشار آگهی در بازار کار', subtitle='نیرو را پیدا نکردید؟ آگهی بدهید تا نیروها درخواست بدهند.') %}
+    {% if job_url %}
+    <a class="btn btn--secondary" href="{{ job_url }}">{{ icon('megaphone') }}<span>ثبت آگهی برای {{ role.label }}</span></a>
+    <p class="text-muted text-sm">فرم آگهی با تاریخ، شهر، نقش و شرایط پیش‌فرض همین جایگاه پر می‌شود.</p>
+    {% else %}
+    <p class="text-muted">بخش بازار کار در این نصب فعال نیست.</p>
+    {% endif %}
+  {% endcall %}
+</div>
+{% endblock %}

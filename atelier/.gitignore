@@ -9,3 +9,4 @@ instance/
 .pytest_cache/
 uploads/
 node_modules/
+.ruff_cache/

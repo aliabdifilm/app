@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+{% from 'components/ui.html' import page_header, empty_state, alert, badge, tabs, pagination, icon, confirm_button %}
+{% from 'marketplace/_macros.html' import manager_tabs, date_tile %}
+{% block title %}آگهی‌های من{% endblock %}
+{% block head %}<meta name="robots" content="noindex"><link rel="stylesheet" href="{{ url_for('static', filename='css/marketplace.css', v=asset_version|default('1')) }}">{% endblock %}
+
+{% block content %}
+<div class="page stack stack--lg">
+  {{ page_header('بازار کار من', 'آگهی بدهید تا نیروها خودشان درخواست بدهند؛ با پذیرفتن هر درخواست، نیرو در افیش مراسم ثبت می‌شود.',
+                 actions=('<a class="btn btn--primary" href="' ~ url_for('marketplace.job_new') ~ '">' ~ 'ثبت آگهی' ~ '</a>')|safe) }}
+  {{ manager_tabs('posts', pending_total) }}
+
+  {% if pending_total %}
+  {% call alert(tone='warning', title=pending_total|fa ~ ' درخواست منتظر بررسی شماست') %}
+    <a href="{{ url_for('marketplace.inbox') }}">دیدن درخواست‌ها</a>
+  {% endcall %}
+  {% endif %}
+
+  {{ tabs([
+      {'key': 'open', 'label': 'باز', 'url': url_for('marketplace.manage_jobs', tab='open'), 'badge': counts.open|fa if counts.open else none},
+      {'key': 'filled', 'label': 'تکمیل', 'url': url_for('marketplace.manage_jobs', tab='filled'), 'badge': counts.filled|fa if counts.filled else none},
+      {'key': 'closed', 'label': 'بسته', 'url': url_for('marketplace.manage_jobs', tab='closed')},
+      {'key': 'all', 'label': 'همه', 'url': url_for('marketplace.manage_jobs', tab='all')}
+    ], active=tab, label='وضعیت آگهی', id='mk-status') }}
+
+  {% if cards %}
+  <ul class="mk-grid" aria-label="آگهی‌های من">
+    {% for c in cards %}
+    {% set post = c.post %}
+    <li>
+      <article class="card mk-job" aria-labelledby="job-{{ post.id }}-title">
+        <div class="card__body mk-job__body">
+          <div class="mk-job__head">
+            {{ date_tile(post.date) }}
+            <div class="mk-job__title">
+              <h2 class="mk-job__name" id="job-{{ post.id }}-title"><a href="{{ url_for('marketplace.job_applicants', post_id=post.id) }}">{{ post.title }}</a></h2>
+              {% if multi %}<p class="text-muted text-sm">{{ c.atelier.name }}</p>{% endif %}
+            </div>
+          </div>
+          <p class="mk-chips">
+            {{ badge(post.role.label, 'accent') }}
+            {% if c.expired and post.status == JobPostStatus.OPEN %}{{ badge('منقضی', 'neutral') }}{% else %}{{ badge(post.status.label, post.status|mk_post_tone) }}{% endif %}
+            <span class="mk-fact">{{ icon('calendar') }}{{ post.date|jdate('long') }}</span>
+            {% if post.city %}<span class="mk-fact">{{ icon('map-pin') }}{{ post.city }}</span>{% endif %}
+            <span class="mk-fact">{{ icon('users') }}{{ c.accepted|fa }} از {{ post.slots|fa }} پذیرفته</span>
+          </p>
+          <p class="text-muted text-sm">{{ c.terms|mk_terms }}</p>
+          <div class="mk-actions">
+            <a class="btn btn--primary btn--sm" href="{{ url_for('marketplace.job_applicants', post_id=post.id) }}">{{ icon('inbox') }}<span>درخواست‌ها</span>
+              {% if c.pending %}<span class="badge badge--warning">{{ c.pending|fa }}</span>{% endif %}</a>
+            <a class="btn btn--secondary btn--sm" href="{{ url_for('marketplace.job_edit', post_id=post.id) }}">{{ icon('edit') }}<span>ویرایش</span></a>
+            <a class="btn btn--ghost btn--sm" href="{{ url_for('marketplace.job_detail', post_id=post.id) }}"><span>نمایش عمومی</span></a>
+            {% if post.status in (JobPostStatus.OPEN, JobPostStatus.FILLED) %}
+            {{ confirm_button('بستن', url_for('marketplace.job_close', post_id=post.id),
+                              'آگهی از بازار کار برداشته می‌شود و درخواست‌های در انتظار رد می‌شوند و به متقاضیان اطلاع داده می‌شود. ادامه می‌دهید؟',
+                              title='بستن آگهی', confirm_label='بله، بسته شود', fields={'reject_pending': '1'}, icon='lock') }}
+            {% elif post.status == JobPostStatus.CLOSED and not c.expired %}
+            <form class="inline-form" method="post" action="{{ url_for('marketplace.job_reopen', post_id=post.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn btn--sm btn--secondary" type="submit">{{ icon('refresh') }}<span>باز کردن دوباره</span></button>
+            </form>
+            {% endif %}
+          </div>
+        </div>
+      </article>
+    </li>
+    {% endfor %}
+  </ul>
+  {{ pagination(page, 'marketplace.manage_jobs', tab=tab) }}
+  {% elif tab == 'open' and counts.all %}
+  {{ empty_state('check-circle', 'آگهی بازی ندارید', 'همهٔ آگهی‌ها تکمیل یا بسته شده‌اند. آگهی تازه بگذارید یا سربرگ «همه» را ببینید.',
+                 action=('<a class="btn btn--primary" href="' ~ url_for('marketplace.job_new') ~ '">ثبت آگهی</a>')|safe) }}
+  {% elif counts.all %}
+  {{ empty_state('inbox', 'آگهی‌ای در این بخش نیست', 'سربرگ دیگری را ببینید.') }}
+  {% else %}
+  {{ empty_state('megaphone', 'هنوز آگهی نگذاشته‌اید', 'برای هر نقشِ خالیِ مراسم‌ها آگهی بدهید؛ نیروها درخواست می‌دهند و با یک لمس افیش می‌شوند.',
+                 action=('<a class="btn btn--primary" href="' ~ url_for('marketplace.job_new') ~ '">ثبت اولین آگهی</a>')|safe) }}
+  {% endif %}
+</div>
+{% endblock %}

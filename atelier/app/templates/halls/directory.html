@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% from 'components/ui.html' import page_header, card, badge, empty_state, pagination, select_field, form_field, icon, avatar %}
+{% from 'halls/_macros.html' import stars %}
+{% block title %}اتلیه‌ها{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='css/halls.css', v=asset_version|default('1')) }}">{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/halls.js', v=asset_version|default('1')) }}" defer></script>{% endblock %}
+
+{% block content %}
+<div class="page stack stack--lg">
+  {{ page_header('اتلیه‌ها', 'اتلیه‌های سیار فعال؛ امتیاز را تالارها داده‌اند. از این‌جا می‌توانید مراسم پیشنهاد دهید یا توافق‌نامه ثبت کنید.',
+       actions=('<a class="btn btn--secondary" href="' ~ url_for('halls.agreements') ~ '">توافق‌نامه‌ها</a>')|safe) }}
+
+  <form class="hl-filter" method="get" action="{{ url_for('halls.directory') }}" role="search">
+    {{ form_field('جستجو', name='q', type='search', value=q, placeholder='نام، شهر یا توضیح') }}
+    {{ select_field('شهر', 'city', cities, selected=city, placeholder='همهٔ شهرها') }}
+    {{ select_field('مرتب‌سازی', 'sort', sorts, selected=sort) }}
+    <label class="check" for="only-verified"><input type="checkbox" id="only-verified" name="verified" value="1"{% if verified %} checked{% endif %}><span class="check__text"><span class="check__label">فقط تأییدشده‌ها</span></span></label>
+    <div class="hl-filter__actions">
+      <button class="btn btn--secondary" type="submit">{{ icon('search') }}<span>جستجو</span></button>
+      {% if q or city or verified %}<a class="btn btn--ghost" href="{{ url_for('halls.directory') }}">پاک کردن</a>{% endif %}
+    </div>
+  </form>
+
+  {% if page.items %}
+  <ul class="hl-cards" aria-label="اتلیه‌ها">
+    {% for atelier in page.items %}
+    <li>
+      {% call card(cls='hl-atelier') %}
+        <div class="hl-atelier__head">
+          {{ avatar(atelier.name, size='lg', src=media_url(atelier.logo_path) if atelier.logo_path else none, alt='') }}
+          <div class="hl-atelier__title">
+            <h2 class="hl-atelier__name"><a href="{{ url_for('halls.atelier_show', atelier_id=atelier.id) }}">{{ atelier.name }}</a></h2>
+            <p class="text-muted text-sm">{{ icon('map-pin') }} {{ atelier.city or 'شهر نامشخص' }}</p>
+          </div>
+          {% if atelier.manager.is_verified %}{{ badge('تأییدشده', 'success', 'shield') }}{% endif %}
+        </div>
+        {{ stars(ratings, atelier.id) }}
+        {% if atelier.description %}<p class="hl-atelier__desc">{{ atelier.description|truncate(140) }}</p>{% endif %}
+        <p class="hl-chips">
+          {% if atelier.id in worked %}{{ badge('با تالار شما کار کرده', 'info', 'check') }}{% endif %}
+          {% if atelier.id in agreed %}{{ badge('توافق‌نامهٔ فعال', 'accent') }}{% endif %}
+        </p>
+        <div class="hl-actions">
+          <a class="btn btn--sm btn--primary" href="{{ url_for('halls.offer_new', atelier=atelier.id) }}">{{ icon('send') }}<span>پیشنهاد مراسم</span></a>
+          <a class="btn btn--sm btn--secondary" href="{{ url_for('halls.atelier_show', atelier_id=atelier.id) }}">پروفایل</a>
+        </div>
+      {% endcall %}
+    </li>
+    {% endfor %}
+  </ul>
+  {{ pagination(page, 'halls.directory', **filters) }}
+  {% else %}
+  {{ empty_state('search', 'اتلیه‌ای پیدا نشد', 'جستجو یا فیلتر را تغییر دهید. اتلیه‌ها پس از ثبت‌نام و تأیید در این فهرست می‌آیند.') }}
+  {% endif %}
+</div>
+{% endblock %}

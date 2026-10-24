@@ -1,0 +1,48 @@
+{#- Step 2/3 of the mobile change: type the code that was sent to the current or to the new number.
+    auth.js (shared, declarative) auto-submits at full length, offers Web OTP and runs the resend countdown. -#}
+{% extends 'base.html' %}
+{% from 'components/ui.html' import page_header, card, alert, icon, form_field %}
+{% from 'staff/_macros.html' import csrf %}
+{% block title %}تأیید تغییر شماره{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='css/staff.css', v=asset_version|default('1')) }}">{% endblock %}
+
+{% block content %}
+<div class="page page--narrow stack stack--lg">
+  {{ page_header('تأیید تغییر شمارهٔ موبایل', 'ابتدا شمارهٔ فعلی‌تان را تأیید می‌کنیم.' if stage == 'old' else 'حالا مالکیت شمارهٔ جدید را تأیید می‌کنیم.') }}
+
+  {% if error %}{% call alert(tone='danger', title='ارسال نشد') %}{{ error }}{% endcall %}{% endif %}
+  {% if debug_code %}
+  {% call alert(tone='warning', title='حالت توسعه') %}
+    پیامکی ارسال نشد؛ کد: <strong class="num" dir="ltr">{{ debug_code }}</strong>
+  {% endcall %}
+  {% endif %}
+
+  {% call card(title=('تأیید شمارهٔ فعلی' if stage == 'old' else 'تأیید شمارهٔ جدید')) %}
+  <form method="post" action="{{ url_for('staff.mobile_verify') }}" class="stack" data-otp-form data-otp-length="{{ otp_length }}">
+    {{ csrf() }}
+    <p class="text-muted">
+      کد {{ otp_length|fa }} رقمی به شمارهٔ <bdo dir="ltr" class="num fw-bold">{{ target|fa }}</bdo> پیامک شد. کد تا دو دقیقه معتبر است.
+      {% if stage == 'old' %}پس از تأیید، کد دیگری به شمارهٔ جدید (<bdo dir="ltr" class="num">{{ new_masked|fa }}</bdo>) فرستاده می‌شود.{% endif %}
+    </p>
+    {{ form_field('کد تأیید', name='code', type='text', inputmode='numeric', dir='ltr', required=true,
+                  autocomplete='one-time-code', placeholder='• • • • • •', error=errors.get('code'),
+                  attrs={'data-otp-input': '', 'autofocus': '', 'enterkeyhint': 'done'}) }}
+    <button type="submit" class="btn btn--primary btn--lg btn--block">{{ icon('check') }}<span>تأیید</span></button>
+  </form>
+  <div class="st-actions">
+    <form method="post" action="{{ url_for('staff.mobile_resend') }}" class="inline-form">
+      {{ csrf() }}
+      <button type="submit" class="btn btn--ghost" data-resend-seconds="{{ resend_in }}"{% if resend_in %} disabled{% endif %}>
+        <span data-resend-label>ارسال دوبارهٔ کد{% if resend_in %} ({{ resend_in|fa }} ثانیه){% endif %}</span>
+      </button>
+    </form>
+    <form method="post" action="{{ url_for('staff.mobile_cancel') }}" class="inline-form">
+      {{ csrf() }}
+      <button type="submit" class="btn btn--ghost">انصراف از تغییر شماره</button>
+    </form>
+  </div>
+  {% endcall %}
+</div>
+{% endblock %}
+
+{% block scripts %}<script src="{{ url_for('static', filename='js/auth.js', v=asset_version|default('1')) }}" defer></script>{% endblock %}

@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+{% from 'components/ui.html' import page_header, card, badge, empty_state, pagination, confirm_button, icon %}
+{% from 'halls/_macros.html' import hall_filter %}
+{% block title %}توافق‌نامه‌ها{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='css/halls.css', v=asset_version|default('1')) }}">{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/halls.js', v=asset_version|default('1')) }}" defer></script>{% endblock %}
+
+{% block content %}
+{% set labels = {'active': ('فعال', 'success'), 'upcoming': ('آغاز نشده', 'info'), 'expired': ('تمام‌شده', 'neutral'), 'terminated': ('پایان‌یافته', 'neutral')} %}
+<div class="page stack stack--lg">
+  {{ page_header('توافق‌نامه‌ها', 'قرارداد تالار با اتلیه: بازه، انحصار، اجاره یا سهم، بیعانه',
+       back_url=url_for('halls.directory'), back_label='اتلیه‌ها',
+       actions=('<a class="btn btn--primary" href="' ~ url_for('halls.directory') ~ '">ثبت توافق‌نامهٔ تازه</a>')|safe) }}
+
+  {{ hall_filter(hall_choices, selected, 'halls.agreements', tab=tab) }}
+
+  <nav class="tabs" aria-label="وضعیت توافق‌نامه‌ها">
+    <div class="tabs__list">
+      {% for key, label in tabs %}
+      <a class="tabs__tab" href="{{ url_for('halls.agreements', tab=key, hall=hall_arg) }}"{% if key == tab %} aria-current="page"{% endif %}><span>{{ label }}</span></a>
+      {% endfor %}
+    </div>
+  </nav>
+
+  {% if page.items %}
+  <ul class="hl-cards" aria-label="توافق‌نامه‌ها">
+    {% for agreement in page.items %}
+    {% set status = status_of(agreement, today) %}
+    <li>
+      {% call card(cls='hl-event') %}
+        <div class="hl-event__head">
+          <div class="hl-event__title">
+            <h2 class="hl-event__name">{{ agreement.atelier.name }}</h2>
+            <p class="text-muted">{{ agreement.hall.name }}</p>
+          </div>
+          {{ badge(labels[status][0], labels[status][1]) }}
+        </div>
+        <dl class="kv">
+          <dt>بازه</dt><dd>از {{ agreement.start_date|jdate }}{% if agreement.end_date %} تا {{ agreement.end_date|jdate }}{% else %} · بدون پایان{% endif %}</dd>
+          <dt>انحصار</dt><dd>{{ 'انحصاری' if agreement.is_exclusive else 'غیرانحصاری' }}</dd>
+          {% if agreement.rent_per_event is not none %}<dt>اجارهٔ هر مراسم</dt><dd>{{ agreement.rent_per_event|toman }} <small class="text-muted">تومان</small></dd>{% endif %}
+          {% if agreement.revenue_share_percent is not none %}<dt>سهم تالار</dt><dd>{{ agreement.revenue_share_percent|fa }}٪</dd>{% endif %}
+          {% if agreement.deposit is not none %}<dt>بیعانه</dt><dd>{{ agreement.deposit|toman }} <small class="text-muted">تومان</small></dd>{% endif %}
+          {% if agreement.contact_name or agreement.contact_phone %}<dt>تماس</dt><dd>{{ agreement.contact_name or '' }} {% if agreement.contact_phone %}<bdo dir="ltr" class="num">{{ agreement.contact_phone|fa }}</bdo>{% endif %}</dd>{% endif %}
+        </dl>
+        {% if agreement.notes %}<p class="hl-note-box">{{ agreement.notes }}</p>{% endif %}
+        {% if status in ('active', 'upcoming') %}
+        <div class="hl-actions">
+          <a class="btn btn--sm btn--secondary" href="{{ url_for('halls.agreement_edit', agreement_id=agreement.id) }}">{{ icon('edit') }}<span>ویرایش</span></a>
+          {{ confirm_button('پایان توافق‌نامه', url_for('halls.agreement_end', agreement_id=agreement.id), 'توافق‌نامه با «' ~ agreement.atelier.name ~ '» همین حالا پایان می‌یابد و مدیر اتلیه باخبر می‌شود. ادامه می‌دهید؟', title='پایان توافق‌نامه', confirm_label='بله، پایان یابد', icon='close') }}
+        </div>
+        {% endif %}
+      {% endcall %}
+    </li>
+    {% endfor %}
+  </ul>
+  {{ pagination(page, 'halls.agreements', tab=tab, hall=hall_arg) }}
+  {% else %}
+  {{ empty_state('file', 'توافق‌نامه‌ای در این بخش نیست', 'از فهرست اتلیه‌ها، یک اتلیه را باز کنید و «ثبت توافق‌نامه» را بزنید.',
+                  action=('<a class="btn btn--primary" href="' ~ url_for('halls.directory') ~ '">فهرست اتلیه‌ها</a>')|safe) }}
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,41 @@
+{#- Enter the one-time code.  auth.js auto-submits at full length, offers the Web OTP autofill
+    and runs the resend countdown (data-resend-seconds). -#}
+{% extends 'base.html' %}
+{% set layout = 'bare' %}
+{% from 'components/ui.html' import form_field, alert, icon %}
+{% set errors = errors|default({}) %}
+{% block title %}تأیید شماره{% endblock %}
+{% block head %}{% include 'auth/_head.html' %}{% endblock %}
+{% block content %}
+<section class="auth stack stack--lg" aria-labelledby="auth-title">
+  <header class="auth__head">
+    <h1 class="auth__title" id="auth-title">کد تأیید را وارد کنید</h1>
+    <p class="text-muted">کد {{ otp_length|fa }} رقمی به شمارهٔ <bdo dir="ltr" class="num fw-bold">{{ mobile|fa }}</bdo> پیامک شد. کد تا دو دقیقه معتبر است.</p>
+  </header>
+
+  {% if debug_code %}
+  {% call alert(tone='warning', title='حالت توسعه') %}
+    پیامکی ارسال نشد؛ کد ورود: <strong class="num" dir="ltr">{{ debug_code }}</strong>
+  {% endcall %}
+  {% endif %}
+
+  <form method="post" action="{{ url_for('auth.verify') }}" class="stack" data-otp-form data-otp-length="{{ otp_length }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    {{ form_field('کد تأیید', name='code', type='text', inputmode='numeric', dir='ltr', required=true,
+                  autocomplete='one-time-code', placeholder='• • • • • •', error=errors.get('code'),
+                  attrs={'data-otp-input': '', 'autofocus': '', 'enterkeyhint': 'done'}) }}
+    <button type="submit" class="btn btn--primary btn--lg btn--block">{{ icon('check') }}تأیید و ورود</button>
+  </form>
+
+  <div class="auth__links stack stack--sm text-center">
+    <form method="post" action="{{ url_for('auth.resend') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn--ghost" data-resend-seconds="{{ resend_in }}"{% if resend_in %} disabled{% endif %}>
+        <span data-resend-label>ارسال دوبارهٔ کد{% if resend_in %} ({{ resend_in|fa }} ثانیه){% endif %}</span>
+      </button>
+    </form>
+    <a href="{{ url_for('auth.account') if purpose == 'password' else url_for('auth.login') }}">{{ 'انصراف' if purpose == 'password' else 'شماره را اشتباه وارد کرده‌ام' }}</a>
+  </div>
+</section>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/auth.js', v=asset_version|default('1')) }}" defer></script>{% endblock %}

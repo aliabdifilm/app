@@ -1,0 +1,75 @@
+{#-
+  Macros of the hall panel.  Import what you need:
+      {% from 'halls/_macros.html' import date_tile, event_facts, event_card, hall_filter, atelier_name %}
+  Classes are prefixed `hl-` and live in static/css/halls.css (tokens only, no inline style).
+-#}
+{% from 'components/ui.html' import icon, badge, card, select_field, rating_stars %}
+
+{# date_tile(date) - day number and month of a Gregorian date, shown in Jalali. #}
+{% macro date_tile(day) -%}
+<span class="hl-date" aria-hidden="true">
+  <span class="hl-date__day">{{ (day|jdate('short')).split(' ')[0] }}</span>
+  <span class="hl-date__month">{{ (day|jdate('short')).split(' ')[1] }}</span>
+</span>
+{%- endmacro %}
+
+{# event_facts(event, show_hall=True) - hall, time, ceremony and guests in one wrapped line. #}
+{% macro event_facts(event, show_hall=true) -%}
+<span class="hl-facts">
+  {%- if show_hall %}<span class="hl-fact">{{ icon('building') }}{{ event.hall.name }}{% if event.hall.city %} · {{ event.hall.city }}{% endif %}</span>{% endif %}
+  {%- if event.start_time %}<span class="hl-fact">{{ icon('clock') }}ساعت <bdo dir="ltr">{{ event.start_time|hl_time }}</bdo></span>{% endif %}
+  <span class="hl-fact">{{ icon('heart') }}{{ event.ceremony_type.label }}</span>
+  {%- if event.guest_count_estimate %}<span class="hl-fact">{{ icon('users') }}حدود {{ event.guest_count_estimate|fa }} میهمان</span>{% endif %}
+</span>
+{%- endmacro %}
+
+{# state_badge(event, pending=0) - what the event is from the hall's point of view. #}
+{% macro state_badge(event, pending=0) -%}
+{%- set st = hl_state(event, pending) -%}
+{{ badge(st[0], st[1]) }}
+{%- endmacro %}
+
+{# event_card(event, pending=0, selectable=False, show_hall=True)
+   A card for the lists.  `selectable` adds a checkbox (form="bulk-form") for the bulk actions bar. #}
+{% macro event_card(event, pending=0, selectable=false, show_hall=true) -%}
+{% call card(cls='hl-event') %}
+  <div class="hl-event__head">
+    {%- if selectable %}
+    <input class="hl-event__pick" type="checkbox" name="event_ids" value="{{ event.id }}" form="bulk-form" data-bulk-pick
+      aria-label="انتخاب مراسم {{ event.date|jdate('long') }}">
+    {%- endif %}
+    {{ date_tile(event.date) }}
+    <div class="hl-event__title">
+      <h2 class="hl-event__name"><a href="{{ url_for('halls.event_show', event_id=event.id) }}">{{ event.date|jweekday }}{% if event.start_time %} · {{ event.start_time|hl_time }}{% endif %}</a></h2>
+      <p class="text-muted text-sm">{{ event.date|jdate('long') }}{% if event.title %} · {{ event.title }}{% endif %}</p>
+    </div>
+  </div>
+  <div class="hl-event__state">{{ state_badge(event, pending) }}</div>
+  {{ event_facts(event, show_hall) }}
+{% endcall %}
+{%- endmacro %}
+
+{# hall_filter(choices, selected, endpoint, **hidden)
+   A GET form with the hall selector (shown only when the manager has more than one hall).  `hidden`
+   values keep the other filters of the page.  Without JavaScript the button applies the choice. #}
+{% macro hall_filter(choices, selected, endpoint) -%}
+{%- if choices|length > 1 %}
+<form class="hl-filter" method="get" action="{{ url_for(endpoint) }}" role="search" aria-label="انتخاب تالار">
+  {%- for key, value in kwargs.items() %}{% if value not in (none, '') %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endif %}{% endfor %}
+  {{ select_field('تالار', 'hall', choices, selected=selected.id if selected else '', placeholder='همهٔ تالارها') }}
+  <button class="btn btn--secondary hl-filter__apply" type="submit">{{ icon('filter') }}<span>اعمال</span></button>
+</form>
+{%- endif %}
+{%- endmacro %}
+
+{# atelier_name(atelier, link=True) - the name with the verified badge of its manager. #}
+{% macro atelier_name(atelier, link=true) -%}
+{%- if link %}<a href="{{ url_for('halls.atelier_show', atelier_id=atelier.id) }}">{{ atelier.name }}</a>{% else %}{{ atelier.name }}{% endif %}
+{%- if atelier.manager and atelier.manager.is_verified %} {{ badge('تأییدشده', 'success', 'shield') }}{% endif %}
+{%- endmacro %}
+
+{# stars(ratings, atelier_id) - the stars of an atelier or a hint that nobody rated it yet. #}
+{% macro stars(ratings, atelier_id) -%}
+{%- set r = ratings.get(atelier_id) -%}
+{%- if r %}{{ rating_stars(r[0], count=r[1]) }}{% else %}<span class="text-faint text-sm">هنوز امتیازی ندارد</span>{% endif %}
+{%- endmacro %}

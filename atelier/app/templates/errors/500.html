@@ -1,0 +1,13 @@
+{#- 500: server error.  Uses the "bare" layout on purpose: it must render even when the database is down,
+    so it never touches current_user, nav_items or any query. -#}
+{% extends 'base.html' %}
+{% set layout = 'bare' %}
+{% from 'components/ui.html' import error_page %}
+{% block title %}خطای سرور{% endblock %}
+{% block bare_brand %}{% endblock %}
+{% block content %}
+{% call error_page(500, 'مشکلی در سرور پیش آمد', 'متأسفیم، خطایی غیرمنتظره رخ داد. اطلاعات شما ذخیره‌شده است؛ چند لحظهٔ دیگر دوباره تلاش کنید. اگر مشکل ادامه داشت به مدیر سامانه اطلاع دهید.', icon='alert') %}
+  <a class="btn btn--primary" href="{{ home_url|default('/') }}">صفحهٔ اصلی</a>
+  <button type="button" class="btn" data-history-back>بازگشت به صفحهٔ قبل</button>
+{% endcall %}
+{% endblock %}

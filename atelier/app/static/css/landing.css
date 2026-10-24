@@ -1,0 +1,164 @@
+/*
+ * Atelier Sayyar - landing page styles (loaded only by public/landing.html).
+ * Everything uses the tokens from app.css, so light/dark both work.
+ */
+.landing { overflow-x: clip; }
+
+.section { padding: var(--sp-7) var(--sp-4); }
+.section--tint { background: var(--surface-2); }
+.section__inner { max-width: var(--page-w); margin-inline: auto; }
+.section__head { max-width: 50rem; margin-block-end: var(--sp-6); }
+.section__head h2 { font-size: var(--fs-2xl); font-weight: 800; }
+.section__head p:not(.section__kicker) { margin-block-start: var(--sp-2); color: var(--text-muted); }
+.section__kicker { color: var(--accent-text); font-weight: 700; font-size: var(--fs-sm); margin-block-end: var(--sp-1); }
+@media (min-width: 900px) {
+  .section { padding: var(--sp-8) var(--sp-6); }
+  .section__head h2 { font-size: var(--fs-3xl); }
+}
+
+/* Hero ------------------------------------------------------------------ */
+.hero {
+  background:
+    radial-gradient(70% 60% at 90% 0%, var(--accent-soft) 0%, transparent 70%),
+    radial-gradient(50% 50% at 0% 100%, var(--surface-2) 0%, transparent 70%),
+    var(--bg);
+  padding: var(--sp-6) var(--sp-4) var(--sp-7);
+}
+.hero__inner { max-width: var(--page-w); margin-inline: auto; display: grid; gap: var(--sp-6); align-items: center; }
+.hero__eyebrow { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin-block-end: var(--sp-4); }
+.hero__title { font-size: clamp(1.75rem, 1.1rem + 4vw, 3.5rem); font-weight: 900; line-height: 1.3; }
+.hero__accent { color: var(--accent-text); display: block; }
+.hero__lead { margin-block-start: var(--sp-4); font-size: var(--fs-lg); color: var(--text-muted); max-width: 56ch; }
+.hero__cta { display: flex; flex-wrap: wrap; gap: var(--sp-3); margin-block-start: var(--sp-5); }
+.hero__cta .btn { flex: 1 1 220px; }
+.hero__note { margin-block-start: var(--sp-4); color: var(--text-muted); font-size: var(--fs-sm); display: flex; gap: var(--sp-2); align-items: center; }
+.hero__note .icon { color: var(--success); }
+@media (min-width: 900px) {
+  .hero { padding: var(--sp-8) var(--sp-6); }
+  .hero__inner { grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr); gap: var(--sp-7); }
+  .hero__cta .btn { flex: 0 0 auto; }
+}
+
+/* Decorative product preview */
+.mock {
+  max-width: 400px;
+  margin-inline: auto;
+  padding: var(--sp-3);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 28px;
+  box-shadow: var(--shadow-lg);
+  transform: rotate(-1.5deg);
+}
+.mock__bar { display: flex; gap: 6px; padding: var(--sp-2) var(--sp-3); }
+.mock__bar span { width: 9px; height: 9px; border-radius: 50%; background: var(--surface-3); }
+.mock__card { padding: var(--sp-4); background: var(--bg); border-radius: 20px; display: grid; gap: var(--sp-3); }
+.mock__head { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--sp-2); }
+.mock__head strong { display: block; font-size: var(--fs-lg); }
+.mock__head small { color: var(--text-muted); }
+.mock__date { display: flex; gap: var(--sp-2); align-items: center; color: var(--text-muted); font-weight: 600; font-size: var(--fs-sm); }
+.mock__crew { list-style: none; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--sp-2); }
+.mock__crew li { display: grid; justify-items: center; gap: 2px; font-size: var(--fs-xs); color: var(--text-muted); text-align: center; }
+.mock__invoice { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: var(--sp-3); display: grid; gap: 2px; }
+.mock__row { display: flex; justify-content: space-between; gap: var(--sp-3); font-size: var(--fs-xs); padding-block: 3px; }
+.mock__row span { color: var(--text-muted); }
+.mock__row b { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.mock__row--total { border-block-start: 1.5px solid var(--text); margin-block-start: var(--sp-1); padding-block-start: var(--sp-2); font-size: var(--fs-sm); }
+.mock__row--total span { color: var(--text); font-weight: 700; }
+.mock__row--total b { color: var(--success); }
+
+/* Steps ----------------------------------------------------------------- */
+.steps { list-style: none; display: grid; gap: var(--sp-4); counter-reset: none; }
+.step {
+  display: flex;
+  gap: var(--sp-4);
+  align-items: flex-start;
+  padding: var(--sp-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+}
+.step__n {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 800;
+  font-size: var(--fs-lg);
+}
+.step h3 { font-size: var(--fs-md); }
+.step p { margin-block-start: var(--sp-1); color: var(--text-muted); font-size: var(--fs-sm); }
+@media (min-width: 900px) {
+  .steps { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--sp-3); }
+  .step { flex-direction: column; }
+}
+
+/* Roles & features -------------------------------------------------------- */
+.role, .feature {
+  padding: var(--sp-5);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-sm);
+}
+.role__icon, .feature__icon {
+  display: inline-grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  margin-block-end: var(--sp-3);
+  border-radius: var(--r-md);
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+.role__icon .icon, .feature__icon .icon { width: 26px; height: 26px; }
+.role h3, .feature h3 { font-size: var(--fs-lg); margin-block-end: var(--sp-2); }
+.role ul { list-style: none; display: grid; gap: var(--sp-2); color: var(--text-muted); font-size: var(--fs-sm); }
+.role li { position: relative; padding-inline-start: var(--sp-4); }
+.role li::before { content: ""; position: absolute; inset-inline-start: 0; inset-block-start: 0.75em; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+.feature p { color: var(--text-muted); font-size: var(--fs-sm); }
+
+/* Salary formula ---------------------------------------------------------- */
+.salary { display: grid; gap: var(--sp-6); align-items: center; }
+.salary__copy h2 { font-size: var(--fs-2xl); font-weight: 800; }
+.salary__copy > p:not(.section__kicker) { margin-block-start: var(--sp-3); color: var(--text-muted); }
+.ticks { list-style: none; display: grid; gap: var(--sp-3); margin-block-start: var(--sp-4); }
+.ticks li { display: flex; gap: var(--sp-3); align-items: flex-start; }
+.ticks .icon { color: var(--success); margin-block-start: 0.35em; }
+.formula {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  padding: var(--sp-5);
+  box-shadow: var(--shadow-md);
+  display: grid;
+  gap: var(--sp-2);
+}
+.formula__row { display: flex; justify-content: space-between; gap: var(--sp-4); padding-block: var(--sp-2); border-block-end: 1px dashed var(--border); }
+.formula__row span { color: var(--text-muted); }
+.formula__row b { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.formula__row--total { border-block-end: 0; border-block-start: 2px solid var(--text); margin-block-start: var(--sp-2); padding-block-start: var(--sp-3); font-size: var(--fs-lg); }
+.formula__row--total span { color: var(--text); font-weight: 800; }
+.formula__row--total b { color: var(--accent-text); font-size: var(--fs-xl); }
+.formula__row--total small { font-size: var(--fs-sm); font-weight: 500; color: var(--text-muted); }
+@media (min-width: 900px) {
+  .salary { grid-template-columns: minmax(0, 1fr) minmax(0, 0.9fr); gap: var(--sp-7); }
+  .salary__copy h2 { font-size: var(--fs-3xl); }
+}
+
+/* Call to action band -------------------------------------------------------- */
+.cta { padding: var(--sp-7) var(--sp-4); background: var(--side-bg); color: var(--side-text); text-align: center; }
+.cta__inner { max-width: 640px; margin-inline: auto; display: grid; gap: var(--sp-3); justify-items: center; }
+.cta h2 { color: var(--side-text); font-size: var(--fs-2xl); font-weight: 800; }
+.cta p { color: var(--side-muted); }
+.cta__actions { display: flex; flex-wrap: wrap; gap: var(--sp-3); justify-content: center; margin-block-start: var(--sp-3); }
+.cta__btn { --btn-bg: #ffffff; --btn-fg: #2a231c; --btn-border: #ffffff; --btn-hover: #f1e9dc; }
+.cta__ghost { --btn-fg: var(--side-text); --btn-border: var(--side-border); --btn-hover: var(--side-hover); }
+.cta :focus-visible { outline-color: #ffffff; }
+
+.roles { --grid-min: 240px; }
+.features { --grid-min: 300px; }

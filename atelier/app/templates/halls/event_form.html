@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+{% from 'components/ui.html' import page_header, card, form_field, select_field, textarea_field, jdate_input, alert, icon %}
+{% set editing = event is not none %}
+{% block title %}{{ 'ویرایش مراسم' if editing else 'ثبت مراسم' }}{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='css/halls.css', v=asset_version|default('1')) }}">{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/halls.js', v=asset_version|default('1')) }}" defer></script>{% endblock %}
+
+{% block content %}
+<div class="page page--narrow stack stack--lg">
+  {% if editing %}
+    {{ page_header('ویرایش مراسم', event.hall.name ~ ' · ' ~ event.date|jdate('long'), back_url=url_for('halls.event_show', event_id=event.id)) }}
+  {% else %}
+    {{ page_header('ثبت مراسم', 'یک تاریخ تازه برای تالار؛ برای چند تاریخ از «افزودن چند تاریخ» استفاده کنید.', back_url=url_for('halls.events')) }}
+  {% endif %}
+
+  {% if duplicate %}
+  {% call alert(tone='danger') %}
+    در این تالار، همین روز و ساعت پیش‌تر مراسمی ثبت شده است:
+    <a href="{{ url_for('halls.event_show', event_id=duplicate.id) }}">{{ duplicate.date|jdate('weekday_long') }}{% if duplicate.start_time %} · {{ duplicate.start_time|hl_time }}{% endif %}</a>.
+    ساعت دیگری بنویسید یا آن مراسم را ویرایش کنید.
+  {% endcall %}
+  {% endif %}
+
+  <form method="post" class="stack stack--lg" novalidate action="{{ url_for('halls.event_edit', event_id=event.id) if editing else url_for('halls.event_new') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    {% call card() %}
+      <div class="form-grid form-grid--2">
+        {% if not editing and hall_choices|length > 1 %}
+        {{ select_field('تالار', 'hall_id', hall_choices, selected=form.get('hall_id'), required=true, error=errors.get('hall_id')) }}
+        {% endif %}
+        {% if editing and event.atelier_id %}
+        <div class="field">
+          <span class="field__label">تاریخ مراسم</span>
+          <p class="hl-note-box">{{ event.date|jdate('weekday_long') }}</p>
+          <input type="hidden" name="date" value="{{ event.date.isoformat() }}">
+          {% if errors.get('date') %}<p class="field__error" role="alert">{{ icon('alert') }}<span>{{ errors.get('date') }}</span></p>{% endif %}
+          <p class="field__help">این مراسم به یک اتلیه رسیده و نیروهایش برای این روز افیش می‌شوند؛ تاریخ آن تغییر نمی‌کند. برای جابه‌جایی، مراسم را لغو و مراسم تازه‌ای ثبت کنید.</p>
+        </div>
+        {% else %}
+        {{ jdate_input('date', form.get('date'), label='تاریخ مراسم', min=(none if (editing and event.date < today) else today), required=true, error=errors.get('date')) }}
+        {% endif %}
+        {{ form_field('ساعت شروع', name='start_time', type='time', dir='ltr', value=form.get('start_time', ''), error=errors.get('start_time'), help='اختیاری؛ برای ناهار و شام یک روز، ساعت را بنویسید.') }}
+        {{ select_field('نوع مراسم', 'ceremony_type', ceremony_choices, selected=form.get('ceremony_type'), required=true, error=errors.get('ceremony_type')) }}
+        {{ form_field('تعداد میهمان (تقریبی)', name='guests', type='text', inputmode='numeric', dir='ltr', value=form.get('guests', ''), error=errors.get('guests'), maxlength=6) }}
+        <div class="span-all">{{ form_field('عنوان (اختیاری)', name='title', value=form.get('title', ''), error=errors.get('title'), maxlength=150, help='مثلاً نام خانواده؛ اتلیه‌ای که پیشنهاد می‌گیرد آن را می‌بیند.') }}</div>
+        <div class="span-all">{{ textarea_field('توضیحات', 'notes', form.get('notes', ''), rows=3, error=errors.get('notes'), help='ساعت پذیرایی، محل برپایی، نکات مهم برای اتلیه ...') }}</div>
+      </div>
+    {% endcall %}
+    <div class="form-actions form-actions--sticky">
+      <button class="btn btn--primary" type="submit">{{ icon('check') }}<span>{{ 'ذخیره' if editing else 'ثبت مراسم' }}</span></button>
+      <a class="btn" href="{{ url_for('halls.event_show', event_id=event.id) if editing else url_for('halls.events') }}">انصراف</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

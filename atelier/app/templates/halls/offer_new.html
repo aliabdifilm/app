@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+{% from 'components/ui.html' import page_header, card, alert, empty_state, pagination, select_field, form_field, textarea_field, checkbox_field, icon, badge %}
+{% from 'halls/_macros.html' import atelier_name, stars %}
+{% block title %}انتخاب اتلیه{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='css/halls.css', v=asset_version|default('1')) }}">{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/halls.js', v=asset_version|default('1')) }}" defer></script>{% endblock %}
+
+{% macro atelier_row(atelier, checked) %}
+<label class="hl-pickrow" for="at-{{ atelier.id }}">
+  <input type="checkbox" id="at-{{ atelier.id }}" name="atelier_id" value="{{ atelier.id }}"{% if checked %} checked{% endif %} data-bulk-pick>
+  <span class="hl-pickrow__body">
+    <strong>{{ atelier.name }}{% if atelier.manager and atelier.manager.is_verified %} {{ badge('تأییدشده', 'success', 'shield') }}{% endif %}</strong>
+    <span class="text-muted text-sm">{{ atelier.city or 'شهر نامشخص' }}</span>
+    {{ stars(ratings, atelier.id) }}
+    {% if atelier.description %}<span class="text-sm text-muted">{{ atelier.description|truncate(110) }}</span>{% endif %}
+  </span>
+  <a class="btn btn--sm btn--ghost" href="{{ url_for('halls.atelier_show', atelier_id=atelier.id) }}" target="_blank" rel="noopener">پروفایل</a>
+</label>
+{% endmacro %}
+
+{% block content %}
+<div class="page page--narrow stack stack--lg">
+  {{ page_header('پیشنهاد مراسم به اتلیه', 'گام ۲ از ۲: اتلیه (یا چند اتلیه) را انتخاب کنید.', back_url=url_for('halls.offer_new'), back_label='انتخاب مراسم') }}
+
+  {% call card(title=(events|length|fa) ~ ' مراسم انتخاب شده') %}
+    <ul class="hl-chips">
+      {% for event in events[:12] %}
+      <li><span class="badge{% if event not in usable %} badge--danger{% endif %}">{{ event.date|jdate('short') }} · {{ event.hall.name }}{% if event.start_time %} · {{ event.start_time|hl_time }}{% endif %}</span></li>
+      {% endfor %}
+      {% if events|length > 12 %}<li><span class="badge">و {{ (events|length - 12)|fa }} مراسم دیگر</span></li>{% endif %}
+    </ul>
+    {% if usable|length != events|length %}
+    {% call alert(tone='warning') %}{{ (events|length - usable|length)|fa }} مراسم از این انتخاب دیگر قابل پیشنهاد نیست (اتلیه دارد، لغو شده یا تاریخش گذشته) و فرستاده نمی‌شود.{% endcall %}
+    {% endif %}
+    <a class="btn btn--sm btn--ghost" href="{{ url_for('halls.offer_new') }}">تغییر مراسم‌ها</a>
+  {% endcall %}
+
+  {% if not usable %}
+    {{ empty_state('alert', 'مراسم قابل پیشنهادی نمانده', 'مراسم‌های دیگری را انتخاب کنید.',
+                    action=('<a class="btn btn--primary" href="' ~ url_for('halls.offer_new') ~ '">انتخاب مراسم</a>')|safe) }}
+  {% else %}
+
+  <form class="hl-filter" method="get" action="{{ url_for('halls.offer_new') }}" role="search" data-carry-form>
+    {% for id in event_ids %}<input type="hidden" name="event" value="{{ id }}">{% endfor %}
+    {% for atelier in picked %}<input type="hidden" name="atelier" value="{{ atelier.id }}">{% endfor %}
+    {{ form_field('جستجوی اتلیه', name='q', type='search', value=q, placeholder='نام، شهر یا توضیح') }}
+    {{ select_field('شهر', 'city', cities, selected=city, placeholder='همهٔ شهرها') }}
+    {{ select_field('مرتب‌سازی', 'sort', sorts, selected=sort) }}
+    <label class="check" for="only-verified"><input type="checkbox" id="only-verified" name="verified" value="1"{% if verified %} checked{% endif %}><span class="check__text"><span class="check__label">فقط تأییدشده‌ها</span></span></label>
+    <button class="btn btn--secondary" type="submit">{{ icon('search') }}<span>جستجو</span></button>
+  </form>
+
+  <form method="post" class="stack stack--lg" action="{{ url_for('halls.offer_new') }}" novalidate data-carry-scope>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    {% for event in usable %}<input type="hidden" name="event_id" value="{{ event.id }}">{% endfor %}
+
+    {% if picked %}
+    <section class="stack stack--sm" aria-labelledby="picked-title">
+      <h2 class="hl-section-title" id="picked-title">انتخاب‌شده</h2>
+      <div class="hl-pick">{% for atelier in picked %}{{ atelier_row(atelier, true) }}{% endfor %}</div>
+    </section>
+    {% endif %}
+
+    <section class="stack stack--sm" aria-labelledby="results-title">
+      <h2 class="hl-section-title" id="results-title">فهرست اتلیه‌ها</h2>
+      {% if page.items %}
+      <div class="hl-pick">{% for atelier in page.items %}{{ atelier_row(atelier, false) }}{% endfor %}</div>
+      {{ pagination(page, 'halls.offer_new', **filters) }}
+      {% elif not picked %}
+      {{ empty_state('search', 'اتلیه‌ای پیدا نشد', 'جستجو را تغییر دهید یا فیلتر شهر را بردارید.') }}
+      {% endif %}
+    </section>
+
+    {% call card(title='پیام به اتلیه') %}
+      {{ textarea_field('پیام (اختیاری)', 'message', form.get('message', ''), rows=3, maxlength=500, error=errors.get('message'),
+                        help='مثلاً شرایط اجاره یا ساعت پذیرایی؛ همراه پیشنهاد دیده می‌شود.') }}
+      <p class="text-muted text-sm">پیشنهاد فقط یک‌بار برای هر اتلیه و مراسم ثبت می‌شود؛ اولین اتلیه‌ای که بپذیرد مراسم را می‌گیرد و پیشنهادهای دیگر خودکار پس گرفته می‌شود.</p>
+    {% endcall %}
+
+    <div class="form-actions form-actions--sticky">
+      <button class="btn btn--primary" type="submit">{{ icon('send') }}<span>ارسال پیشنهاد</span></button>
+      <a class="btn" href="{{ url_for('halls.offers') }}">انصراف</a>
+    </div>
+  </form>
+  {% endif %}
+</div>
+{% endblock %}

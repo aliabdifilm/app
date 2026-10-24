@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+{% from 'components/ui.html' import page_header, card, alert, badge, textarea_field, select_field, confirm_button, modal, icon %}
+{% from 'marketplace/_macros.html' import trust, terms_summary, contact_box, date_tile %}
+{% block title %}{{ post.title }}{% endblock %}
+{% block head %}
+<meta name="description" content="{{ post.role.label }} برای {{ job.atelier.name }} در {{ post.city }}، {{ post.date|jdate('long') }}.">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/marketplace.css', v=asset_version|default('1')) }}">
+{% endblock %}
+
+{% block content %}
+<div class="page page--narrow stack stack--lg">
+  {{ page_header(post.title, job.atelier.name ~ (' · ' ~ post.city if post.city else ''),
+                 back_url=url_for('marketplace.jobs'), back_label='بازار کار') }}
+
+  {% if apply_error %}
+  {% call alert(tone='danger', title='درخواست ثبت نشد') %}{{ apply_error }}{% endcall %}
+  {% endif %}
+
+  {% if post.status == JobPostStatus.HIDDEN %}
+  {% call alert(tone='warning', title='این آگهی مخفی شده است') %}مدیر سایت این آگهی را از بازار کار برداشته است؛ فقط شما آن را می‌بینید.{% endcall %}
+  {% elif post.status == JobPostStatus.CLOSED %}
+  {% call alert(tone='info', title='این آگهی بسته شده است') %}دیگر درخواست جدید پذیرفته نمی‌شود. <a href="{{ url_for('marketplace.jobs') }}">آگهی‌های باز</a>{% endcall %}
+  {% elif job.expired %}
+  {% call alert(tone='info', title='تاریخ این همکاری گذشته است') %}<a href="{{ url_for('marketplace.jobs') }}">آگهی‌های باز را ببینید</a>{% endcall %}
+  {% elif post.status == JobPostStatus.FILLED or job.slots_left == 0 %}
+  {% call alert(tone='success', title='ظرفیت این آگهی تکمیل شده است') %}نیروی مورد نیاز تأمین شد. <a href="{{ url_for('marketplace.jobs') }}">آگهی‌های دیگر</a>{% endcall %}
+  {% endif %}
+
+  {% call card() %}
+    <div class="stack stack--sm">
+    <div class="mk-job__head">
+      {{ date_tile(post.date) }}
+      <div class="mk-job__title">
+        <p class="mk-job__atelier"><span class="mk-job__atelier-name">{{ job.atelier.name }}</span> {{ trust(job) }}</p>
+        <p class="mk-chips">
+          {{ badge(post.role.label, 'accent') }}
+          <span class="mk-fact">{{ icon('calendar') }}{{ post.date|jweekday }} {{ post.date|jdate('long') }}</span>
+          {% if post.city %}<span class="mk-fact">{{ icon('map-pin') }}{{ post.city }}</span>{% endif %}
+          {% if job.hall_name %}<span class="mk-fact">{{ icon('building') }}{{ job.hall_name }}</span>{% endif %}
+        </p>
+      </div>
+    </div>
+    <div class="mk-slots" role="img" aria-label="{{ job.accepted|fa }} نفر از {{ post.slots|fa }} نفر پذیرفته شده‌اند">
+      <span class="mk-slots__pips" aria-hidden="true">{% for i in range(post.slots) %}<span class="mk-pip{% if i < job.accepted %} mk-pip--filled{% endif %}"></span>{% endfor %}</span>
+      <span class="text-sm">{{ job.slots_left|fa }} جای خالی از {{ post.slots|fa }}</span>
+    </div>
+    {% if post.description %}<p class="mk-text">{{ post.description }}</p>{% endif %}
+  </div>
+  {% endcall %}
+
+  {% call card(title='حقوق و شرایط پرداخت', subtitle='پرداخت بر پایهٔ فروش مراسم محاسبه می‌شود و شرایط هنگام پذیرفته‌شدن برای شما ثبت (قفل) می‌شود.') %}
+    {{ terms_summary(job, scenarios) }}
+  {% endcall %}
+
+  {#- ============================ the apply area ============================ -#}
+  {% if is_owner %}
+  {% call card(title='مدیریت آگهی', tone='accent') %}
+    <p class="mk-chips">
+      {{ badge(post.status.label, post.status|mk_post_tone) }}
+      {% if job.pending %}{{ badge(job.pending|fa ~ ' درخواست در انتظار', 'warning') }}{% endif %}
+    </p>
+    <div class="mk-actions">
+      <a class="btn btn--primary" href="{{ url_for('marketplace.job_applicants', post_id=post.id) }}">{{ icon('inbox') }}<span>درخواست‌ها</span></a>
+      <a class="btn btn--secondary" href="{{ url_for('marketplace.job_edit', post_id=post.id) }}">{{ icon('edit') }}<span>ویرایش</span></a>
+    </div>
+  {% endcall %}
+
+  {% elif not viewer %}
+  {% call card(title='درخواست همکاری', tone='accent') %}
+    <p>برای ارسال درخواست، با شمارهٔ موبایل خود وارد شوید یا به‌عنوان نیرو ثبت‌نام کنید.</p>
+    <div class="mk-actions">
+      <a class="btn btn--primary" href="{{ login_next }}">ورود و درخواست</a>
+      <a class="btn btn--secondary" href="{{ register_url }}">ثبت‌نام به‌عنوان نیرو</a>
+    </div>
+    <p class="text-muted text-sm">شمارهٔ تماس فقط پس از پذیرفته‌شدن درخواست به شما نمایش داده می‌شود.</p>
+  {% endcall %}
+
+  {% elif viewer.role == Role.STAFF %}
+    {% if application %}
+    {% call card(title='درخواست شما', tone='success' if application.status == ApplicationStatus.ACCEPTED else 'accent') %}
+      <p class="mk-chips">{{ badge(application.status.label, application.status|mk_application_tone) }}<span class="text-muted text-sm">{{ application.created_at|jdate('long') }}</span></p>
+      {% if application.message %}<p class="mk-text">{{ application.message }}</p>{% endif %}
+      {% if application.status == ApplicationStatus.ACCEPTED %}
+      {{ contact_box('تماس با اتلیه', job.atelier.manager|mk_name, job.atelier.manager.mobile, job.atelier.phone) }}
+      {% endif %}
+      <div class="mk-actions">
+        <a class="btn btn--secondary" href="{{ url_for('marketplace.my_applications') }}">درخواست‌های من</a>
+        {% if application.status in (ApplicationStatus.PENDING, ApplicationStatus.ACCEPTED) and not job.expired %}
+        {{ confirm_button('انصراف از درخواست', url_for('marketplace.application_withdraw', application_id=application.id),
+                          'درخواست خود را پس می‌گیرید؟' ~ (' افیش شما هم لغو می‌شود و اتلیه باخبر می‌شود.' if application.status == ApplicationStatus.ACCEPTED else ''),
+                          confirm_label='بله، پس گرفته شود') }}
+        {% endif %}
+      </div>
+    {% endcall %}
+    {% endif %}
+    {% if not application or application.status == ApplicationStatus.WITHDRAWN %}
+    {% call card(title='درخواست همکاری', tone='accent') %}
+      {% if apply_blocker %}
+      {% call alert(tone='warning', title='ارسال درخواست ممکن نیست') %}{{ apply_blocker }}{% endcall %}
+      {% if needs_skill and profile_url %}<a class="btn btn--secondary" href="{{ profile_url }}">{{ icon('edit') }}<span>ویرایش مهارت‌ها در پروفایل</span></a>{% endif %}
+      {% endif %}
+      {% if job.is_open and not apply_blocker and (not apply_error or errors) %}
+      <form method="post" action="{{ url_for('marketplace.job_apply', post_id=post.id) }}" class="stack stack--sm" novalidate>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {{ textarea_field('پیام برای اتلیه (اختیاری)', 'message', form.get('message', ''), rows=4, maxlength=500,
+                          placeholder='چند خط دربارهٔ سابقه و تجهیزات خود بنویسید.', error=errors.get('message'),
+                          help='شمارهٔ موبایل خود را در پیام ننویسید؛ پس از پذیرفته‌شدن، شمارهٔ شما خودکار برای اتلیه نمایش داده می‌شود.') }}
+        <div class="form-actions">
+          <button class="btn btn--primary btn--lg" type="submit">{{ icon('send') }}<span>ارسال درخواست</span></button>
+        </div>
+      </form>
+      {% endif %}
+    {% endcall %}
+    {% endif %}
+
+  {% else %}
+  {% call alert(tone='info') %}درخواست همکاری فقط برای حساب‌های «نیرو» ممکن است.{% endcall %}
+  {% endif %}
+
+  <div class="mk-actions mk-share" hidden data-mk-share-box>
+    <button type="button" class="btn btn--ghost" data-mk-share data-share-title="{{ post.title }}"
+      data-share-text="{{ post.role.label }} برای {{ job.atelier.name }} · {{ post.date|jdate('long') }} · {{ post.city }}">{{ icon('external') }}<span>اشتراک‌گذاری آگهی</span></button>
+    <button type="button" class="btn btn--ghost" data-mk-copy>{{ icon('copy') }}<span>کپی پیوند</span></button>
+  </div>
+  {% if viewer and not is_owner %}
+  <div class="mk-actions">
+    <button type="button" class="btn btn--ghost btn--sm" data-modal-open="report-modal">{{ icon('alert') }}<span>گزارش این آگهی</span></button>
+  </div>
+  {% endif %}
+</div>
+{% if viewer and not is_owner %}
+{% call modal('report-modal', 'گزارش آگهی', size='sm') %}
+  <form method="post" action="{{ url_for('marketplace.job_report', post_id=post.id) }}" class="stack stack--sm">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <p class="text-muted text-sm">اگر این آگهی جعلی است، از شما پول می‌خواهد یا محتوای نامناسب دارد، به مدیر سایت خبر دهید.</p>
+    {{ select_field('دلیل', 'reason', report_reasons, required=true, placeholder='انتخاب دلیل') }}
+    {{ textarea_field('توضیح (اختیاری)', 'details', '', rows=3, maxlength=300) }}
+    <div class="modal__footer">
+      <button type="submit" class="btn btn--primary">ارسال گزارش</button>
+      <button type="button" class="btn" data-modal-close>انصراف</button>
+    </div>
+  </form>
+{% endcall %}
+{% endif %}
+{% endblock %}
+
+{% block scripts %}<script src="{{ url_for('static', filename='js/marketplace.js', v=asset_version|default('1')) }}" defer></script>{% endblock %}

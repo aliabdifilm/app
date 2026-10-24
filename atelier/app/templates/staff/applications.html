@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% from 'components/ui.html' import page_header, card, badge, empty_state, pagination, icon %}
+{% from 'staff/_macros.html' import profile_tabs, date_tile %}
+{% block title %}درخواست‌های من{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='css/staff.css', v=asset_version|default('1')) }}">{% endblock %}
+
+{% block content %}
+{% set tones = {'pending': 'warning', 'accepted': 'success', 'rejected': 'danger', 'withdrawn': 'neutral'} %}
+<div class="page stack stack--lg">
+  {% set header_actions %}
+    {% if manage_url %}<a class="btn btn--secondary" href="{{ manage_url }}">{{ icon('inbox') }}<span>مدیریت درخواست‌ها</span></a>{% endif %}
+    {% if jobs_url %}<a class="btn btn--primary" href="{{ jobs_url }}">{{ icon('briefcase') }}<span>آگهی‌های باز</span></a>{% endif %}
+  {% endset %}
+  {{ page_header('درخواست‌های من', 'فهرست درخواست‌هایی که برای آگهی‌های بازار کار فرستاده‌اید.', actions=header_actions|safe) }}
+  {{ profile_tabs('applications') }}
+
+  {% if page.items %}
+  <ul class="st-grid" aria-label="درخواست‌های من">
+    {% for application in page.items %}
+    {% set post = application.post %}
+    <li>
+      <article class="card st-card">
+        <div class="card__body st-card__body">
+          <div class="st-card__head">
+            {{ date_tile(post.date) }}
+            <div class="st-card__title">
+              <h2 class="st-card__name">{% if links.get(application.id) %}<a href="{{ links[application.id] }}">{{ post.title }}</a>{% else %}{{ post.title }}{% endif %}</h2>
+              <p class="st-card__sub">{{ post.atelier.name }}{% if post.city %} · {{ post.city }}{% endif %}</p>
+            </div>
+            {{ badge(application.status.label, tones.get(application.status.value, 'neutral')) }}
+          </div>
+          <p class="st-chips">
+            {{ badge(post.role.label, 'accent') }}
+            <span class="st-fact">{{ icon('calendar') }}{{ post.date|jweekday }} {{ post.date|jdate('long') }}</span>
+            <span class="st-fact">{{ icon('clock') }}ارسال: {{ application.created_at|jdate('long') }}</span>
+          </p>
+          {% if application.message %}<p class="st-quote">{{ application.message }}</p>{% endif %}
+          {% if application.status.value == 'accepted' %}
+          <p class="text-success">{{ icon('check-circle') }} پذیرفته شدید؛ افیش را در <a href="{{ url_for('staff.schedule') }}">برنامهٔ من</a> ببینید.</p>
+          {% endif %}
+        </div>
+      </article>
+    </li>
+    {% endfor %}
+  </ul>
+  {{ pagination(page, 'staff.applications') }}
+  {% else %}
+  {{ empty_state('send', 'هنوز درخواستی نفرستاده‌اید', 'آگهی‌های باز را ببینید و برای روزهایی که آزاد هستید درخواست بدهید.',
+       action=(('<a class="btn btn--primary" href="' ~ jobs_url ~ '">دیدن آگهی‌ها</a>')|safe) if jobs_url else none) }}
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}<script src="{{ url_for('static', filename='js/staff.js', v=asset_version|default('1')) }}" defer></script>{% endblock %}

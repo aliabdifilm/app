@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+{% from 'components/ui.html' import page_header, card, form_field, textarea_field, checkbox_field, confirm_button, alert, badge, icon %}
+{% from 'ateliers/_macros.html' import terms_editor %}
+{% block title %}{{ 'ویرایش نیرو' if member else 'نیروی ثابت جدید' }}{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='css/ateliers.css', v=asset_version|default('1')) }}">{% endblock %}
+
+{% block content %}
+<div class="page page--narrow stack stack--lg">
+  {{ page_header('ویرایش «' ~ member.display_name ~ '»' if member else 'نیروی ثابت جدید', atelier.name, back_url=url_for('ateliers.roster'), back_label='نیروهای ثابت') }}
+
+  {% if member and member.user_id %}
+  {% call alert(tone='success', title='به حساب کاربری متصل است') %}
+    این نیرو در سامانه ثبت‌نام کرده است؛ افیش‌هایش را در پنل خودش می‌بیند و اعلان می‌گیرد.
+  {% endcall %}
+  {% endif %}
+
+  <form method="post" class="stack stack--lg" novalidate>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    {% call card(title='مشخصات') %}
+      <div class="form-grid form-grid--2">
+        {{ form_field('نام نیرو', name='display_name', value=form.get('display_name', ''), required=true, error=errors.get('display_name'), maxlength=120) }}
+        {{ form_field('شمارهٔ موبایل', name='mobile', type='tel', inputmode='numeric', dir='ltr', value=form.get('mobile', ''), error=errors.get('mobile'),
+                      help='اختیاری. اگر این شماره در سامانه ثبت‌نام کرده باشد، نیرو به حسابش متصل می‌شود.') }}
+        <div class="span-all">{{ textarea_field('یادداشت', 'notes', form.get('notes', ''), rows=2, maxlength=500, error=errors.get('notes')) }}</div>
+      </div>
+      <fieldset class="at-skills{% if errors.get('skills') %} field--invalid{% endif %}">
+        <legend class="field__label">مهارت‌ها <span class="field__req" aria-hidden="true">*</span></legend>
+        <div class="choice-group choice-group--inline">
+          {% for value, label in Skill.choices() %}
+          <label class="choice"><input type="checkbox" name="skills" value="{{ value }}"{% if value in (form.get('skills') or []) %} checked{% endif %}><span>{{ label }}</span></label>
+          {% endfor %}
+        </div>
+        {% if errors.get('skills') %}<p class="field__error" role="alert">{{ icon('alert') }}<span>{{ errors.get('skills') }}</span></p>{% endif %}
+      </fieldset>
+      {% if member %}{{ checkbox_field('فعال (قابل افیش)', 'is_active', checked=form.get('is_active')) }}{% endif %}
+    {% endcall %}
+
+    {% call card(title='پیش‌فرض حقوق این نیرو', subtitle='فقط فرم افیش را از قبل پر می‌کند. خالی بگذارید تا پیش‌فرض اتلیه برای آن نقش استفاده شود.') %}
+      <div class="stack">
+        {% for role in roles %}
+        {% set sfx = suffix(role) %}
+        {% set preset = presets.get(role.value) %}
+        <details class="at-details"{% if form.get('base' ~ sfx) or form.get('commission' ~ sfx) or form.get('tiers' ~ sfx) or errors.get('tiers' ~ sfx) or errors.get('base' ~ sfx) or errors.get('commission' ~ sfx) %} open{% endif %}>
+          <summary>به‌عنوان {{ role.label }}
+            <span class="text-muted text-sm">
+              {% if form.get('base' ~ sfx) or form.get('commission' ~ sfx) or form.get('tiers' ~ sfx) %}پیش‌فرض اختصاصی{% elif preset %}پیش‌فرض اتلیه: {{ preset|terms_text }}{% else %}بدون پیش‌فرض{% endif %}
+            </span>
+          </summary>
+          {{ terms_editor(form, errors, sfx) }}
+        </details>
+        {% endfor %}
+      </div>
+    {% endcall %}
+
+    <div class="form-actions form-actions--sticky">
+      <button class="btn btn--primary btn--lg" type="submit">{{ icon('check') }}<span>ذخیره</span></button>
+      <a class="btn btn--ghost btn--lg" href="{{ url_for('ateliers.roster') }}">انصراف</a>
+    </div>
+  </form>
+
+  {% if member %}
+  {% call card(title='حذف از نیروهای ثابت', tone='danger') %}
+    <p class="text-muted">نیرویی که در افیش‌ها سابقه دارد حذف نمی‌شود؛ او را غیرفعال کنید تا سابقه‌اش بماند.</p>
+    <div class="at-actions">
+      {{ confirm_button('حذف نیرو', url_for('ateliers.roster_delete', member_id=member.id), 'این نیرو از نیروهای ثابت شما حذف می‌شود. ادامه می‌دهید؟', title='حذف نیرو', confirm_label='بله، حذف شود', icon='trash') }}
+    </div>
+  {% endcall %}
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}<script src="{{ url_for('static', filename='js/ateliers.js', v=asset_version|default('1')) }}" defer></script>{% endblock %}

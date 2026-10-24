@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% from 'components/ui.html' import page_header, card, calendar_month, badge, icon %}
+{% from 'halls/_macros.html' import hall_filter %}
+{% block title %}تقویم مراسم‌ها{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='css/halls.css', v=asset_version|default('1')) }}">{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/halls.js', v=asset_version|default('1')) }}" defer></script>{% endblock %}
+
+{% block content %}
+<div class="page stack stack--lg">
+  {{ page_header('تقویم مراسم‌ها', (selected.name if selected else 'همهٔ تالارها') ~ ' · ' ~ count|fa ~ ' مراسم در این ماه',
+       actions=('<a class="btn btn--primary" href="' ~ url_for('halls.event_new', hall=selected.id if selected else none) ~ '">ثبت مراسم</a> <a class="btn btn--secondary" href="' ~ url_for('halls.bulk_new', hall=selected.id if selected else none) ~ '">افزودن چند تاریخ</a>')|safe) }}
+
+  <div class="cluster cluster--between">
+    <nav class="hl-views" aria-label="نمایش مراسم‌ها">
+      <a class="btn btn--sm btn--primary" href="{{ this_month_url }}" aria-current="page">{{ icon('calendar') }}<span>تقویم</span></a>
+      <a class="btn btn--sm btn--secondary" href="{{ url_for('halls.events', hall=selected.id if selected else none) }}">{{ icon('list') }}<span>فهرست</span></a>
+    </nav>
+    <a class="btn btn--sm btn--ghost" href="{{ this_month_url }}">امروز</a>
+  </div>
+
+  {{ hall_filter(hall_choices, selected, 'halls.calendar') }}
+
+  {% call card(padded=true) %}
+    {{ calendar_month(grid, entries, title=title, prev_url=prev_url, next_url=next_url, today=today) }}
+  {% endcall %}
+
+  <p class="hl-legend" aria-label="راهنمای رنگ‌ها">
+    {{ badge('قطعی با اتلیه', 'success') }}
+    {{ badge('پیشنهاد شده / باز برای همه', 'info') }}
+    {{ badge('بدون اتلیه', 'warning') }}
+    {{ badge('برگزارشده', 'neutral') }}
+  </p>
+  <p class="hl-scope">در این ماه: {{ tally.booked|fa }} قطعی · {{ tally.offered|fa }} پیشنهادشده · {{ tally.free|fa }} بدون اتلیه.
+    {% if tally.free %}<a href="{{ url_for('halls.events', tab='free', hall=selected.id if selected else none) }}">پیشنهاد دادن</a>{% endif %}</p>
+</div>
+{% endblock %}

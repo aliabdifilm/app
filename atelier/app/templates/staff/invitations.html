@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+{% from 'components/ui.html' import page_header, empty_state, alert, badge, tabs, pagination, icon, confirm_button %}
+{% from 'staff/_macros.html' import date_tile, clock, status_badge, terms_box, csrf %}
+{% block title %}دعوت‌ها{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='css/staff.css', v=asset_version|default('1')) }}">{% endblock %}
+
+{% block content %}
+<div class="page stack stack--lg">
+  {{ page_header('دعوت‌های من', 'اتلیه‌ها شما را برای مراسم‌ها افیش می‌کنند؛ این‌جا می‌پذیرید یا رد می‌کنید.') }}
+
+  {{ tabs([
+      {'key': 'pending', 'label': 'منتظر پاسخ', 'url': url_for('staff.invitations'), 'badge': pending_count|fa if pending_count else none},
+      {'key': 'history', 'label': 'پاسخ‌داده‌شده و گذشته', 'url': url_for('staff.invitations', tab='history'), 'badge': history_count|fa if history_count else none}
+    ], active=tab, label='وضعیت دعوت‌ها', id='st-inv') }}
+
+  {% if cards %}
+  <ul class="st-grid" aria-label="{{ 'دعوت‌های منتظر پاسخ' if tab == 'pending' else 'دعوت‌های گذشته' }}">
+    {% for c in cards %}
+    {% set a = c.assignment %}
+    <li>
+      <article class="card st-card">
+        <div class="card__body st-card__body">
+          <div class="st-card__head">
+            {{ date_tile(c.event.date) }}
+            <div class="st-card__title">
+              <h2 class="st-card__name"><a href="{{ url_for('staff.assignment', assignment_id=a.id) }}">دعوت به‌عنوان {{ a.role.label }}</a></h2>
+              <p class="st-card__sub">{% if c.atelier %}{{ c.atelier.name }}{% endif %}</p>
+            </div>
+            {{ status_badge(a) }}
+          </div>
+          <p class="st-chips">
+            <span class="st-fact">{{ icon('calendar') }}{{ c.event.date|jweekday }} {{ c.event.date|jdate('long') }}</span>
+            <span class="st-fact">{{ icon('building') }}{{ c.hall.name }}{% if c.hall.city %} · {{ c.hall.city }}{% endif %}</span>
+            {% if c.call_time %}<span class="st-fact">{{ icon('clock') }}{{ 'حضور' if a.call_time else 'شروع' }} {{ clock(c.call_time) }}</span>{% endif %}
+          </p>
+          {{ terms_box(c.lines, c.example) }}
+          {% if a.notes %}<p class="st-quote">{{ a.notes }}</p>{% endif %}
+
+          {% if tab == 'pending' %}
+          {% if c.clashes %}
+          {% call alert(tone='warning', title='تداخل با مراسم دیگر') %}
+            در همین روز افیش دیگری دارید ({% for other in c.clashes %}{{ other.role.label }} · {{ other.event.hall.name }}{% if not loop.last %}، {% endif %}{% endfor %}).
+            می‌توانید با آگاهی از تداخل هم بپذیرید.
+          {% endcall %}
+          {% endif %}
+          <div class="st-actions">
+            <form class="inline-form" method="post" action="{{ url_for('staff.assignment_accept', assignment_id=a.id) }}">
+              {{ csrf() }}
+              <input type="hidden" name="next" value="{{ url_for('staff.invitations') }}">
+              {% if c.clashes %}
+              <input type="hidden" name="allow_conflict" value="1">
+              <button class="btn btn--primary" type="submit" data-confirm="در همین روز مراسم دیگری هم دارید. با وجود تداخل می‌پذیرید؟" data-confirm-title="پذیرفتن با وجود تداخل" data-confirm-label="بله، می‌پذیرم" data-confirm-tone="primary">{{ icon('check') }}<span>پذیرفتن با وجود تداخل</span></button>
+              {% else %}
+              <button class="btn btn--primary" type="submit">{{ icon('check') }}<span>پذیرفتن</span></button>
+              {% endif %}
+            </form>
+            {{ confirm_button('رد کردن', url_for('staff.assignment_decline', assignment_id=a.id),
+                              'این دعوت رد می‌شود و اتلیه باخبر می‌شود. ادامه می‌دهید؟',
+                              title='رد دعوت', confirm_label='بله، رد شود', fields={'next': url_for('staff.invitations')}) }}
+            <a class="btn btn--ghost btn--sm" href="{{ url_for('staff.assignment', assignment_id=a.id) }}">جزئیات و شرایط کامل</a>
+          </div>
+          {% else %}
+          <p class="text-muted text-sm">
+            {% if a.status.value == 'invited' %}پیش از پایان مهلت به این دعوت پاسخ داده نشد.
+            {% elif a.status.value == 'declined' %}این دعوت را رد کرده‌اید.
+            {% else %}این افیش لغو شده است.{% endif %}
+            <a href="{{ url_for('staff.assignment', assignment_id=a.id) }}">جزئیات</a>
+          </p>
+          {% endif %}
+        </div>
+      </article>
+    </li>
+    {% endfor %}
+  </ul>
+  {{ pagination(page, 'staff.invitations', tab=tab if tab == 'history' else none) }}
+  {% elif tab == 'pending' %}
+  {{ empty_state('mail', 'دعوت بی‌پاسخی ندارید',
+       'وقتی اتلیه‌ای شما را برای مراسمی دعوت کند، این‌جا و در اعلان‌ها می‌بینید. پروفایل کامل و «نمایش در جستجو» شانس دعوت را بیشتر می‌کند.',
+       action=('<a class="btn btn--primary" href="' ~ url_for('staff.profile') ~ '">تکمیل پروفایل</a>')|safe) }}
+  {% else %}
+  {{ empty_state('inbox', 'دعوت گذشته‌ای وجود ندارد', 'دعوت‌هایی که رد کرده‌اید یا مهلتشان گذشته، این‌جا می‌ماند.') }}
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}<script src="{{ url_for('static', filename='js/staff.js', v=asset_version|default('1')) }}" defer></script>{% endblock %}

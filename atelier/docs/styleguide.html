@@ -1,0 +1,1033 @@
+<!doctype html>
+<html lang="fa" dir="rtl" class="no-js">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>راهنمای طراحی · اتلیه سیار</title>
+  <meta name="csrf-token" content="styleguide-csrf-token">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#f7f3ec" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#15120f" media="(prefers-color-scheme: dark)">
+  <meta name="sw-url" content="../app/static/js/sw.js">
+  <meta name="sw-scope" content="/">
+  <link rel="icon" href="../app/static/img/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="../app/static/img/apple-touch-icon.png">
+  <link rel="manifest" href="../app/static/manifest.webmanifest">
+  <script src="../app/static/js/theme-init.js?v=1"></script>
+  <link rel="stylesheet" href="../app/static/css/app.css?v=1">
+  <link rel="stylesheet" href="../app/static/css/print.css?v=1" media="print">
+<style>
+  /* styleguide-only helpers (the app itself ships no inline CSS) */
+  .sg-section { scroll-margin-top: 80px; }
+  .sg-section > h2 { font-size: var(--fs-xl); margin-block: var(--sp-6) var(--sp-3); padding-block-end: var(--sp-2); border-block-end: 2px solid var(--border); }
+  .sg-note { color: var(--text-muted); font-size: var(--fs-sm); margin-block-end: var(--sp-3); }
+  .sg-swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: var(--sp-3); }
+  .sg-sw { border: 1px solid var(--border); border-radius: var(--r-md); overflow: hidden; background: var(--surface); font-size: var(--fs-xs); }
+  .sg-sw i { display: block; height: 56px; border-block-end: 1px solid var(--border); }
+  .sg-sw span { display: block; padding: var(--sp-2); direction: ltr; text-align: left; }
+  .sg-icons { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: var(--sp-2); }
+  .sg-icon { display: grid; justify-items: center; gap: var(--sp-1); padding: var(--sp-3) var(--sp-1); border: 1px solid var(--border); border-radius: var(--r-md); background: var(--surface); font-size: 0.6875rem; direction: ltr; }
+  .sg-icon .icon { width: 26px; height: 26px; }
+  .sg-demo { display: flex; flex-wrap: wrap; gap: var(--sp-3); align-items: center; }
+  .sg-bg-accent { background: var(--accent); } .sg-bg-accent-soft { background: var(--accent-soft); }
+  .sg-bg-bg { background: var(--bg); } .sg-bg-surface { background: var(--surface); } .sg-bg-surface-2 { background: var(--surface-2); } .sg-bg-surface-3 { background: var(--surface-3); }
+  .sg-bg-text { background: var(--text); } .sg-bg-muted { background: var(--text-muted); } .sg-bg-border { background: var(--border-strong); }
+  .sg-bg-success { background: var(--success); } .sg-bg-warning { background: var(--warning); } .sg-bg-danger { background: var(--danger); } .sg-bg-info { background: var(--info); }
+  .sg-bg-side { background: var(--side-bg); }
+</style>
+
+</head>
+<body class="layout-app">
+  <a class="skip-link" href="#main">پرش به محتوای اصلی</a>
+  <svg class="sprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+  <defs>
+    <symbol id="brand-mark" viewBox="0 0 64 64"><rect width="64" height="64" rx="16" fill="#b4551d"/><path fill="#fff" d="M22 17h6l2.4-3.5h7.2L40 17h6a7 7 0 0 1 7 7v19a7 7 0 0 1-7 7H18a7 7 0 0 1-7-7V24a7 7 0 0 1 7-7z"/><circle cx="32" cy="33.5" r="11.5" fill="#b4551d"/><circle cx="32" cy="33.5" r="7" fill="#fff"/><circle cx="32" cy="33.5" r="3.4" fill="#b4551d"/><circle cx="46" cy="25" r="2" fill="#b4551d"/></symbol>
+    <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9.5h13V10"/><path d="M10 19.5v-5h4v5"/></symbol>
+    <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></symbol>
+    <symbol id="i-calendar-check" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/><path d="m9 15 2 2 4-4"/></symbol>
+    <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/><path d="M15.5 4.7a3.4 3.4 0 0 1 0 6.6M17.5 14.4c2.4.7 4 2.7 4 5.6"/></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4.5 20c0-4 3.4-6.5 7.5-6.5s7.5 2.5 7.5 6.5"/></symbol>
+    <symbol id="i-user-plus" viewBox="0 0 24 24"><circle cx="10" cy="8" r="4"/><path d="M2.5 20c0-4 3.4-6.5 7.5-6.5 1.6 0 3 .4 4.2 1.1"/><path d="M19 14v6M16 17h6"/></symbol>
+    <symbol id="i-user-check" viewBox="0 0 24 24"><circle cx="10" cy="8" r="4"/><path d="M2.5 20c0-4 3.4-6.5 7.5-6.5 1.6 0 3 .4 4.2 1.1"/><path d="m16 17.5 2 2 4-4"/></symbol>
+    <symbol id="i-camera" viewBox="0 0 24 24"><path d="M4 8h3l1.5-2.5h7L17 8h3a1 1 0 0 1 1 1v9.5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.2" r="3.6"/></symbol>
+    <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20l1-4L16.5 4.5a2 2 0 0 1 3 3L8 19z"/><path d="m14.5 6.5 3 3"/></symbol>
+    <symbol id="i-megaphone" viewBox="0 0 24 24"><path d="M4 10v4a1 1 0 0 0 1 1h2l5 4V5L7 9H5a1 1 0 0 0-1 1z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/></symbol>
+    <symbol id="i-bag" viewBox="0 0 24 24"><path d="M5 8h14l-1 12H6z"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8"/></symbol>
+    <symbol id="i-receipt" viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></symbol>
+    <symbol id="i-wallet" viewBox="0 0 24 24"><path d="M4 7.5A2.5 2.5 0 0 1 6.5 5H18v3"/><path d="M4 7.5v10A2.5 2.5 0 0 0 6.5 20H20V8H6.5A2.5 2.5 0 0 1 4 5.5"/><circle cx="16.2" cy="14" r="1" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-box" viewBox="0 0 24 24"><path d="M3.5 7.5 12 3l8.5 4.5v9L12 21l-8.5-4.5z"/><path d="m3.5 7.5 8.5 4.5 8.5-4.5M12 12v9"/></symbol>
+    <symbol id="i-printer" viewBox="0 0 24 24"><path d="M7 9V4h10v5"/><path d="M7 17H5a1.5 1.5 0 0 1-1.5-1.5v-5A1.5 1.5 0 0 1 5 9h14a1.5 1.5 0 0 1 1.5 1.5v5A1.5 1.5 0 0 1 19 17h-2"/><path d="M7 14h10v6H7z"/></symbol>
+    <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15z"/><path d="M10 21h4"/></symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+    <symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+    <symbol id="i-chevron-up" viewBox="0 0 24 24"><path d="m6 15 6-6 6 6"/></symbol>
+    <symbol id="i-chevron-left" viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></symbol>
+    <symbol id="i-chevron-right" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></symbol>
+    <symbol id="i-arrow-left" viewBox="0 0 24 24"><path d="M20 12H4M10 6l-6 6 6 6"/></symbol>
+    <symbol id="i-arrow-right" viewBox="0 0 24 24"><path d="M4 12h16M14 6l6 6-6 6"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></symbol>
+    <symbol id="i-logout" viewBox="0 0 24 24"><path d="M14 4h3.5A1.5 1.5 0 0 1 19 5.5v13a1.5 1.5 0 0 1-1.5 1.5H14"/><path d="m9.5 8-4 4 4 4M5.5 12H15"/></symbol>
+    <symbol id="i-building" viewBox="0 0 24 24"><path d="M4 21V8l8-5 8 5v13"/><path d="M9 21v-6h6v6"/><path d="M9 11h.01M15 11h.01" stroke-width="2.5"/></symbol>
+    <symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 20s-7.5-4.6-7.5-10A4.3 4.3 0 0 1 12 7.4 4.3 4.3 0 0 1 19.5 10c0 5.4-7.5 10-7.5 10z"/></symbol>
+    <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 3.5 2.6 5.4 5.9.8-4.3 4.1 1 5.9L12 16.9l-5.2 2.8 1-5.9-4.3-4.1 5.9-.8z"/></symbol>
+    <symbol id="i-star-fill" viewBox="0 0 24 24"><path fill="currentColor" d="m12 3.5 2.6 5.4 5.9.8-4.3 4.1 1 5.9L12 16.9l-5.2 2.8 1-5.9-4.3-4.1 5.9-.8z"/></symbol>
+    <symbol id="i-star-half" viewBox="0 0 24 24"><path d="m12 3.5 2.6 5.4 5.9.8-4.3 4.1 1 5.9L12 16.9l-5.2 2.8 1-5.9-4.3-4.1 5.9-.8z"/><path fill="currentColor" d="M12 3.5v13.4l5.2 2.8-1-5.9 4.3-4.1-5.9-.8z"/></symbol>
+    <symbol id="i-map-pin" viewBox="0 0 24 24"><path d="M12 21s-6.5-6.2-6.5-11a6.5 6.5 0 0 1 13 0c0 4.8-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.4"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></symbol>
+    <symbol id="i-phone" viewBox="0 0 24 24"><path d="M5 4h4l1.5 4.5-2.3 1.5a11 11 0 0 0 5.8 5.8l1.5-2.3L20 15v4a1.5 1.5 0 0 1-1.5 1.5A15.5 15.5 0 0 1 3.5 5.5 1.5 1.5 0 0 1 5 4z"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l7.5 3v5.5c0 4.6-3.1 8-7.5 9.5-4.4-1.5-7.5-4.9-7.5-9.5V6z"/><path d="m9 12 2.2 2.2L15.5 10"/></symbol>
+    <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 20h16M6.5 20v-6M12 20V5M17.5 20v-9"/></symbol>
+    <symbol id="i-file" viewBox="0 0 24 24"><path d="M6 3h8l5 5v13H6z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></symbol>
+    <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M5 20h14"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v12M7 11l5 5 5-5M5 20h14"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4.5h6V7M6.5 7l1 13h9l1-13M10 11v5M14 11v5"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="i-filter" viewBox="0 0 24 24"><path d="M4 5h16l-6.2 7.5V19l-3.6-2v-4.5z"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6 7 7M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/></symbol>
+    <symbol id="i-monitor" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="11.5" rx="2"/><path d="M9 20h6M12 16v4"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5M12 7.5h.01" stroke-width="2.2"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 4 21 20H3z"/><path d="M12 10v4.5M12 17.5h.01" stroke-width="2.2"/></symbol>
+    <symbol id="i-x-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="m9 9 6 6M15 9l-6 6"/></symbol>
+    <symbol id="i-check-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="m8.5 12.3 2.5 2.5 4.5-5"/></symbol>
+    <symbol id="i-briefcase" viewBox="0 0 24 24"><path d="M3.5 8h17v11.5h-17z"/><path d="M9 8V5.5h6V8M3.5 13h17"/></symbol>
+    <symbol id="i-tag" viewBox="0 0 24 24"><path d="M3.5 12.5v-8h8l9 9-8 8z"/><circle cx="8" cy="8.8" r="1.2"/></symbol>
+    <symbol id="i-coins" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M14.5 9.5c-.6-.8-1.5-1.1-2.5-1.1-1.5 0-2.5.8-2.5 2s1 1.7 2.5 2 2.5.8 2.5 2-1 2-2.5 2c-1 0-2-.4-2.6-1.2M12 6.5v1.9M12 15.6v1.9"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5.5" y="10.5" width="13" height="9.5" rx="2"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/></symbol>
+    <symbol id="i-mail" viewBox="0 0 24 24"><rect x="3.5" y="6" width="17" height="12" rx="2"/><path d="m3.5 7 8.5 6.5L20.5 7"/></symbol>
+    <symbol id="i-external" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v5H5V6h5"/></symbol>
+    <symbol id="i-image" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="14" rx="2"/><circle cx="9" cy="10" r="1.5"/><path d="m4 18 5-5 4 4 3-3 4 4"/></symbol>
+    <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.7" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.7" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1.7" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M4.5 12a7.5 7.5 0 0 1 13-5M18 3.5V8h-4.5M19.5 12a7.5 7.5 0 0 1-13 5M6 20.5V16h4.5"/></symbol>
+    <symbol id="i-list" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M4.5 6h.01M4.5 12h.01M4.5 18h.01" stroke-width="2.5"/></symbol>
+    <symbol id="i-grid" viewBox="0 0 24 24"><rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/></symbol>
+    <symbol id="i-award" viewBox="0 0 24 24"><path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H5v1.5A3 3 0 0 0 8 10.5M16 6h3v1.5a3 3 0 0 1-3 3M12 13v4M8.5 20h7"/></symbol>
+    <symbol id="i-frame" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="1.5"/><rect x="8" y="8" width="8" height="8"/></symbol>
+    <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 3 5 13.5h6L10.5 21 19 10h-6z"/></symbol>
+    <symbol id="i-laptop" viewBox="0 0 24 24"><rect x="5" y="6" width="14" height="9.5" rx="1.5"/><path d="M3 19h18"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M5 16V5a1 1 0 0 1 1-1h10"/></symbol>
+    <symbol id="i-send" viewBox="0 0 24 24"><path d="M21 3 3 10.5l7 2.5 2.5 7z"/><path d="m10 13 11-10"/></symbol>
+    <symbol id="i-van" viewBox="0 0 24 24"><path d="M3 6h11v10H3z"/><path d="M14 9.5h4l3 3.5V16h-7z"/><circle cx="7" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/></symbol>
+    <symbol id="i-inbox" viewBox="0 0 24 24"><path d="m3.5 13 2.5-8h12l2.5 8v6h-17z"/><path d="M3.5 13H9a3 3 0 0 0 6 0h5.5"/></symbol>
+    <symbol id="i-sparkles" viewBox="0 0 24 24"><path d="m12 3 1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 16l.7 2 2 .7-2 .7L19 21.5l-.7-2.1-2-.7 2-.7z"/></symbol>
+    <symbol id="i-scale" viewBox="0 0 24 24"><path d="M12 4v16M7 20h10M5 7h14"/><path d="m5 7-3 7a3.5 3.5 0 0 0 6 0zM19 7l-3 7a3.5 3.5 0 0 0 6 0z"/></symbol>
+    <symbol id="i-route" viewBox="0 0 24 24"><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="6" r="2.5"/><path d="M8.5 18H15a3 3 0 0 0 0-6H9a3 3 0 0 1 0-6h6.5"/></symbol>
+  </defs>
+</svg>
+  <div class="app" id="app">
+    <aside class="sidebar" id="sidebar" aria-label="منوی کناری">
+      <div class="sidebar__head">
+        <a class="brand" href="#">
+          <svg class="brand__mark" aria-hidden="true" focusable="false"><use href="#brand-mark"/></svg>
+          <span class="brand__name">اتلیه سیار</span>
+        </a>
+        <button type="button" class="icon-btn sidebar__close" data-drawer-close aria-label="بستن منو"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-close"/></svg></button>
+      </div>
+      <nav class="nav" aria-label="منوی اصلی">
+        <ul class="nav__list">
+          <li>
+            <a class="nav__link" href="#" title="داشبورد">
+              <svg class="icon nav__icon" aria-hidden="true" focusable="false"><use href="#i-home"/></svg>
+              <span class="nav__label">داشبورد</span>
+            </a>
+          </li>
+          <li>
+            <a class="nav__link is-active" href="#" title="راهنمای طراحی" aria-current="page">
+              <svg class="icon nav__icon" aria-hidden="true" focusable="false"><use href="#i-sparkles"/></svg>
+              <span class="nav__label">راهنمای طراحی</span>
+            </a>
+          </li>
+          <li>
+            <a class="nav__link" href="#" title="تقویم مراسم‌ها">
+              <svg class="icon nav__icon" aria-hidden="true" focusable="false"><use href="#i-calendar"/></svg>
+              <span class="nav__label">تقویم مراسم‌ها</span>
+            </a>
+          </li>
+          <li>
+            <a class="nav__link" href="#" title="نیروها">
+              <svg class="icon nav__icon" aria-hidden="true" focusable="false"><use href="#i-users"/></svg>
+              <span class="nav__label">نیروها</span><span class="nav__badge">۳</span>
+            </a>
+          </li>
+          <li>
+            <a class="nav__link" href="#" title="حسابداری">
+              <svg class="icon nav__icon" aria-hidden="true" focusable="false"><use href="#i-receipt"/></svg>
+              <span class="nav__label">حسابداری</span>
+            </a>
+          </li>
+          <li>
+            <a class="nav__link" href="#" title="انبار">
+              <svg class="icon nav__icon" aria-hidden="true" focusable="false"><use href="#i-box"/></svg>
+              <span class="nav__label">انبار</span>
+            </a>
+          </li>
+          <li>
+            <a class="nav__link" href="#" title="تنظیمات">
+              <svg class="icon nav__icon" aria-hidden="true" focusable="false"><use href="#i-settings"/></svg>
+              <span class="nav__label">تنظیمات</span>
+            </a>
+          </li>
+        </ul>
+      </nav>
+      <div class="sidebar__foot">
+        <div class="user-card">
+          <span class="avatar" aria-hidden="true">ع&zwnj;ع</span>
+          <span class="user-card__text">
+            <span class="user-card__name">علی عبدی</span>
+            <span class="user-card__role">مدیر اتلیه</span>
+          </span>
+        </div>
+        <form method="post" action="/auth/logout"><input type="hidden" name="csrf_token" value="styleguide-csrf-token">
+          <button type="submit" class="btn btn--ghost btn--block" title="خروج از حساب"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-logout"/></svg><span class="btn__label">خروج</span></button>
+        </form>
+      </div>
+    </aside>
+    <div class="scrim" data-drawer-close></div>
+
+    <div class="app__body">
+      <header class="topbar">
+        <button type="button" class="icon-btn topbar__menu" data-sidebar-toggle aria-controls="sidebar" aria-expanded="true" aria-label="جمع کردن یا باز کردن منو"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-menu"/></svg></button>
+        <a class="brand topbar__brand" href="#">
+          <svg class="brand__mark" aria-hidden="true" focusable="false"><use href="#brand-mark"/></svg>
+          <span class="brand__name">اتلیه سیار</span>
+        </a>
+        <span class="topbar__spacer"></span>
+        <button type="button" class="icon-btn theme-toggle" data-theme-toggle aria-label="تغییر پوستهٔ روشن و تاریک" title="پوسته">
+          <span class="icon-moon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-moon"/></svg></span><span class="icon-sun"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-sun"/></svg></span>
+        </button>
+        <a class="icon-btn" href="/notifications" aria-label="اعلان‌ها (۴ خوانده‌نشده)" title="اعلان‌ها">
+          <svg class="icon" aria-hidden="true" focusable="false"><use href="#i-bell"/></svg><span class="icon-btn__badge" aria-hidden="true">۴</span>
+        </a>
+        <div class="topbar__user">
+          <span class="avatar avatar--sm" aria-hidden="true">ع&zwnj;ع</span>
+          <span>
+            <span class="topbar__user-name">علی عبدی</span>
+            <span class="topbar__user-role">مدیر اتلیه</span>
+          </span>
+        </div>
+      </header>
+      <main id="main" class="app__main" tabindex="-1">
+<div class="page stack stack--lg">
+
+  <header class="page-header">
+  <div class="page-header__titles">
+    <h1 class="page-header__title">راهنمای طراحی اتلیه سیار</h1>
+    <p class="page-header__subtitle">همهٔ اجزای رابط کاربری با ماکروهای واقعی پروژه ساخته شده‌اند؛ پوستهٔ روشن و تاریک را با دکمهٔ ماه/خورشید بالای صفحه عوض کنید.</p>
+  </div>
+</header><section class="sg-section" id="typography">
+    <h2>تایپوگرافی</h2>
+    <section class="card">
+  <div class="card__header">
+    <div><h2 class="card__title">وزیرمتن، راست‌به‌چپ</h2>
+    </div>
+  </div>
+  <div class="card__body">
+      <h1>عنوان اصلی؛ ۱۲۳٬۴۵۶ تومان</h1>
+      <h2 class="mt-2">عنوان بخش، تاریخ ۱۴۰۴/۰۵/۱۲</h2>
+      <h3 class="mt-2">عنوان کوچک‌تر</h3>
+      <p class="mt-2">متن معمولی برای توضیحات. اتلیه سیار در مراسم‌ها برای میهمانان عکاسی می‌کند، عکس‌ها را همان‌جا چاپ و می‌فروشد. <a href="#typography">یک پیوند</a> و <strong>متن پررنگ</strong>.</p>
+      <p class="mt-2 text-muted">متن کم‌رنگ‌تر برای راهنما و توضیح ثانویه (کنتراست AA).</p>
+      <p class="mt-2 text-sm">متن کوچک ۱۴ پیکسل؛ شماره موبایل: <span class="num">۰۹۱۲۳۴۵۶۷۸۹</span></p>
+    </div>
+</section>
+  </section><section class="sg-section" id="colors">
+    <h2>رنگ‌ها</h2>
+    <p class="sg-note">توکن‌های CSS؛ در حالت تاریک خودکار عوض می‌شوند. هیچ رنگ ثابتی در کامپوننت‌ها استفاده نشده است.</p>
+    <div class="sg-swatches">
+      
+      <div class="sg-sw"><i class="sg-bg-bg"></i><span>--bg</span></div>
+      
+      <div class="sg-sw"><i class="sg-bg-surface"></i><span>--surface</span></div>
+      
+      <div class="sg-sw"><i class="sg-bg-surface-2"></i><span>--surface-2</span></div>
+      
+      <div class="sg-sw"><i class="sg-bg-surface-3"></i><span>--surface-3</span></div>
+      
+      <div class="sg-sw"><i class="sg-bg-text"></i><span>--text</span></div>
+      
+      <div class="sg-sw"><i class="sg-bg-muted"></i><span>--text-muted</span></div>
+      
+      <div class="sg-sw"><i class="sg-bg-border"></i><span>--border-strong</span></div>
+      
+      <div class="sg-sw"><i class="sg-bg-accent"></i><span>--accent</span></div>
+      
+      <div class="sg-sw"><i class="sg-bg-accent-soft"></i><span>--accent-soft</span></div>
+      
+      <div class="sg-sw"><i class="sg-bg-success"></i><span>--success</span></div>
+      
+      <div class="sg-sw"><i class="sg-bg-warning"></i><span>--warning</span></div>
+      
+      <div class="sg-sw"><i class="sg-bg-danger"></i><span>--danger</span></div>
+      
+      <div class="sg-sw"><i class="sg-bg-info"></i><span>--info</span></div>
+      
+      <div class="sg-sw"><i class="sg-bg-side"></i><span>--side-bg</span></div>
+      
+    </div>
+  </section><section class="sg-section" id="buttons">
+    <h2>دکمه‌ها</h2>
+    <section class="card">
+  <div class="card__body">
+      <div class="sg-demo">
+        <button class="btn btn--primary" type="button"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-plus"/></svg>ثبت مراسم</button>
+        <button class="btn btn--secondary" type="button">ثانویه</button>
+        <button class="btn" type="button">معمولی</button>
+        <button class="btn btn--ghost" type="button">شفاف</button>
+        <button class="btn btn--danger" type="button"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-trash"/></svg>حذف</button>
+        <button class="btn btn--danger-soft" type="button">انصراف از مراسم</button>
+        <button class="btn btn--primary" type="button" disabled>غیرفعال</button>
+        <button class="btn btn--primary is-loading" type="button">در حال ارسال</button>
+      </div>
+      <div class="sg-demo mt-4">
+        <button class="btn btn--primary btn--sm" type="button">کوچک</button>
+        <button class="btn btn--primary btn--lg" type="button">بزرگ</button>
+        <button class="btn btn--icon" type="button" aria-label="ویرایش"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-edit"/></svg></button>
+        <span class="badge badge--accent">اندازهٔ لمس ۴۴ پیکسل</span>
+      </div>
+      <div class="mt-4"><button class="btn btn--primary btn--block" type="button">دکمهٔ تمام‌عرض (موبایل)</button></div>
+    </div>
+</section>
+  </section><section class="sg-section" id="forms">
+    <h2>فرم‌ها</h2>
+    <form method="post" action="#" class="card" data-no-lock>
+      <div class="card__body">
+        <div class="form-grid form-grid--2">
+          <div class="field">
+  <label class="field__label" for="f-full_name">نام و نام خانوادگی<span class="field__req" aria-hidden="true">*</span><span class="visually-hidden"> (الزامی)</span></label>
+  <input class="input" id="f-full_name" type="text" name="full_name" value="علی عبدی" required autocomplete="name" aria-describedby="f-full_name-help"><p class="field__help" id="f-full_name-help">همان نامی که روی افیش دیده می‌شود.</p>
+</div>
+          <div class="field">
+  <label class="field__label" for="f-mobile">شمارهٔ موبایل</label>
+  <input class="input input--num" id="f-mobile" type="tel" name="mobile" value="09123456789" inputmode="numeric" dir="ltr" aria-describedby="f-mobile-help"><p class="field__help" id="f-mobile-help">ارقام فارسی و لاتین هر دو پذیرفته می‌شود.</p>
+</div>
+          <div class="field field--invalid">
+  <label class="field__label" for="f-email">ایمیل</label>
+  <input class="input" id="f-email" type="email" name="email" value="bad" aria-invalid="true" aria-describedby="f-email-error"><p class="field__error" id="f-email-error" role="alert"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-alert"/></svg><span>نشانی ایمیل معتبر نیست.</span></p>
+</div>
+          <div class="field">
+  <label class="field__label" for="f-role">نقش<span class="field__req" aria-hidden="true">*</span><span class="visually-hidden"> (الزامی)</span></label>
+  <div class="select-wrap">
+    <select class="select" id="f-role" name="role" required>
+      <option value="photographer">عکاس</option>
+      <option value="editor" selected>ادیتور</option>
+      <option value="presenter">پرزنتور</option>
+      <option value="seller">فروشنده</option>
+    </select>
+    <svg class="icon" aria-hidden="true" focusable="false"><use href="#i-chevron-down"/></svg>
+  </div>
+</div>
+          <div class="field">
+  <label class="field__label" for="f-base_pay">حقوق پایه</label>
+  <div class="input-group">
+    <input class="input" type="text" id="f-base_pay" name="base_pay" data-money inputmode="numeric" autocomplete="off"
+      value="1000000" placeholder="۰" aria-describedby="f-base_pay-help"><span class="input-group__addon">تومان</span>
+  </div><p class="field__help" id="f-base_pay-help">با تایپ، جداکنندهٔ هزارگان خودکار اضافه می‌شود.</p>
+</div>
+          <div class="field field--invalid">
+  <label class="field__label" for="f-commission">پورسانت هر عکس</label>
+  <div class="input-group">
+    <input class="input" type="text" id="f-commission" name="commission" data-money inputmode="numeric" autocomplete="off"
+      value="9000" placeholder="۰" aria-invalid="true" aria-describedby="f-commission-error"><span class="input-group__addon">تومان</span>
+  </div><p class="field__error" id="f-commission-error" role="alert"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-alert"/></svg><span>مبلغ پورسانت لازم است.</span></p>
+</div>
+          <div class="field">
+  <label class="field__label" for="f-event_date">تاریخ مراسم<span class="field__req" aria-hidden="true">*</span><span class="visually-hidden"> (الزامی)</span></label>
+  <div class="date-field">
+    <input class="input" type="text" id="f-event_date" name="event_date" data-jdate autocomplete="off" inputmode="numeric" dir="ltr"
+      value="2025-07-17" placeholder="۱۴۰۴/۰۱/۰۱" required aria-describedby="f-event_date-help">
+    <button type="button" class="date-field__btn" data-jdate-open aria-label="انتخاب تاریخ"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-calendar"/></svg></button>
+  </div><p class="field__help" id="f-event_date-help">روی فیلد بزنید تا تقویم شمسی باز شود.</p>
+</div>
+          <div class="field">
+  <label class="field__label" for="f-birth_date">تاریخ تولد (سال‌های قبل)</label>
+  <div class="date-field">
+    <input class="input" type="text" id="f-birth_date" name="birth_date" data-jdate autocomplete="off" inputmode="numeric" dir="ltr"
+      value="" placeholder="۱۴۰۴/۰۱/۰۱" data-max="2008-01-01"  data-years-back="60" data-years-ahead="0">
+    <button type="button" class="date-field__btn" data-jdate-open aria-label="انتخاب تاریخ"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-calendar"/></svg></button>
+  </div>
+</div>
+          <div class="span-all"><div class="field">
+  <label class="field__label" for="f-notes">توضیحات</label>
+  <textarea class="textarea" id="f-notes" name="notes" rows="3" maxlength="300">مراسم در باغ برگزار می‌شود.</textarea>
+</div></div>
+          <div class="field">
+  <label class="field__label" for="sg-weight">تعداد محاسبه برای حقوق نیرو</label>
+            <div class="stepper" data-stepper data-min="1" data-max="20" data-step="1" data-default="1">
+  <button type="button" class="stepper__btn" data-stepper-dec aria-label="کاهش"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-minus"/></svg></button>
+  <input class="stepper__input" type="text" id="sg-weight" name="weight" inputmode="numeric" autocomplete="off" value="1" aria-label="وزن">
+  <button type="button" class="stepper__btn" data-stepper-inc aria-label="افزایش"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-plus"/></svg></button>
+</div>
+          <p class="field__help" id="sg-weight-help">پیش‌فرض ۱؛ قابل افزایش و کاهش.</p>
+</div>
+          <div>
+            <span class="field__label">وضعیت</span>
+            <label class="check" for="f-public">
+  <input type="checkbox" id="f-public" name="public" value="1" checked>
+  <span class="check__text"><span class="check__label">نمایش در بازارچهٔ کاریابی</span><span class="check__help">دیگران می‌توانند پروفایل شما را ببینند.</span></span>
+</label>
+            <label class="check" for="f-sms">
+  <input type="checkbox" id="f-sms" name="sms" value="1">
+  <span class="check__text"><span class="check__label">ارسال اعلان پیامکی</span></span>
+</label>
+          </div>
+          <div>
+            <span class="field__label">امتیاز (ورودی)</span>
+            <fieldset class="stars-input">
+  <legend class="visually-hidden">امتیاز</legend>
+  <input type="radio" name="rate" id="rate-5" value="5">
+  <label for="rate-5" title="۵ از ۵"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-star"/></svg><span class="visually-hidden">۵ ستاره</span></label>
+  <input type="radio" name="rate" id="rate-4" value="4" checked>
+  <label for="rate-4" title="۴ از ۵"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-star"/></svg><span class="visually-hidden">۴ ستاره</span></label>
+  <input type="radio" name="rate" id="rate-3" value="3">
+  <label for="rate-3" title="۳ از ۵"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-star"/></svg><span class="visually-hidden">۳ ستاره</span></label>
+  <input type="radio" name="rate" id="rate-2" value="2">
+  <label for="rate-2" title="۲ از ۵"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-star"/></svg><span class="visually-hidden">۲ ستاره</span></label>
+  <input type="radio" name="rate" id="rate-1" value="1">
+  <label for="rate-1" title="۱ از ۵"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-star"/></svg><span class="visually-hidden">۱ ستاره</span></label>
+</fieldset>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn--primary" type="submit">ذخیره</button>
+          <button class="btn" type="reset">بازنشانی</button>
+        </div>
+      </div>
+    </form>
+  </section><section class="sg-section" id="surfaces">
+    <h2>کارت، آمار، نشان، هشدار</h2>
+    <div class="grid grid--stats">
+      <div class="stat">
+  <div class="stat__top">
+    <span class="stat__label">مراسم این ماه</span><span class="stat__icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-calendar"/></svg></span>
+  </div>
+  <div class="stat__value"><span class="stat__num">۱۲</span></div><div class="stat__hint">۳ مراسم در انتظار فاکتور</div>
+</div>
+      <div class="stat stat--success">
+  <div class="stat__top">
+    <span class="stat__label">درآمد</span><span class="stat__icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-coins"/></svg></span>
+  </div>
+  <div class="stat__value"><span class="stat__num">۱۰٬۵۰۰٬۰۰۰</span><span class="stat__unit">تومان</span></div><div class="stat__hint">مرداد ۱۴۰۴</div>
+</div>
+      <div class="stat stat--warning">
+  <div class="stat__top">
+    <span class="stat__label">هزینه‌ها</span><span class="stat__icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-wallet"/></svg></span>
+  </div>
+  <div class="stat__value"><span class="stat__num">۹٬۴۸۰٬۰۰۰</span><span class="stat__unit">تومان</span></div>
+</div>
+      <a class="stat stat--info" href="#">
+  <div class="stat__top">
+    <span class="stat__label">اعلان‌ها</span><span class="stat__icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-bell"/></svg></span>
+  </div>
+  <div class="stat__value"><span class="stat__num">۴</span></div>
+</a>
+    </div>
+    <div class="grid grid--2 mt-4">
+      <section class="card">
+  <div class="card__header">
+    <div><h2 class="card__title">کارت با عنوان</h2><p class="card__subtitle">زیرعنوان کارت</p>
+    </div><div class="card__actions cluster cluster--sm"><span class="badge badge--success"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-check"/></svg>تأیید شده</span></div>
+  </div>
+  <div class="card__body">
+        <p>محتوای کارت. کارت‌ها پایهٔ همهٔ صفحه‌ها هستند.</p>
+      </div>
+  <div class="card__footer">پانویس کارت</div>
+</section>
+      <section class="card card--accent">
+  <div class="card__header">
+    <div><h2 class="card__title">کارت با تأکید</h2>
+    </div>
+  </div>
+  <div class="card__body">
+        <div class="sg-demo">
+          <span class="badge">خنثی</span> <span class="badge badge--accent">تأکید</span> <span class="badge badge--success"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-check"/></svg>موفق</span>
+          <span class="badge badge--warning"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-alert"/></svg>هشدار</span> <span class="badge badge--danger"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-x-circle"/></svg>خطا</span> <span class="badge badge--info"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-info"/></svg>اطلاعات</span>
+        </div>
+        <div class="sg-demo mt-4">
+          <span class="avatar" aria-hidden="true">ع&zwnj;ع</span> <span class="avatar avatar--info" aria-hidden="true">مر</span> <span class="avatar avatar--lg avatar--warning" aria-hidden="true">رض</span>
+          <span class="stars" role="img" aria-label="امتیاز ۴٫۵ از ۵"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-star-fill"/></svg><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-star-fill"/></svg><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-star-fill"/></svg><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-star-fill"/></svg><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-star-half"/></svg><span class="stars__value">۴٫۵</span><span class="stars__count">(۱۸)</span></span> <span class="stars" role="img" aria-label="امتیاز ۳٫۰ از ۵"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-star-fill"/></svg><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-star-fill"/></svg><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-star-fill"/></svg><svg class="icon stars__empty" aria-hidden="true" focusable="false"><use href="#i-star"/></svg><svg class="icon stars__empty" aria-hidden="true" focusable="false"><use href="#i-star"/></svg><span class="stars__value">۳٫۰</span></span>
+        </div>
+      </div>
+</section>
+    </div>
+    <div class="stack stack--sm mt-4">
+      <div class="alert alert--success" role="status">
+  <svg class="icon" aria-hidden="true" focusable="false"><use href="#i-check-circle"/></svg>
+  <div class="alert__body"><strong class="alert__title">انجام شد</strong>تغییرات با موفقیت ذخیره شد.
+  </div>
+</div>
+      <div class="alert alert--warning" role="alert">
+  <svg class="icon" aria-hidden="true" focusable="false"><use href="#i-alert"/></svg>
+  <div class="alert__body">این مراسم با مراسم دیگری هم‌زمان است.
+  </div>
+</div>
+      <div class="alert alert--danger" role="alert">
+  <svg class="icon" aria-hidden="true" focusable="false"><use href="#i-x-circle"/></svg>
+  <div class="alert__body">ثبت فاکتور ناموفق بود؛ دوباره تلاش کنید.
+  </div>
+</div>
+      <div class="alert" role="status">
+  <svg class="icon" aria-hidden="true" focusable="false"><use href="#i-info"/></svg>
+  <div class="alert__body">نیروهای ثابت می‌توانند حساب کاربری نداشته باشند.
+  </div>
+</div>
+    </div>
+    <div class="mt-4">
+      <div class="empty">
+  <span class="empty__icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-inbox"/></svg></span>
+  <h2 class="empty__title">هنوز مراسمی ثبت نشده</h2><p class="empty__text">با ثبت اولین مراسم، کارت آن این‌جا نمایش داده می‌شود.</p><div class="empty__action"><a class="btn btn--primary" href="#">ثبت مراسم</a></div>
+</div>
+    </div>
+  </section><section class="sg-section" id="disclosure">
+    <h2>آکاردئون و تب‌ها</h2>
+    <p class="sg-note">آکاردئون به‌صورت پیش‌فرض بسته است و کشویی باز می‌شود. دکمهٔ بیرونی هم می‌تواند آن را باز کند.</p>
+    <section class="card">
+  <div class="card__header">
+    <div><h2 class="card__title">کارت مراسم</h2><p class="card__subtitle">پنجشنبه ۲۶ تیر ۱۴۰۴ · اتلیه ستاره</p>
+    </div><div class="card__actions cluster cluster--sm"><button type="button" class="btn btn--secondary btn--sm" data-accordion-toggle="sg-invoice" aria-expanded="false" aria-controls="sg-invoice-panel">فاکتور</button></div>
+  </div>
+  <div class="card__body">
+      <div class="cluster cluster--sm">
+        <span class="badge">پرزنتور: مریم</span> <span class="badge">عکاس: علی</span> <span class="badge">فروشنده: سارا</span> <span class="badge">ادیتور: رضا</span>
+      </div>
+      <div class="mt-4">
+        <div class="accordion" id="sg-invoice" data-accordion>
+  <h3 class="accordion__header">
+    <button type="button" class="accordion__toggle" id="sg-invoice-btn" aria-expanded="false" aria-controls="sg-invoice-panel" data-accordion-toggle="sg-invoice">
+      <span class="accordion__title">فاکتور مراسم</span><span class="accordion__meta">سود ۱٬۰۲۰٬۰۰۰ تومان</span>
+      <svg class="icon accordion__chevron" aria-hidden="true" focusable="false"><use href="#i-chevron-down"/></svg>
+    </button>
+  </h3>
+  <div class="collapse" id="sg-invoice-panel" role="region" aria-labelledby="sg-invoice-btn">
+    <div class="collapse__inner"><div class="accordion__body">
+          <dl class="kv">
+            <dt>درآمد</dt><dd>۱۰٬۵۰۰٬۰۰۰ تومان</dd>
+            <dt>اجارهٔ باغ</dt><dd>۲٬۰۰۰٬۰۰۰ تومان</dd>
+            <dt>حقوق نیروها</dt><dd>۷٬۴۸۰٬۰۰۰ تومان</dd>
+            <dt>سود</dt><dd class="text-success">۱٬۰۲۰٬۰۰۰ تومان</dd>
+          </dl>
+        </div></div>
+  </div>
+</div>
+        <div class="accordion is-open" id="sg-acc2" data-accordion>
+  <h3 class="accordion__header">
+    <button type="button" class="accordion__toggle" id="sg-acc2-btn" aria-expanded="true" aria-controls="sg-acc2-panel" data-accordion-toggle="sg-acc2">
+      <span class="accordion__title">آکاردئون باز (open=True)</span>
+      <svg class="icon accordion__chevron" aria-hidden="true" focusable="false"><use href="#i-chevron-down"/></svg>
+    </button>
+  </h3>
+  <div class="collapse is-open" id="sg-acc2-panel" role="region" aria-labelledby="sg-acc2-btn">
+    <div class="collapse__inner"><div class="accordion__body"></div></div>
+  </div>
+</div>
+      </div>
+    </div>
+</section>
+
+    <div class="mt-5">
+      
+<div class="tabs" data-tabs>
+  <div class="tabs__list" role="tablist" aria-label="بخش‌های مراسم">
+    <button type="button" class="tabs__tab" role="tab" id="sg-tabs-tab-a" aria-controls="sg-tabs-panel-a" data-tab="a"
+      aria-selected="true" tabindex="0"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-users"/></svg><span>نیروها</span></button>
+    <button type="button" class="tabs__tab" role="tab" id="sg-tabs-tab-b" aria-controls="sg-tabs-panel-b" data-tab="b"
+      aria-selected="false" tabindex="-1"><span>فروش</span><span class="badge badge--accent">۸۰</span></button>
+    <button type="button" class="tabs__tab" role="tab" id="sg-tabs-tab-c" aria-controls="sg-tabs-panel-c" data-tab="c"
+      aria-selected="false" tabindex="-1"><span>هزینه‌ها</span></button>
+  </div>
+  
+        <div class="tabs__panel" role="tabpanel" id="sg-tabs-panel-a" aria-labelledby="sg-tabs-tab-a" data-tab-panel="a">محتوای تب نیروها.</div>
+        <div class="tabs__panel" role="tabpanel" id="sg-tabs-panel-b" aria-labelledby="sg-tabs-tab-b" data-tab-panel="b" hidden>محتوای تب فروش.</div>
+        <div class="tabs__panel" role="tabpanel" id="sg-tabs-panel-c" aria-labelledby="sg-tabs-tab-c" data-tab-panel="c" hidden>محتوای تب هزینه‌ها.</div>
+      
+</div>
+    </div>
+    <div class="mt-5">
+      
+<nav class="tabs" aria-label="فیلتر وضعیت">
+  <div class="tabs__list">
+    <a class="tabs__tab" href="#"><span>همه</span></a>
+    <a class="tabs__tab" href="#" aria-current="page"><span>باز</span><span class="badge badge--accent">۵</span></a>
+    <a class="tabs__tab" href="#"><span>انجام‌شده</span></a>
+  </div>
+</nav>
+    </div>
+    
+<nav class="pagination-nav" aria-label="صفحه‌بندی">
+  <ul class="pagination">
+    <li><a class="pagination__item" rel="prev" href="/sg?page=2&amp;q=%D8%B9%D8%B1%D9%88%D8%B3%DB%8C" aria-label="صفحهٔ قبل"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-chevron-right"/></svg></a></li>
+    <li class="pagination__num"><a class="pagination__item" href="/sg?page=1&amp;q=%D8%B9%D8%B1%D9%88%D8%B3%DB%8C"><span class="visually-hidden">صفحهٔ </span>۱</a></li>
+    <li class="pagination__num"><a class="pagination__item" href="/sg?page=2&amp;q=%D8%B9%D8%B1%D9%88%D8%B3%DB%8C"><span class="visually-hidden">صفحهٔ </span>۲</a></li>
+    <li class="pagination__num is-current"><span class="pagination__item" aria-current="page"><span class="visually-hidden">صفحهٔ </span>۳</span></li>
+    <li class="pagination__num"><a class="pagination__item" href="/sg?page=4&amp;q=%D8%B9%D8%B1%D9%88%D8%B3%DB%8C"><span class="visually-hidden">صفحهٔ </span>۴</a></li>
+    <li class="pagination__gap-item"><span class="pagination__gap" aria-hidden="true">…</span></li>
+    <li class="pagination__num"><a class="pagination__item" href="/sg?page=12&amp;q=%D8%B9%D8%B1%D9%88%D8%B3%DB%8C"><span class="visually-hidden">صفحهٔ </span>۱۲</a></li>
+    <li><a class="pagination__item" rel="next" href="/sg?page=4&amp;q=%D8%B9%D8%B1%D9%88%D8%B3%DB%8C" aria-label="صفحهٔ بعد"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-chevron-left"/></svg></a></li>
+  </ul>
+  <p class="pagination__summary">صفحهٔ ۳ از ۱۲ · ۱۱۸ مورد</p>
+</nav>
+  </section><section class="sg-section" id="overlays">
+    <h2>پنجره‌ها، تأیید، پیام</h2>
+    <section class="card">
+  <div class="card__body">
+      <div class="sg-demo">
+        <button type="button" class="btn btn--primary" data-modal-open="invoice-modal"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-receipt"/></svg>ثبت فاکتور (پنجرهٔ بزرگ)</button>
+        <button type="button" class="btn" data-modal-open="small-modal">پنجرهٔ کوچک</button>
+        <form class="inline-form" method="post" action="/sg">
+  <input type="hidden" name="csrf_token" value="styleguide-csrf-token">
+  <button type="submit" class="btn btn--sm btn--danger-soft"
+    data-confirm="این مراسم و فاکتور آن برای همیشه حذف می‌شود. ادامه می‌دهید؟" data-confirm-title="حذف مراسم" data-confirm-label="بله، حذف شود"
+    data-confirm-cancel="انصراف" data-confirm-tone="danger"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-trash"/></svg><span>حذف مراسم</span></button>
+</form>
+        <form class="inline-form" method="post" action="/sg">
+  <input type="hidden" name="csrf_token" value="styleguide-csrf-token">
+  <button type="submit" class="btn btn--primary"
+    data-confirm="پس از تأیید نهایی، فاکتور قابل ویرایش نیست." data-confirm-title="تأیید نهایی" data-confirm-label="تأیید نهایی"
+    data-confirm-cancel="انصراف" data-confirm-tone="primary"><span>تأیید نهایی</span></button>
+</form>
+      </div>
+      <div class="sg-demo mt-4">
+        <button type="button" class="btn btn--sm" id="sg-toast-success">پیام موفق</button>
+        <button type="button" class="btn btn--sm" id="sg-toast-error">پیام خطا</button>
+        <button type="button" class="btn btn--sm" id="sg-toast-warning">هشدار</button>
+        <button type="button" class="btn btn--sm" id="sg-toast-info">اطلاع‌رسانی</button>
+      </div>
+    </div>
+</section>
+  </section><section class="sg-section" id="data">
+    <h2>جدول و تقویم</h2>
+    <p class="sg-note">در عرض موبایل، ردیف‌های جدول به کارت تبدیل می‌شوند.</p>
+    
+<div class="table-wrap">
+  <table class="table table--stack"><caption>مراسم‌های ماه</caption>
+    <thead>
+      <tr>
+        <th scope="col">مراسم</th>
+        <th scope="col">تاریخ</th>
+        <th scope="col" class="cell-num">نیرو</th>
+        <th scope="col" class="cell-num">درآمد</th>
+        <th scope="col">وضعیت</th>
+        <th scope="col"><span class="visually-hidden">عملیات</span></th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td data-label="مراسم" class="">عروسی تالار گل‌های سپید</td>
+        <td data-label="تاریخ" class="">۱۴۰۴/۰۵/۱۲</td>
+        <td data-label="نیرو" class="cell-num">۴</td>
+        <td data-label="درآمد" class="cell-num">۱۰٬۵۰۰٬۰۰۰ <small class="text-muted">تومان</small></td>
+        <td data-label="وضعیت" class=""><span class="badge badge--success">فاکتور شد</span></td>
+        <td class=" table__actions"><a class="btn btn--sm btn--secondary" href="#">مشاهده</a></td>
+      </tr>
+      <tr>
+        <td data-label="مراسم" class="">نامزدی تالار ماهان</td>
+        <td data-label="تاریخ" class="">۱۴۰۴/۰۵/۱۰</td>
+        <td data-label="نیرو" class="cell-num">۳</td>
+        <td data-label="درآمد" class="cell-num">۴٬۲۰۰٬۰۰۰ <small class="text-muted">تومان</small></td>
+        <td data-label="وضعیت" class=""><span class="badge badge--info">برگزار شد</span></td>
+        <td class=" table__actions"><a class="btn btn--sm btn--secondary" href="#">مشاهده</a></td>
+      </tr>
+      <tr>
+        <td data-label="مراسم" class="">عروسی باغ نیلوفر</td>
+        <td data-label="تاریخ" class="">۱۴۰۴/۰۵/۰۳</td>
+        <td data-label="نیرو" class="cell-num">۴</td>
+        <td data-label="درآمد" class="cell-num">۰ <small class="text-muted">تومان</small></td>
+        <td data-label="وضعیت" class=""><span class="badge badge--accent">تأیید شده</span></td>
+        <td class=" table__actions"><a class="btn btn--sm btn--secondary" href="#">مشاهده</a></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+    <div class="mt-5">
+      <div class="cal">
+  <div class="cal__head"><a class="icon-btn" href="#" rel="prev" aria-label="ماه قبل"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-chevron-right"/></svg></a>
+    <h2 class="cal__title">مرداد ۱۴۰۴</h2><a class="icon-btn" href="#" rel="next" aria-label="ماه بعد"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-chevron-left"/></svg></a>
+  </div>
+  <div class="cal__grid" role="grid" aria-label="مرداد ۱۴۰۴">
+    <div class="cal__dow" role="columnheader"><span class="hide-sm">شنبه</span><span class="show-sm" aria-hidden="true">ش</span></div>
+    <div class="cal__dow" role="columnheader"><span class="hide-sm">یکشنبه</span><span class="show-sm" aria-hidden="true">ی</span></div>
+    <div class="cal__dow" role="columnheader"><span class="hide-sm">دوشنبه</span><span class="show-sm" aria-hidden="true">د</span></div>
+    <div class="cal__dow" role="columnheader"><span class="hide-sm">سه‌شنبه</span><span class="show-sm" aria-hidden="true">س</span></div>
+    <div class="cal__dow" role="columnheader"><span class="hide-sm">چهارشنبه</span><span class="show-sm" aria-hidden="true">چ</span></div>
+    <div class="cal__dow" role="columnheader"><span class="hide-sm">پنجشنبه</span><span class="show-sm" aria-hidden="true">پ</span></div>
+    <div class="cal__dow cal__dow--weekend" role="columnheader"><span class="hide-sm">جمعه</span><span class="show-sm" aria-hidden="true">ج</span></div>
+    <div class="cal__day cal__day--blank" role="gridcell" aria-hidden="true"></div>
+    <div class="cal__day cal__day--blank" role="gridcell" aria-hidden="true"></div>
+    <div class="cal__day cal__day--blank" role="gridcell" aria-hidden="true"></div>
+    <div class="cal__day cal__day--blank" role="gridcell" aria-hidden="true"></div>
+    <div class="cal__day" role="gridcell">
+      <span class="cal__num">۱</span>
+    </div>
+    <div class="cal__day" role="gridcell">
+      <span class="cal__num">۲</span>
+    </div>
+    <div class="cal__day cal__day--weekend cal__day--has-events" role="gridcell">
+      <span class="cal__num">۳</span>
+      <div class="cal__events"><a class="cal__event cal__event--accent" href="#" title="عروسی باغ نیلوفر">عروسی باغ نیلوفر</a>
+      </div>
+      <div class="cal__dots" aria-hidden="true"><span class="cal__dot cal__dot--accent"></span></div>
+    </div>
+    <div class="cal__day" role="gridcell">
+      <span class="cal__num">۴</span>
+    </div>
+    <div class="cal__day" role="gridcell">
+      <span class="cal__num">۵</span>
+    </div>
+    <div class="cal__day" role="gridcell">
+      <span class="cal__num">۶</span>
+    </div>
+    <div class="cal__day" role="gridcell">
+      <span class="cal__num">۷</span>
+    </div>
+    <div class="cal__day" role="gridcell">
+      <span class="cal__num">۸</span>
+    </div>
+    <div class="cal__day" role="gridcell">
+      <span class="cal__num">۹</span>
+    </div>
+    <div class="cal__day cal__day--weekend cal__day--has-events" role="gridcell">
+      <span class="cal__num">۱۰</span>
+      <div class="cal__events"><a class="cal__event cal__event--info" href="#" title="نامزدی تالار ماهان">نامزدی تالار ماهان</a><a class="cal__event cal__event--warning" href="#" title="حنابندان">حنابندان</a>
+      </div>
+      <div class="cal__dots" aria-hidden="true"><span class="cal__dot cal__dot--info"></span><span class="cal__dot cal__dot--warning"></span></div>
+    </div>
+    <div class="cal__day" role="gridcell">
+      <span class="cal__num">۱۱</span>
+    </div>
+    <div class="cal__day cal__day--today cal__day--has-events" role="gridcell" aria-current="date">
+      <span class="cal__num">۱۲</span>
+      <div class="cal__events"><a class="cal__event cal__event--success" href="#" title="عروسی تالار گل‌های سپید">عروسی تالار گل‌های سپید</a>
+      </div>
+      <div class="cal__dots" aria-hidden="true"><span class="cal__dot cal__dot--success"></span></div>
+    </div>
+    <div class="cal__day" role="gridcell">
+      <span class="cal__num">۱۳</span>
+    </div>
+    <div class="cal__day" role="gridcell">
+      <span class="cal__num">۱۴</span>
+    </div>
+    <div class="cal__day" role="gridcell">
+      <span class="cal__num">۱۵</span>
+    </div>
+    <div class="cal__day" role="gridcell">
+      <span class="cal__num">۱۶</span>
+    </div>
+    <div class="cal__day cal__day--weekend" role="gridcell">
+      <span class="cal__num">۱۷</span>
+    </div>
+    <div class="cal__day" role="gridcell">
+      <span class="cal__num">۱۸</span>
+    </div>
+    <div class="cal__day" role="gridcell">
+      <span class="cal__num">۱۹</span>
+    </div>
+    <div class="cal__day" role="gridcell">
+      <span class="cal__num">۲۰</span>
+    </div>
+    <div class="cal__day" role="gridcell">
+      <span class="cal__num">۲۱</span>
+    </div>
+    <div class="cal__day" role="gridcell">
+      <span class="cal__num">۲۲</span>
+    </div>
+    <div class="cal__day" role="gridcell">
+      <span class="cal__num">۲۳</span>
+    </div>
+    <div class="cal__day cal__day--weekend" role="gridcell">
+      <span class="cal__num">۲۴</span>
+    </div>
+    <div class="cal__day" role="gridcell">
+      <span class="cal__num">۲۵</span>
+    </div>
+    <div class="cal__day cal__day--has-events" role="gridcell">
+      <span class="cal__num">۲۶</span>
+      <div class="cal__events"><a class="cal__event cal__event--accent" href="#" title="عروسی ۱">عروسی ۱</a><a class="cal__event cal__event--success" href="#" title="عروسی ۲">عروسی ۲</a><a class="cal__event cal__event--danger" href="#" title="عروسی ۳">عروسی ۳</a><span class="cal__more">+۱ مورد دیگر</span>
+      </div>
+      <div class="cal__dots" aria-hidden="true"><span class="cal__dot cal__dot--accent"></span><span class="cal__dot cal__dot--success"></span><span class="cal__dot cal__dot--danger"></span><span class="cal__dot cal__dot--info"></span></div>
+    </div>
+    <div class="cal__day" role="gridcell">
+      <span class="cal__num">۲۷</span>
+    </div>
+    <div class="cal__day" role="gridcell">
+      <span class="cal__num">۲۸</span>
+    </div>
+    <div class="cal__day" role="gridcell">
+      <span class="cal__num">۲۹</span>
+    </div>
+    <div class="cal__day" role="gridcell">
+      <span class="cal__num">۳۰</span>
+    </div>
+    <div class="cal__day cal__day--weekend" role="gridcell">
+      <span class="cal__num">۳۱</span>
+    </div>
+  </div>
+  <ol class="cal__agenda" aria-label="مرداد ۱۴۰۴">
+    <li class="cal__agenda-item">
+      <div class="cal__agenda-day"><strong>۳</strong><small>جمعه</small></div>
+      <div class="cal__agenda-events"><a class="cal__event cal__event--accent" href="#">عروسی باغ نیلوفر</a>
+      </div>
+    </li>
+    <li class="cal__agenda-item">
+      <div class="cal__agenda-day"><strong>۱۰</strong><small>جمعه</small></div>
+      <div class="cal__agenda-events"><a class="cal__event cal__event--info" href="#">نامزدی تالار ماهان</a><a class="cal__event cal__event--warning" href="#">حنابندان</a>
+      </div>
+    </li>
+    <li class="cal__agenda-item">
+      <div class="cal__agenda-day"><strong>۱۲</strong><small>یکشنبه</small></div>
+      <div class="cal__agenda-events"><a class="cal__event cal__event--success" href="#">عروسی تالار گل‌های سپید</a>
+      </div>
+    </li>
+    <li class="cal__agenda-item">
+      <div class="cal__agenda-day"><strong>۲۶</strong><small>یکشنبه</small></div>
+      <div class="cal__agenda-events"><a class="cal__event cal__event--accent" href="#">عروسی ۱</a><a class="cal__event cal__event--success" href="#">عروسی ۲</a><a class="cal__event cal__event--danger" href="#">عروسی ۳</a><a class="cal__event cal__event--info" href="#">عروسی ۴</a>
+      </div>
+    </li>
+  </ol>
+</div>
+    </div>
+    <div class="mt-5">
+      
+<div class="empty">
+  <span class="empty__icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-inbox"/></svg></span>
+  <h2 class="empty__title">مراسمی برای نمایش وجود ندارد.</h2>
+</div>
+    </div>
+  </section><section class="sg-section" id="sheet">
+    <h2>برگهٔ فاکتور (چاپ A4)</h2>
+    <div class="sheet">
+      <div class="sheet__header">
+        <div><div class="sheet__title">فاکتور مراسم</div><small class="text-muted">اتلیه ستاره</small></div>
+        <div class="text-end"><b>شمارهٔ ۱۲۳</b><br><small class="text-muted">۱۴۰۴/۰۵/۱۲</small></div>
+      </div>
+      <dl class="sheet__meta">
+        <div><dt>مراسم</dt><dd>عروسی · باغ تالار گل‌های سپید</dd></div>
+        <div><dt>تاریخ</dt><dd>۱۴۰۴/۰۵/۱۲ (یکشنبه)</dd></div>
+        <div><dt>نیروها</dt><dd>۴ نفر</dd></div>
+      </dl>
+      <table class="sheet__table">
+        <thead><tr><th>محصول</th><th class="cell-num">تعداد</th><th class="cell-num">واحد حقوق</th></tr></thead>
+        <tbody>
+          <tr><td>چاپ ۲۰×۳۰</td><td class="cell-num">۵۰</td><td class="cell-num">۵۰</td></tr>
+          <tr><td>چاپ ۱۶×۲۱</td><td class="cell-num">۲۰</td><td class="cell-num">۲۰</td></tr>
+          <tr><td>فایل ادیت</td><td class="cell-num">۱۰</td><td class="cell-num">۱۰</td></tr>
+        </tbody>
+      </table>
+      <div class="sheet__totals">
+        <div><span>کارتخوان</span><b>۶٬۲۰۰٬۰۰۰</b></div>
+        <div><span>کارت‌به‌کارت</span><b>۲٬۸۰۰٬۰۰۰</b></div>
+        <div><span>نقد</span><b>۱٬۵۰۰٬۰۰۰</b></div>
+        <div class="is-negative"><span>هزینه‌ها</span><b class="num">−۹٬۴۸۰٬۰۰۰</b></div>
+        <div class="is-total"><span>سود مراسم</span><b>۱٬۰۲۰٬۰۰۰ تومان</b></div>
+      </div>
+      <div class="sheet__sign"><div>امضای مدیر اتلیه</div><div>امضای مدیر تالار</div></div>
+    </div>
+    <p class="mt-4"><button type="button" class="btn" data-print><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-printer"/></svg>چاپ این صفحه (پیش‌نمایش A4)</button></p>
+  </section><section class="sg-section" id="icons">
+    <h2>آیکن‌ها (۷۵)</h2>
+    <div class="sg-icons">
+      <div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-alert"/></svg><span>alert</span></div><div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-arrow-left"/></svg><span>arrow-left</span></div><div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-arrow-right"/></svg><span>arrow-right</span></div><div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-award"/></svg><span>award</span></div><div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-bag"/></svg><span>bag</span></div><div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-bell"/></svg><span>bell</span></div><div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-bolt"/></svg><span>bolt</span></div><div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-box"/></svg><span>box</span></div><div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-briefcase"/></svg><span>briefcase</span></div><div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-building"/></svg><span>building</span></div><div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-calendar"/></svg><span>calendar</span></div><div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-calendar-check"/></svg><span>calendar-check</span></div><div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-camera"/></svg><span>camera</span></div><div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-chart"/></svg><span>chart</span></div><div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-check"/></svg><span>check</span></div><div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-check-circle"/></svg><span>check-circle</span></div><div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-chevron-down"/></svg><span>chevron-down</span></div><div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-chevron-left"/></svg><span>chevron-left</span></div><div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-chevron-right"/></svg><span>chevron-right</span></div><div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-chevron-up"/></svg><span>chevron-up</span></div><div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-clock"/></svg><span>clock</span></div><div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-close"/></svg><span>close</span></div><div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-coins"/></svg><span>coins</span></div><div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-copy"/></svg><span>copy</span></div><div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-download"/></svg><span>download</span></div><div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-edit"/></svg><span>edit</span></div><div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-external"/></svg><span>external</span></div><div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-eye"/></svg><span>eye</span></div><div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-file"/></svg><span>file</span></div><div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-filter"/></svg><span>filter</span></div><div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-frame"/></svg><span>frame</span></div><div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-grid"/></svg><span>grid</span></div><div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-heart"/></svg><span>heart</span></div><div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-home"/></svg><span>home</span></div><div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-image"/></svg><span>image</span></div><div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-inbox"/></svg><span>inbox</span></div><div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-info"/></svg><span>info</span></div><div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-laptop"/></svg><span>laptop</span></div><div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-list"/></svg><span>list</span></div><div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-lock"/></svg><span>lock</span></div><div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-logout"/></svg><span>logout</span></div><div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-mail"/></svg><span>mail</span></div><div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-map-pin"/></svg><span>map-pin</span></div><div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-megaphone"/></svg><span>megaphone</span></div><div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-menu"/></svg><span>menu</span></div><div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-minus"/></svg><span>minus</span></div><div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-monitor"/></svg><span>monitor</span></div><div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-moon"/></svg><span>moon</span></div><div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-more"/></svg><span>more</span></div><div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-phone"/></svg><span>phone</span></div><div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-plus"/></svg><span>plus</span></div><div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-printer"/></svg><span>printer</span></div><div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-receipt"/></svg><span>receipt</span></div><div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-refresh"/></svg><span>refresh</span></div><div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-route"/></svg><span>route</span></div><div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-scale"/></svg><span>scale</span></div><div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-search"/></svg><span>search</span></div><div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-send"/></svg><span>send</span></div><div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-settings"/></svg><span>settings</span></div><div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-shield"/></svg><span>shield</span></div><div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-sparkles"/></svg><span>sparkles</span></div><div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-star"/></svg><span>star</span></div><div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-star-fill"/></svg><span>star-fill</span></div><div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-star-half"/></svg><span>star-half</span></div><div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-sun"/></svg><span>sun</span></div><div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-tag"/></svg><span>tag</span></div><div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-trash"/></svg><span>trash</span></div><div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-upload"/></svg><span>upload</span></div><div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-user"/></svg><span>user</span></div><div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-user-check"/></svg><span>user-check</span></div><div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-user-plus"/></svg><span>user-plus</span></div><div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-users"/></svg><span>users</span></div><div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-van"/></svg><span>van</span></div><div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-wallet"/></svg><span>wallet</span></div><div class="sg-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-x-circle"/></svg><span>x-circle</span></div>
+    </div>
+  </section>
+</div><div class="modal modal--lg" id="invoice-modal" role="dialog" aria-modal="true" aria-labelledby="invoice-modal-title" hidden>
+  <div class="modal__backdrop" data-modal-close></div>
+  <div class="modal__dialog" tabindex="-1">
+    <header class="modal__header">
+      <h2 class="modal__title" id="invoice-modal-title">ثبت فاکتور مراسم</h2>
+      <button type="button" class="icon-btn" data-modal-close aria-label="بستن"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-close"/></svg></button>
+    </header>
+    <div class="modal__body">
+  <form method="post" action="#" data-no-lock>
+    <p class="text-muted text-sm">در مقابل هر محصول، تعداد فروش‌رفته را وارد کنید.</p>
+    <div class="stack stack--sm mt-4">
+      
+      <div class="cluster cluster--between">
+        <span>چاپ ۱۶×۲۱</span>
+        <div class="stepper" data-stepper data-min="0" data-max="500" data-step="1" data-default="0">
+  <button type="button" class="stepper__btn" data-stepper-dec aria-label="کاهش"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-minus"/></svg></button>
+  <input class="stepper__input" type="text" id="f-qty_1" name="qty_1" inputmode="numeric" autocomplete="off" value="0" aria-label="تعداد چاپ ۱۶×۲۱">
+  <button type="button" class="stepper__btn" data-stepper-inc aria-label="افزایش"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-plus"/></svg></button>
+</div>
+      </div>
+      
+      <div class="cluster cluster--between">
+        <span>چاپ ۲۰×۳۰</span>
+        <div class="stepper" data-stepper data-min="0" data-max="500" data-step="1" data-default="0">
+  <button type="button" class="stepper__btn" data-stepper-dec aria-label="کاهش"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-minus"/></svg></button>
+  <input class="stepper__input" type="text" id="f-qty_2" name="qty_2" inputmode="numeric" autocomplete="off" value="0" aria-label="تعداد چاپ ۲۰×۳۰">
+  <button type="button" class="stepper__btn" data-stepper-inc aria-label="افزایش"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-plus"/></svg></button>
+</div>
+      </div>
+      
+      <div class="cluster cluster--between">
+        <span>چاپ ۳۰×۴۰</span>
+        <div class="stepper" data-stepper data-min="0" data-max="500" data-step="1" data-default="0">
+  <button type="button" class="stepper__btn" data-stepper-dec aria-label="کاهش"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-minus"/></svg></button>
+  <input class="stepper__input" type="text" id="f-qty_3" name="qty_3" inputmode="numeric" autocomplete="off" value="0" aria-label="تعداد چاپ ۳۰×۴۰">
+  <button type="button" class="stepper__btn" data-stepper-inc aria-label="افزایش"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-plus"/></svg></button>
+</div>
+      </div>
+      
+      <div class="cluster cluster--between">
+        <span>فایل خام</span>
+        <div class="stepper" data-stepper data-min="0" data-max="500" data-step="1" data-default="0">
+  <button type="button" class="stepper__btn" data-stepper-dec aria-label="کاهش"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-minus"/></svg></button>
+  <input class="stepper__input" type="text" id="f-qty_4" name="qty_4" inputmode="numeric" autocomplete="off" value="0" aria-label="تعداد فایل خام">
+  <button type="button" class="stepper__btn" data-stepper-inc aria-label="افزایش"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-plus"/></svg></button>
+</div>
+      </div>
+      
+      <div class="cluster cluster--between">
+        <span>فایل ادیت</span>
+        <div class="stepper" data-stepper data-min="0" data-max="500" data-step="1" data-default="0">
+  <button type="button" class="stepper__btn" data-stepper-dec aria-label="کاهش"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-minus"/></svg></button>
+  <input class="stepper__input" type="text" id="f-qty_5" name="qty_5" inputmode="numeric" autocomplete="off" value="0" aria-label="تعداد فایل ادیت">
+  <button type="button" class="stepper__btn" data-stepper-inc aria-label="افزایش"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-plus"/></svg></button>
+</div>
+      </div>
+      
+      <div class="cluster cluster--between">
+        <span>قاب ۲۰×۳۰</span>
+        <div class="stepper" data-stepper data-min="0" data-max="500" data-step="1" data-default="0">
+  <button type="button" class="stepper__btn" data-stepper-dec aria-label="کاهش"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-minus"/></svg></button>
+  <input class="stepper__input" type="text" id="f-qty_6" name="qty_6" inputmode="numeric" autocomplete="off" value="0" aria-label="تعداد قاب ۲۰×۳۰">
+  <button type="button" class="stepper__btn" data-stepper-inc aria-label="افزایش"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-plus"/></svg></button>
+</div>
+      </div>
+      
+      <div class="cluster cluster--between">
+        <span>شاسی ۳۰×۴۰</span>
+        <div class="stepper" data-stepper data-min="0" data-max="500" data-step="1" data-default="0">
+  <button type="button" class="stepper__btn" data-stepper-dec aria-label="کاهش"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-minus"/></svg></button>
+  <input class="stepper__input" type="text" id="f-qty_7" name="qty_7" inputmode="numeric" autocomplete="off" value="0" aria-label="تعداد شاسی ۳۰×۴۰">
+  <button type="button" class="stepper__btn" data-stepper-inc aria-label="افزایش"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-plus"/></svg></button>
+</div>
+      </div>
+      
+      <div class="card card--flat"><div class="card__body">
+        <div class="form-grid form-grid--3">
+          <div class="field">
+  <label class="field__label" for="f-other_size">چاپ ابعاد دیگر</label>
+  <input class="input" id="f-other_size" type="text" name="other_size" value="" placeholder="مثلاً ۵۰×۷۰">
+</div>
+          <div class="field"><label class="field__label" for="f-other_qty">تعداد فروش</label><div class="stepper" data-stepper data-min="0" data-max="500" data-step="1" data-default="1">
+  <button type="button" class="stepper__btn" data-stepper-dec aria-label="کاهش"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-minus"/></svg></button>
+  <input class="stepper__input" type="text" id="f-other_qty" name="other_qty" inputmode="numeric" autocomplete="off" value="1">
+  <button type="button" class="stepper__btn" data-stepper-inc aria-label="افزایش"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-plus"/></svg></button>
+</div></div>
+          <div class="field"><label class="field__label" for="f-other_weight">تعداد برای حقوق</label><div class="stepper" data-stepper data-min="0" data-max="50" data-step="1" data-default="1">
+  <button type="button" class="stepper__btn" data-stepper-dec aria-label="کاهش"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-minus"/></svg></button>
+  <input class="stepper__input" type="text" id="f-other_weight" name="other_weight" inputmode="numeric" autocomplete="off" value="1">
+  <button type="button" class="stepper__btn" data-stepper-inc aria-label="افزایش"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-plus"/></svg></button>
+</div></div>
+        </div>
+      </div></div>
+    </div>
+    <h3 class="mt-5">دریافتی‌ها</h3>
+    <div class="form-grid form-grid--3 mt-2">
+      <div class="field">
+  <label class="field__label" for="f-card_reader">کارتخوان</label>
+  <div class="input-group">
+    <input class="input" type="text" id="f-card_reader" name="card_reader" data-money inputmode="numeric" autocomplete="off"
+      value="6200000" placeholder="۰"><span class="input-group__addon">تومان</span>
+  </div>
+</div>
+      <div class="field">
+  <label class="field__label" for="f-card_to_card">کارت‌به‌کارت</label>
+  <div class="input-group">
+    <input class="input" type="text" id="f-card_to_card" name="card_to_card" data-money inputmode="numeric" autocomplete="off"
+      value="2800000" placeholder="۰"><span class="input-group__addon">تومان</span>
+  </div>
+</div>
+      <div class="field">
+  <label class="field__label" for="f-cash">نقد</label>
+  <div class="input-group">
+    <input class="input" type="text" id="f-cash" name="cash" data-money inputmode="numeric" autocomplete="off"
+      value="1500000" placeholder="۰"><span class="input-group__addon">تومان</span>
+  </div>
+</div>
+    </div>
+    <h3 class="mt-5">هزینه‌ها</h3>
+    <div class="form-grid form-grid--2 mt-2">
+      <div class="field">
+  <label class="field__label" for="f-venue_rent">اجارهٔ باغ / تالار</label>
+  <div class="input-group">
+    <input class="input" type="text" id="f-venue_rent" name="venue_rent" data-money inputmode="numeric" autocomplete="off"
+      value="2000000" placeholder="۰" aria-describedby="f-venue_rent-help"><span class="input-group__addon">تومان</span>
+  </div><p class="field__help" id="f-venue_rent-help">از تنظیمات اتلیه پر شده؛ قابل تغییر.</p>
+</div>
+      <div class="field">
+  <label class="field__label" for="f-other_expenses">سایر هزینه‌ها</label>
+  <div class="input-group">
+    <input class="input" type="text" id="f-other_expenses" name="other_expenses" data-money inputmode="numeric" autocomplete="off"
+      value="0" placeholder="۰"><span class="input-group__addon">تومان</span>
+  </div>
+</div>
+    </div>
+    <div class="modal__footer">
+      <button type="submit" class="btn btn--primary">ثبت فاکتور</button>
+      <button type="button" class="btn" data-modal-close>انصراف</button>
+    </div>
+  </form>
+</div>
+  </div>
+</div>
+
+<div class="modal modal--sm" id="small-modal" role="dialog" aria-modal="true" aria-labelledby="small-modal-title" hidden>
+  <div class="modal__backdrop" data-modal-close></div>
+  <div class="modal__dialog" tabindex="-1">
+    <header class="modal__header">
+      <h2 class="modal__title" id="small-modal-title">ویرایش سریع</h2>
+      <button type="button" class="icon-btn" data-modal-close aria-label="بستن"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-close"/></svg></button>
+    </header>
+    <div class="modal__body">
+  <div class="field">
+  <label class="field__label" for="f-title">عنوان</label>
+  <input class="input" id="f-title" type="text" name="title" value="عروسی تالار گل‌های سپید">
+</div>
+  <div class="modal__footer">
+    <button type="button" class="btn btn--primary" data-modal-close>ذخیره</button>
+    <button type="button" class="btn" data-modal-close>بستن</button>
+  </div>
+</div>
+  </div>
+</div>
+
+      </main>
+    </div>
+  </div>
+  <nav class="tabbar" aria-label="ناوبری موبایل">
+    <a class="tabbar__item" href="#">
+      <span class="tabbar__icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-home"/></svg></span>
+      <span class="tabbar__label">داشبورد</span>
+    </a>
+    <a class="tabbar__item is-active" href="#" aria-current="page">
+      <span class="tabbar__icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-sparkles"/></svg></span>
+      <span class="tabbar__label">راهنمای طراحی</span>
+    </a>
+    <a class="tabbar__item" href="#">
+      <span class="tabbar__icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-calendar"/></svg></span>
+      <span class="tabbar__label">تقویم مراسم‌ها</span>
+    </a>
+    <a class="tabbar__item" href="#">
+      <span class="tabbar__icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-users"/></svg><span class="tabbar__badge">۳</span></span>
+      <span class="tabbar__label">نیروها</span>
+    </a>
+    <button type="button" class="tabbar__item" data-drawer-open aria-controls="sidebar" aria-expanded="false">
+      <span class="tabbar__icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#i-menu"/></svg></span>
+      <span class="tabbar__label">منو</span>
+    </button>
+  </nav>
+
+  <div class="toasts" id="toasts" role="region" aria-label="پیام‌ها" aria-live="polite"></div>
+
+  <script src="../app/static/js/money.js?v=1" defer></script>
+  <script src="../app/static/js/jalali.js?v=1" defer></script>
+  <script src="../app/static/js/core.js?v=1" defer></script>
+<script defer src="styleguide/demo.js"></script>
+
+</body>
+</html>

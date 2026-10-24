@@ -1,0 +1,64 @@
+{#- Registration: pick a role and a name.  Admins are never created here (CLI only).
+    State 1: mobile + name + role -> code is sent.  State 2 (verified_mobile): the number was proven
+    on the login page, only name + role are asked. -#}
+{% extends 'base.html' %}
+{% set layout = 'bare' %}
+{% from 'components/ui.html' import form_field, checkbox_field, alert, icon %}
+{% set form = form|default({}) %}
+{% set errors = errors|default({}) %}
+{% block title %}ثبت‌نام{% endblock %}
+{% block head %}{% include 'auth/_head.html' %}{% endblock %}
+{% block content %}
+<section class="auth stack stack--lg" aria-labelledby="auth-title">
+  <header class="auth__head">
+    <h1 class="auth__title" id="auth-title">ثبت‌نام در اتلیه سیار</h1>
+    <p class="text-muted">
+      {% if verified_mobile %}شمارهٔ <bdo dir="ltr" class="num fw-bold">{{ verified_mobile|fa }}</bdo> تأیید شد. فقط نام و نقش خود را مشخص کنید.
+      {% else %}نقش خود را انتخاب کنید؛ بعد از تأیید شمارهٔ موبایل، حساب شما ساخته می‌شود.{% endif %}
+    </p>
+  </header>
+
+  {% if not registration_open %}
+  {{ alert('ثبت‌نام جدید موقتاً بسته است. اگر قبلاً ثبت‌نام کرده‌اید از صفحهٔ ورود وارد شوید.', 'warning') }}
+  <a class="btn btn--primary btn--block" href="{{ url_for('auth.login') }}">رفتن به صفحهٔ ورود</a>
+  {% else %}
+
+  {% if error %}{{ alert(error, 'danger') }}{% endif %}
+
+  <form method="post" action="{{ url_for('auth.register') }}" class="stack">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="next" value="{{ next|default('') }}">
+
+    <fieldset class="field role-picker{% if errors.get('role') %} field--invalid{% endif %}">
+      <legend class="field__label">نقش شما<span class="field__req" aria-hidden="true">*</span></legend>
+      {% for r in roles %}
+      <label class="role-option">
+        <input type="radio" name="role" value="{{ r.value }}" required{% if form.get('role') == r.value %} checked{% endif %}>
+        <span class="role-option__body">
+          <span class="role-option__icon">{{ icon(r.icon) }}</span>
+          <span class="role-option__text">
+            <strong>{{ r.title }}</strong>
+            <small>{{ r.desc }}</small>
+            {% if r.needs_approval %}<small class="role-option__note">حساب پس از تأیید مدیر سامانه فعال می‌شود.</small>{% endif %}
+          </span>
+        </span>
+      </label>
+      {% endfor %}
+      {% if errors.get('role') %}<p class="field__error" role="alert">{{ icon('alert') }}<span>{{ errors.get('role') }}</span></p>{% endif %}
+    </fieldset>
+
+    {{ form_field('نام و نام خانوادگی', name='full_name', value=form.get('full_name', ''), required=true,
+                  autocomplete='name', maxlength=120, error=errors.get('full_name')) }}
+    {% if not verified_mobile %}
+    {{ form_field('شمارهٔ موبایل', name='mobile', type='tel', inputmode='numeric', dir='ltr',
+                  value=form.get('mobile', ''), required=true, autocomplete='tel-national',
+                  placeholder='۰۹۱۲۳۴۵۶۷۸۹', error=errors.get('mobile')) }}
+    {% endif %}
+    {{ checkbox_field('مرا در این دستگاه به خاطر بسپار', 'remember', checked=form.get('remember')) }}
+    <button type="submit" class="btn btn--primary btn--lg btn--block">{{ icon('user-plus') }}{{ 'ساخت حساب' if verified_mobile else 'دریافت کد تأیید' }}</button>
+  </form>
+
+  <p class="auth__links text-center text-muted text-sm">قبلاً ثبت‌نام کرده‌اید؟ <a href="{{ url_for('auth.login') }}">وارد شوید</a>.</p>
+  {% endif %}
+</section>
+{% endblock %}

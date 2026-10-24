@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% from 'components/ui.html' import page_header, card, badge, alert, form_field, icon %}
+{% from 'ateliers/_macros.html' import terms_editor, pay_example, status_chip %}
+{% block title %}شرایط پرداخت {{ assignment.person_name }}{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='css/ateliers.css', v=asset_version|default('1')) }}">{% endblock %}
+
+{% block content %}
+<div class="page page--narrow stack stack--lg">
+  {{ page_header('شرایط پرداخت', assignment.person_name ~ ' · ' ~ assignment.role.label ~ ' · مراسم ' ~ event.hall.name,
+                 back_url=url_for('ateliers.event_detail', event_id=event.id, _anchor='afish'), back_label='افیش مراسم') }}
+
+  {% call card() %}
+    <p class="cluster">{{ status_chip(assignment) }} {% if assignment.is_terms_locked %}{{ badge('قفل‌شده', 'neutral', 'lock') }}{% endif %}</p>
+    <p class="text-muted">{{ assignment.terms_dict()|terms_text }}</p>
+  {% endcall %}
+
+  {% if not editable %}
+    {% if assignment.is_terms_locked %}
+    {% call alert(tone='info', title='شرایط قفل شده است') %}با ثبت فاکتور مراسم، شرایط افیش‌ها قفل می‌شود تا حقوق گذشته تغییر نکند. برای تغییر، ابتدا فاکتور را بازگشایی کنید.{% endcall %}
+    {% else %}
+    {% call alert(tone='info') %}این افیش لغو شده است و شرایطش قابل تغییر نیست.{% endcall %}
+    {% endif %}
+  {% else %}
+  <form method="post" class="stack stack--lg" novalidate>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    {% call card(title='تغییر شرایط', subtitle='تغییر روی همین افیش ثبت می‌شود' ~ (' و به نیرو اطلاع داده می‌شود.' if assignment.person_user_id else '.')) %}
+      {{ terms_editor(form, errors) }}
+      {{ form_field('دلیل تغییر (اختیاری)', name='reason', value=form.get('reason', ''), maxlength=200, error=errors.get('reason')) }}
+    {% endcall %}
+    <div class="form-actions form-actions--sticky">
+      <button class="btn btn--primary btn--lg" type="submit">{{ icon('check') }}<span>ذخیرهٔ شرایط</span></button>
+      <a class="btn btn--ghost btn--lg" href="{{ url_for('ateliers.event_detail', event_id=event.id, _anchor='afish') }}">انصراف</a>
+    </div>
+  </form>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}<script src="{{ url_for('static', filename='js/ateliers.js', v=asset_version|default('1')) }}" defer></script>{% endblock %}

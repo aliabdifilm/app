@@ -1,0 +1,59 @@
+{#- Shared pieces of the staff panel templates. -#}
+{% from 'components/ui.html' import badge, icon, alert, tabs %}
+
+{#- date_tile(date): the day number and the Jalali month name in a small square -#}
+{% macro date_tile(day) -%}
+{%- set parts = (day|jdate('short')).split(' ') -%}
+<span class="st-date" aria-hidden="true">
+  <span class="st-date__day">{{ parts[0] }}</span>
+  <span class="st-date__month">{{ parts[1] if parts|length > 1 else '' }}</span>
+</span>
+{%- endmacro %}
+
+{#- clock(time): 18:30 in Persian digits -#}
+{% macro clock(value) -%}{% if value %}<bdo dir="ltr">{{ value.strftime('%H:%M')|fa }}</bdo>{% endif %}{%- endmacro %}
+
+{#- status_badge(assignment) -#}
+{% macro status_badge(row) -%}
+{%- set tones = {'invited': 'warning', 'accepted': 'success', 'confirmed': 'success', 'completed': 'info', 'declined': 'neutral', 'cancelled': 'danger'} -%}
+{{ badge(row.status.label, tones.get(row.status.value, 'neutral')) }}
+{%- endmacro %}
+
+{#- terms_box(lines, example): base / commission / tiers as sentences plus the 80-photo example -#}
+{% macro terms_box(lines, example, compact=false) -%}
+<div class="st-terms">
+  {%- if lines %}
+  <ul class="st-terms__lines">
+    {%- for line in lines %}<li>{{ line }}</li>{% endfor %}
+  </ul>
+  {%- else %}
+  <p class="st-terms__none">مبلغ با توافق تعیین می‌شود.</p>
+  {%- endif %}
+  {%- if example %}
+  <p class="st-terms__example"><span class="st-terms__label">نمونه</span> <strong>{{ example.sentence }}</strong></p>
+  {%- endif %}
+</div>
+{%- endmacro %}
+
+{#- the section tabs of the schedule / availability pages -#}
+{% macro schedule_tabs(active) -%}
+{{ tabs([
+    {'key': 'month', 'label': 'تقویم ماهانه', 'url': url_for('staff.schedule'), 'icon': 'calendar'},
+    {'key': 'list', 'label': 'فهرست', 'url': url_for('staff.schedule', view='list'), 'icon': 'list'},
+    {'key': 'availability', 'label': 'آزاد و مشغول', 'url': url_for('staff.availability_page'), 'icon': 'calendar-check'}
+  ], active=active, label='بخش‌های برنامه', id='st-schedule') }}
+{%- endmacro %}
+
+{#- the section tabs of the profile pages -#}
+{% macro profile_tabs(active) -%}
+{{ tabs([
+    {'key': 'profile', 'label': 'مشخصات', 'url': url_for('staff.profile'), 'icon': 'user'},
+    {'key': 'portfolio', 'label': 'نمونه‌کار', 'url': url_for('staff.portfolio'), 'icon': 'image'},
+    {'key': 'reviews', 'label': 'نظرها', 'url': url_for('staff.reviews'), 'icon': 'star'},
+    {'key': 'settings', 'label': 'حساب و اعلان‌ها', 'url': url_for('staff.settings'), 'icon': 'settings'},
+    {'key': 'applications', 'label': 'درخواست‌ها', 'url': url_for('staff.applications'), 'icon': 'send'}
+  ], active=active, label='بخش‌های پروفایل', id='st-profile') }}
+{%- endmacro %}
+
+{#- hidden CSRF field -#}
+{% macro csrf() -%}<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{%- endmacro %}

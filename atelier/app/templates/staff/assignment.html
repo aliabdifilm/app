@@ -1,0 +1,165 @@
+{% extends 'base.html' %}
+{% from 'components/ui.html' import page_header, card, alert, badge, icon, modal, textarea_field %}
+{% from 'staff/_macros.html' import date_tile, clock, status_badge, terms_box, csrf %}
+{% set role_label = row.role.label %}
+{% block title %}افیش {{ role_label }}{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='css/staff.css', v=asset_version|default('1')) }}">{% endblock %}
+
+{% block content %}
+{% set logistics_labels = [('loading', 'محل تخلیهٔ تجهیزات'), ('setup_spot', 'محل استقرار اتلیه'), ('power', 'برق'), ('wifi', 'اینترنت و آنتن‌دهی'), ('parking', 'پارکینگ')] %}
+<div class="page stack stack--lg">
+  {% call page_header(role_label ~ ' · ' ~ hall.name, event.date|jweekday ~ ' ' ~ (event.date|jdate('long')) ~ (' · ' ~ hall.city if hall.city else ''), back_url=url_for('staff.invitations' if row.status.value == 'invited' else 'staff.schedule'), back_label='بازگشت') %}
+    {{ status_badge(row) }}
+  {% endcall %}
+
+  {#- ------------------------------------------------------------------- state alerts -#}
+  {% if event.status.value == 'cancelled' or row.status.value == 'cancelled' %}
+  {% call alert(tone='danger', title='این افیش لغو شده است') %}مراسم یا همکاری شما لغو شده است؛ اگر پرسشی دارید با اتلیه تماس بگیرید.{% endcall %}
+  {% elif row.status.value == 'declined' %}
+  {% call alert(tone='info', title='این دعوت را رد کرده‌اید') %}اگر نظرتان عوض شد، از اتلیه بخواهید دوباره شما را دعوت کند.{% endcall %}
+  {% elif expired %}
+  {% call alert(tone='warning', title='مهلت این دعوت گذشته است') %}تاریخ مراسم گذشته و دیگر نمی‌توان این دعوت را پذیرفت.{% endcall %}
+  {% endif %}
+  {% if clashes %}
+  {% call alert(tone='warning', title='در همین روز مراسم دیگری هم دارید') %}
+    {% for other in clashes %}<a href="{{ url_for('staff.assignment', assignment_id=other.id) }}">{{ other.role.label }} · {{ other.event.hall.name }}</a>{% if not loop.last %}، {% endif %}{% endfor %}.
+    اگر مطمئنید می‌توانید هر دو را انجام دهید، دعوت را «با وجود تداخل» بپذیرید.
+  {% endcall %}
+  {% endif %}
+
+  {#- ----------------------------------------------------------------------- actions -#}
+  <div class="st-actions st-actions--bar">
+    {% if can_respond %}
+    <form class="inline-form" method="post" action="{{ url_for('staff.assignment_accept', assignment_id=row.id) }}">
+      {{ csrf() }}
+      {% if show_override %}
+      <input type="hidden" name="allow_conflict" value="1">
+      <button class="btn btn--primary btn--lg" type="submit" data-confirm="در همین روز مراسم دیگری هم دارید. با وجود تداخل می‌پذیرید؟" data-confirm-title="پذیرفتن با وجود تداخل" data-confirm-label="بله، می‌پذیرم" data-confirm-tone="primary">{{ icon('check') }}<span>پذیرفتن با وجود تداخل</span></button>
+      {% else %}
+      <button class="btn btn--primary btn--lg" type="submit">{{ icon('check') }}<span>پذیرفتن دعوت</span></button>
+      {% endif %}
+    </form>
+    <button class="btn btn--danger-soft btn--lg" type="button" data-modal-open="decline-modal">{{ icon('close') }}<span>رد کردن</span></button>
+    {% endif %}
+    {% if can_calendar %}
+    <a class="btn btn--secondary" href="{{ url_for('staff.assignment_ics', assignment_id=row.id) }}" download>{{ icon('calendar-check') }}<span>افزودن به تقویم</span></a>
+    {% endif %}
+    {% if committed and share %}
+    <button type="button" class="btn btn--secondary" data-share data-share-title="افیش مراسم" data-share-text="{{ share }}" hidden>{{ icon('send') }}<span>اشتراک‌گذاری</span></button>
+    <button type="button" class="btn btn--secondary" data-copy-text="{{ share }}">{{ icon('copy') }}<span>کپی متن افیش</span></button>
+    {% endif %}
+    {% if can_withdraw %}
+    <button class="btn btn--danger-soft" type="button" data-modal-open="withdraw-modal">{{ icon('x-circle') }}<span>انصراف از همکاری</span></button>
+    {% endif %}
+  </div>
+
+  <div class="grid grid--2">
+    <div class="stack stack--lg">
+      {#- ------------------------------------------------------------- when and where -#}
+      {% call card(title='زمان و مکان') %}
+      <dl class="kv">
+        <div><dt>تاریخ</dt><dd>{{ event.date|jweekday }} {{ event.date|jdate('long') }} <small class="text-muted">({{ event.date|jdate }})</small></dd></div>
+        {% if row.call_time %}<div><dt>ساعت حضور</dt><dd>{{ clock(row.call_time) }}</dd></div>{% endif %}
+        {% if event.start_time %}<div><dt>شروع مراسم</dt><dd>{{ clock(event.start_time) }}</dd></div>{% endif %}
+        <div><dt>نوع مراسم</dt><dd>{{ event.ceremony_type.label }}{% if event.title %} · {{ event.title }}{% endif %}</dd></div>
+        <div><dt>تالار</dt><dd>{{ hall.name }}{% if hall.city %} · {{ hall.city }}{% endif %}</dd></div>
+        {% if venue %}
+        {% if hall.address %}<div><dt>آدرس</dt><dd>{{ hall.address }}</dd></div>{% endif %}
+        {% if hall.phone %}<div><dt>تلفن تالار</dt><dd><a class="num" href="tel:{{ hall.phone }}">{{ hall.phone|fa }}</a></dd></div>{% endif %}
+        {% for key, label in logistics_labels %}
+        {% if hall.logistics and hall.logistics.get(key) %}<div><dt>{{ label }}</dt><dd>{{ hall.logistics.get(key) }}</dd></div>{% endif %}
+        {% endfor %}
+        {% if hall.logistics and (hall.logistics.get('contact_name') or hall.logistics.get('contact_phone')) %}
+        <div><dt>مسئول تالار</dt><dd>{{ hall.logistics.get('contact_name', '') }}{% if hall.logistics.get('contact_phone') %} <a class="num" href="tel:{{ hall.logistics.get('contact_phone') }}">{{ hall.logistics.get('contact_phone')|fa }}</a>{% endif %}</dd></div>
+        {% endif %}
+        {% endif %}
+      </dl>
+      {% if venue %}
+      {% if hall.map_url %}<p><a class="btn btn--secondary btn--sm" href="{{ hall.map_url }}" target="_blank" rel="noopener noreferrer">{{ icon('map-pin') }}<span>باز کردن نقشه</span></a></p>{% endif %}
+      {% elif row.status.value == 'invited' %}
+      <p class="text-muted text-sm">{{ icon('lock') }} آدرس، تلفن و نقشهٔ تالار پس از پذیرفتن دعوت نمایش داده می‌شود.</p>
+      {% endif %}
+      {% if row.notes %}<h3 class="st-subtitle">توضیحات اتلیه</h3><p class="st-quote">{{ row.notes }}</p>{% endif %}
+      {% endcall %}
+
+      {#- ------------------------------------------------------------------- atelier -#}
+      {% if atelier %}
+      {% call card(title='اتلیه') %}
+      <dl class="kv">
+        <div><dt>نام اتلیه</dt><dd>{{ atelier.name }}{% if atelier.city %} · {{ atelier.city }}{% endif %}</dd></div>
+        {% if committed %}
+        <div><dt>مدیر اتلیه</dt><dd>{{ person_label(atelier.manager) }}</dd></div>
+        <div><dt>موبایل مدیر</dt><dd><a class="num" href="tel:{{ atelier.manager.mobile }}">{{ atelier.manager.mobile|fa }}</a></dd></div>
+        {% if atelier.phone %}<div><dt>تلفن اتلیه</dt><dd><a class="num" href="tel:{{ atelier.phone }}">{{ atelier.phone|fa }}</a></dd></div>{% endif %}
+        {% endif %}
+      </dl>
+      {% if not committed %}<p class="text-muted text-sm">{{ icon('lock') }} شمارهٔ تماس مدیر اتلیه پس از پذیرفتن دعوت نمایش داده می‌شود.</p>{% endif %}
+      {% endcall %}
+      {% endif %}
+
+      {% if team %}
+      {% call card(title='هم‌تیمی‌های شما در این مراسم') %}
+      <ul class="st-team">
+        {% for mate in team %}<li><span class="badge badge--accent">{{ mate.role.label }}</span> {{ mate.person_name or 'نیروی بی‌نام' }}</li>{% endfor %}
+      </ul>
+      {% endcall %}
+      {% endif %}
+    </div>
+
+    {#- ----------------------------------------------------------------------- pay -#}
+    <div class="stack stack--lg">
+      {% call card(title='شرایط پرداخت شما', subtitle='این شرایط هنگام افیش برای شما ثبت شده و برای مراسم‌های گذشته تغییر نمی‌کند.') %}
+      {{ terms_box(lines, example) }}
+      {% if several_tiers %}<p class="text-muted text-sm">{{ icon('info') }} پله‌های پاداش جمع نمی‌شوند؛ فقط بالاترین پله‌ای که به آن برسید پرداخت می‌شود.</p>{% endif %}
+      {% if scenarios %}
+      <h3 class="st-subtitle">اگر فروش مراسم این‌قدر شود…</h3>
+      <ul class="st-scen" aria-label="نمونه‌های حقوق">
+        {% for s in scenarios %}
+        <li class="st-scen__row{% if s.units == 80 %} is-ref{% endif %}">
+          <span>{{ s.units|fa }} عکس</span>
+          <strong>{{ s.total|toman }} <small>تومان</small></strong>
+          <span class="st-scen__formula text-muted">{{ s.base|toman }} + {{ s.commission|toman }} + {{ s.bonus|toman }}{% if s.applied_tier %} (پلهٔ {{ s.applied_tier.threshold|fa }} عکس){% endif %}</span>
+        </li>
+        {% endfor %}
+      </ul>
+      <p class="text-muted text-sm">هر ردیف: پایه + پورسانت + پاداش. تعداد فروش را فروشنده در فاکتور مراسم ثبت می‌کند و برای همهٔ نیروها یکسان است.</p>
+      {% endif %}
+      {% if row.is_terms_locked %}<p class="text-muted text-sm">{{ icon('lock') }} فاکتور این مراسم ثبت شده و شرایط پرداخت قفل است.</p>{% endif %}
+      {% endcall %}
+      {% if row.status.value == 'completed' %}
+      <p><a class="btn btn--secondary" href="{{ url_for('staff.earnings_page') }}">{{ icon('coins') }}<span>دیدن درآمد من</span></a></p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{#- modals live outside every other form -#}
+{% if can_respond %}
+{% call modal('decline-modal', 'رد کردن دعوت', size='sm') %}
+<form method="post" action="{{ url_for('staff.assignment_decline', assignment_id=row.id) }}" class="stack">
+  {{ csrf() }}
+  <p>این دعوت رد می‌شود و اتلیه باخبر می‌شود تا نفر دیگری را پیدا کند.</p>
+  {{ textarea_field('دلیل (اختیاری)', 'reason', '', rows=3, maxlength=reason_max, help='مثلاً: همان روز مراسم دیگری دارم.') }}
+  <div class="modal__footer">
+    <button type="submit" class="btn btn--danger">بله، رد شود</button>
+    <button type="button" class="btn" data-modal-close>انصراف</button>
+  </div>
+</form>
+{% endcall %}
+{% endif %}
+{% if can_withdraw %}
+{% call modal('withdraw-modal', 'انصراف از همکاری', size='sm') %}
+<form method="post" action="{{ url_for('staff.assignment_withdraw', assignment_id=row.id) }}" class="stack">
+  {{ csrf() }}
+  <p>همکاری شما در این مراسم لغو می‌شود و اتلیه باید نیروی دیگری پیدا کند. لطفاً فقط در صورت ضرورت انصراف دهید.</p>
+  {{ textarea_field('دلیل (اختیاری)', 'reason', '', rows=3, maxlength=reason_max, help='دلیل برای مدیر اتلیه نمایش داده می‌شود.') }}
+  <div class="modal__footer">
+    <button type="submit" class="btn btn--danger">بله، لغو شود</button>
+    <button type="button" class="btn" data-modal-close>انصراف</button>
+  </div>
+</form>
+{% endcall %}
+{% endif %}
+{% endblock %}
+
+{% block scripts %}<script src="{{ url_for('static', filename='js/staff.js', v=asset_version|default('1')) }}" defer></script>{% endblock %}

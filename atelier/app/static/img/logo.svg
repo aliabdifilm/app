@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 64" width="220" height="64" role="img" aria-label="اتلیه سیار">
+  <g>
+    <rect x="156" width="64" height="64" rx="16" fill="#b4551d"/>
+    <path fill="#fff" d="M178 17h6l2.4-3.5h7.2L196 17h6a7 7 0 0 1 7 7v19a7 7 0 0 1-7 7h-28a7 7 0 0 1-7-7V24a7 7 0 0 1 7-7z"/>
+    <circle cx="188" cy="33.5" r="11.5" fill="#b4551d"/>
+    <circle cx="188" cy="33.5" r="7" fill="#fff"/>
+    <circle cx="188" cy="33.5" r="3.4" fill="#b4551d"/>
+    <circle cx="202" cy="25" r="2" fill="#b4551d"/>
+  </g>
+  <text x="144" y="43" text-anchor="end" direction="rtl" font-family="Vazirmatn, Tahoma, sans-serif" font-size="28" font-weight="800" fill="#2a231c">اتلیه سیار</text>
+</svg>

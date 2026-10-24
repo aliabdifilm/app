@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% from 'components/ui.html' import page_header, card, empty_state, badge, pagination, icon %}
+{% block title %}اعلان‌ها{% endblock %}
+{% block content %}
+<div class="page page--narrow stack stack--lg">
+  {% set actions %}
+    {% if unread %}
+    <form method="post" action="{{ url_for('main.notifications_mark_read') }}" class="inline-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn--secondary btn--sm">{{ icon('check') }}همه را خوانده‌شده کن</button>
+    </form>
+    {% endif %}
+  {% endset %}
+  {{ page_header('اعلان‌ها', (unread|fa ~ ' اعلان خوانده‌نشده') if unread else 'همهٔ اعلان‌ها خوانده شده‌اند.', actions=actions|safe) }}
+
+  {% if page.items %}
+  <ul class="stack stack--sm" aria-label="فهرست اعلان‌ها">
+    {% for n in page.items %}
+    <li>
+      {% set tone = None if n.is_read else 'accent' %}
+      {% call card(tone=tone, cls='notification') %}
+        <div class="cluster cluster--between">
+          <strong>{% if n.url and is_safe_url(n.url) %}<a href="{{ n.url }}">{{ n.title }}</a>{% else %}{{ n.title }}{% endif %}</strong>
+          {% if not n.is_read %}{{ badge('جدید', 'accent') }}{% endif %}
+        </div>
+        {% if n.body %}<p class="text-muted">{{ n.body }}</p>{% endif %}
+        <div class="cluster cluster--between">
+          <small class="text-faint">{{ n.created_at|jdatetime }}</small>
+          {% if not n.is_read %}
+          <form method="post" action="{{ url_for('main.notifications_mark_read') }}" class="inline-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="ids" value="{{ n.id }}">
+            <button type="submit" class="btn btn--ghost btn--sm">خوانده شد</button>
+          </form>
+          {% endif %}
+        </div>
+      {% endcall %}
+    </li>
+    {% endfor %}
+  </ul>
+  {{ pagination(page, 'main.notifications') }}
+  {% else %}
+  {{ empty_state('bell', 'اعلانی ندارید', 'وقتی برای مراسم‌ها یا افیش‌های شما اتفاقی بیفتد، این‌جا خبر می‌دهیم.') }}
+  {% endif %}
+</div>
+{% endblock %}

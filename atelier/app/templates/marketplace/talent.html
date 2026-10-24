@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+{% from 'components/ui.html' import page_header, empty_state, alert, badge, select_field, form_field, jdate_input, pagination, icon, avatar, rating_stars %}
+{% from 'marketplace/_macros.html' import skill_badges %}
+{% block title %}جستجوی نیرو{% endblock %}
+{% block head %}<meta name="robots" content="noindex"><link rel="stylesheet" href="{{ url_for('static', filename='css/marketplace.css', v=asset_version|default('1')) }}">{% endblock %}
+
+{% block content %}
+<div class="page stack stack--lg">
+  {{ page_header('جستجوی نیرو', 'نیروهایی که پروفایل خود را در جستجو نمایش می‌دهند. شمارهٔ تماس فقط پس از پذیرفته‌شدن درخواست یا دعوت نمایش داده می‌شود.') }}
+
+  {% if filters.errors %}
+  {% call alert(tone='warning', title='بعضی فیلترها نادیده گرفته شد') %}<ul class="mk-list">{% for message in filters.errors.values() %}<li>{{ message }}</li>{% endfor %}</ul>{% endcall %}
+  {% endif %}
+
+  <details class="card mk-filters" data-mk-filters{% if filters.active or filters.sort != 'rating' %} open{% endif %}>
+    <summary class="mk-filters__summary">{{ icon('filter') }}<span>فیلتر و مرتب‌سازی</span>{% if filters.active %}{{ badge('فعال', 'accent') }}{% endif %}</summary>
+    <form class="card__body mk-filters__form" method="get" role="search" action="{{ url_for('marketplace.talent_index') }}">
+      <div class="form-grid form-grid--3">
+        {{ select_field('مهارت', 'skill', Skill.choices(), selected=filters.skill.value if filters.skill else '', placeholder='همهٔ مهارت‌ها') }}
+        {{ select_field('شهر', 'city', cities if (not filters.city or filters.city in cities) else cities + [filters.city], selected=filters.city, placeholder='همهٔ شهرها') }}
+        {{ select_field('حداقل امتیاز', 'min_rating', [(5, '۵ ستاره'), (4, '۴ ستاره و بالاتر'), (3, '۳ ستاره و بالاتر'), (2, '۲ ستاره و بالاتر'), (1, '۱ ستاره و بالاتر')], selected=filters.min_rating, placeholder='هر امتیازی') }}
+        {{ jdate_input('on_date', filters.on_date, label='آزاد در تاریخ', min=today, error=filters.errors.get('on_date'), help='کسانی که آن روز افیش شده‌اند یا «در دسترس نیستم» زده‌اند نمایش داده نمی‌شوند.') }}
+        {{ form_field('نام', name='name', type='search', value=filters.name, maxlength=80) }}
+        {{ select_field('مرتب‌سازی', 'sort', [('rating', 'بیشترین امتیاز'), ('experience', 'بیشترین سابقه'), ('new', 'تازه‌ترین')], selected=filters.sort) }}
+      </div>
+      <div class="form-actions">
+        <button class="btn btn--primary" type="submit">{{ icon('search') }}<span>جستجو</span></button>
+        {% if filters.active or filters.sort != 'rating' %}<a class="btn btn--ghost" href="{{ url_for('marketplace.talent_index') }}">حذف فیلترها</a>{% endif %}
+      </div>
+    </form>
+  </details>
+
+  {% if cards %}
+  <p class="text-muted text-sm" role="status">{{ page.total|fa }} نیرو پیدا شد</p>
+  <ul class="mk-grid" aria-label="نتیجهٔ جستجو">
+    {% for t in cards %}
+    {% set p = t.profile %}
+    <li>
+      <article class="card mk-person-card">
+        <div class="card__body mk-app__body">
+          <div class="mk-person">
+            {{ avatar(t.user|mk_name, size='lg', src=media_url(t.user.avatar_path) if t.user.avatar_path else none) }}
+            <div class="mk-person__text">
+              <h2 class="mk-person__name"><a href="{{ url_for('marketplace.talent_profile', user_id=t.user.id) }}">{{ t.user|mk_name }}</a></h2>
+              <p class="mk-chips">
+                {% if t.user.is_verified %}{{ badge('تأییدشده', 'success', 'shield') }}{% endif %}
+                {% if p.city or t.user.city %}<span class="mk-fact">{{ icon('map-pin') }}{{ p.city or t.user.city }}</span>{% endif %}
+                {% if p.experience_years %}<span class="mk-fact">{{ p.experience_years|fa }} سال سابقه</span>{% endif %}
+              </p>
+              {% if p.rating_count %}{{ rating_stars(p.rating_avg, count=p.rating_count) }}{% else %}<span class="text-faint text-sm">هنوز امتیازی ندارد</span>{% endif %}
+            </div>
+          </div>
+          <p class="mk-chips">{{ skill_badges(t.skills, filters.skill.value if filters.skill else none) }}
+            {% if t.worked_with_me %}{{ badge('سابقهٔ همکاری با شما', 'info', 'check') }}{% endif %}</p>
+          {% if p.expected_base or p.expected_commission_per_unit %}
+          <p class="text-muted text-sm">درخواست نیرو:
+            {% if p.expected_base %}پایه {{ p.expected_base|toman }} تومان{% endif %}
+            {% if p.expected_commission_per_unit %}{{ ' · ' if p.expected_base else '' }}پورسانت هر عکس {{ p.expected_commission_per_unit|toman }} تومان{% endif %}</p>
+          {% endif %}
+          {% if p.bio %}<p class="mk-text text-sm">{{ p.bio|mk_clip(140) }}</p>{% endif %}
+          <div class="mk-actions">
+            <a class="btn btn--secondary btn--sm" href="{{ url_for('marketplace.talent_profile', user_id=t.user.id) }}">{{ icon('eye') }}<span>پروفایل</span></a>
+            {% if viewer.role == Role.ATELIER_MANAGER %}
+            <a class="btn btn--primary btn--sm" href="{{ url_for('marketplace.talent_invite', user_id=t.user.id, role=filters.skill.value if filters.skill else none) }}">{{ icon('send') }}<span>دعوت به همکاری</span></a>
+            {% endif %}
+          </div>
+        </div>
+      </article>
+    </li>
+    {% endfor %}
+  </ul>
+  {{ pagination(page, 'marketplace.talent_index', skill=filters.skill.value if filters.skill else None, city=filters.city or None,
+                min_rating=filters.min_rating, on_date=filters.on_date.isoformat() if filters.on_date else None,
+                name=filters.name or None, sort=filters.sort if filters.sort != 'rating' else None) }}
+  {% elif filters.active %}
+  {{ empty_state('search', 'نیرویی با این فیلترها پیدا نشد', 'فیلترها را کم کنید یا تاریخ دیگری را امتحان کنید.',
+                 action=('<a class="btn" href="' ~ url_for('marketplace.talent_index') ~ '">حذف فیلترها</a>')|safe) }}
+  {% else %}
+  {{ empty_state('users', 'هنوز نیرویی در جستجو نمایش داده نمی‌شود', 'نیروها با روشن‌کردن «نمایش در جستجو» در پروفایلشان این‌جا دیده می‌شوند. تا آن موقع می‌توانید در بازار کار آگهی بدهید.',
+                 action=(('<a class="btn btn--primary" href="' ~ url_for('marketplace.job_new') ~ '">ثبت آگهی</a>') if viewer.role == Role.ATELIER_MANAGER else '')|safe) }}
+  {% endif %}
+</div>
+{% endblock %}

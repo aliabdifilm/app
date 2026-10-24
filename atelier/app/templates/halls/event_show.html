@@ -1,0 +1,162 @@
+{% extends 'base.html' %}
+{% from 'components/ui.html' import page_header, card, badge, alert, empty_state, confirm_button, rating_input, rating_stars, textarea_field, icon, stat_tile %}
+{% from 'halls/_macros.html' import date_tile, event_facts, state_badge, atelier_name, stars %}
+{% block title %}مراسم {{ event.date|jdate('long') }}{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='css/halls.css', v=asset_version|default('1')) }}">{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/halls.js', v=asset_version|default('1')) }}" defer></script>{% endblock %}
+
+{% block content %}
+{% set cancelled = event.status.value == 'cancelled' %}
+<div class="page stack stack--lg">
+  {{ page_header(event.date|jdate('weekday_long'), event.hall.name ~ (' · ساعت ' ~ (event.start_time|hl_time) if event.start_time else '') ~ ' · ' ~ event.ceremony_type.label,
+       back_url=url_for('halls.events'), back_label='مراسم‌ها') }}
+
+  <div class="hl-actions">
+    {{ state_badge(event, pending) }}
+    {% if can_edit %}<a class="btn btn--sm btn--secondary" href="{{ url_for('halls.event_edit', event_id=event.id) }}">{{ icon('edit') }}<span>ویرایش</span></a>{% endif %}
+    <button class="btn btn--sm btn--ghost" type="button" hidden data-hall-share data-share-title="مراسم {{ event.date|jdate('long') }} · {{ event.hall.name }}" data-share-text="{{ share }}">{{ icon('send') }}<span>اشتراک‌گذاری</span></button>
+    <button class="btn btn--sm btn--ghost" type="button" data-hall-copy="{{ share }}">{{ icon('copy') }}<span>کپی اطلاعات مراسم</span></button>
+  </div>
+
+  {% if exclusive %}
+  {% call alert(tone='info', title='قرارداد انحصاری فعال است') %}
+    در این تاریخ فقط «{{ exclusive.atelier.name }}» می‌تواند این مراسم را بگیرد؛ پیشنهاد به اتلیهٔ دیگر یا باز کردن برای همه ممکن نیست.
+  {% endcall %}
+  {% endif %}
+
+  {#- ------------------------------ facts ------------------------------ -#}
+  {% call card(title='مشخصات مراسم') %}
+    <dl class="kv">
+      <dt>تاریخ</dt><dd>{{ event.date|jdate('weekday_long') }}</dd>
+      <dt>ساعت شروع</dt><dd>{% if event.start_time %}<bdo dir="ltr" class="num">{{ event.start_time|hl_time }}</bdo>{% else %}—{% endif %}</dd>
+      <dt>نوع مراسم</dt><dd>{{ event.ceremony_type.label }}</dd>
+      <dt>میهمان‌ها</dt><dd>{% if event.guest_count_estimate %}حدود {{ event.guest_count_estimate|fa }} نفر{% else %}—{% endif %}</dd>
+      {% if event.title %}<dt>عنوان</dt><dd>{{ event.title }}</dd>{% endif %}
+      <dt>تالار</dt><dd><a href="{{ url_for('halls.hall_show', hall_id=hall.id) }}">{{ hall.name }}</a>{% if hall.city %} · {{ hall.city }}{% endif %}</dd>
+    </dl>
+    {% if event.notes %}<p class="hl-note-box">{{ event.notes }}</p>{% endif %}
+  {% endcall %}
+
+  {#- ------------------------------ giving the date to an atelier ------------------------------ -#}
+  {% call card(title='واگذاری به اتلیه', id='offers') %}
+    <div class="stack">
+    {% if event.atelier_id %}
+      <dl class="kv">
+        <dt>اتلیه</dt><dd>{{ atelier_name(event.atelier) }}</dd>
+        <dt>امتیاز</dt><dd>{{ stars(ratings, event.atelier_id) }}</dd>
+        <dt>شهر</dt><dd>{{ event.atelier.city or '—' }}</dd>
+        {% if event.atelier.phone %}<dt>تلفن</dt><dd><bdo dir="ltr" class="num">{{ event.atelier.phone|fa }}</bdo></dd>{% endif %}
+      </dl>
+    {% elif cancelled %}
+      <p class="text-muted">این مراسم لغو شده است.</p>
+    {% elif can_offer %}
+      <p class="text-muted">
+        {% if event.status.value == 'offered' %}پیشنهاد برای {{ pending|fa }} اتلیه در انتظار پاسخ است.{% elif event.offer_mode.value == 'open' and event.status.value == 'open' %}این مراسم در فهرست مراسم‌های باز همهٔ اتلیه‌ها دیده می‌شود؛ هر کدام زودتر بردارد، آن را می‌گیرد.{% else %}این مراسم هنوز اتلیه‌ای ندارد.{% endif %}
+      </p>
+      <div class="hl-actions">
+        <a class="btn btn--primary" href="{{ url_for('halls.offer_new', event=event.id) }}">{{ icon('send') }}<span>پیشنهاد به اتلیه</span></a>
+        {% if event.offer_mode.value == 'open' and event.status.value == 'open' %}
+          {{ confirm_button('بستن انتشار عمومی', url_for('halls.event_close_open', event_id=event.id), 'مراسم از فهرست باز اتلیه‌ها برداشته می‌شود. ادامه می‌دهید؟', title='بستن انتشار عمومی', confirm_label='بله، بسته شود', icon='lock') }}
+        {% elif not exclusive %}
+          {{ confirm_button('باز کردن برای همه', url_for('halls.event_open', event_id=event.id), 'مراسم برای همهٔ اتلیه‌ها باز می‌شود و هر اتلیه‌ای که زودتر بردارد آن را می‌گیرد. پیشنهادهای مستقیم در انتظار پاسخ پس گرفته می‌شود. ادامه می‌دهید؟', title='باز کردن برای همه', confirm_label='بله، باز شود', tone='primary', icon='megaphone') }}
+        {% endif %}
+      </div>
+    {% else %}
+      <p class="text-muted">این مراسم دیگر قابل پیشنهاد نیست{% if event.date < today %} (تاریخ آن گذشته است){% endif %}.</p>
+    {% endif %}
+
+    {% if offers %}
+      <h3 class="hl-section-title">پیشنهادها</h3>
+      <ul class="hl-list">
+        {% for offer in offers %}
+        {% set live = offer.status.value != 'accepted' or event.atelier_id == offer.atelier_id %}
+        <li class="hl-list__item">
+          <div class="hl-row">
+            <span class="hl-row__body">
+              <strong>{{ atelier_name(offer.atelier) }}</strong>
+              <span class="text-muted text-sm">{{ offer.offered_at|jdatetime('short') if offer.offered_at else '' }}{% if offer.responded_at %} · پاسخ: {{ offer.responded_at|jdatetime('short') }}{% endif %}</span>
+              {% if offer.message %}<span class="text-sm">«{{ offer.message }}»</span>{% endif %}
+              {{ stars(ratings, offer.atelier_id) }}
+            </span>
+            <span class="hl-row__side">
+              {{ badge(offer.status.label if live else 'بازگردانده شد', (offer.status|hl_offer_tone) if live else 'neutral') }}
+              {% if offer.status.value == 'pending' %}
+                {{ confirm_button('پس گرفتن', url_for('halls.offer_withdraw', offer_id=offer.id), 'پیشنهاد به «' ~ offer.atelier.name ~ '» پس گرفته می‌شود و مدیر آن باخبر می‌شود. ادامه می‌دهید؟', title='پس گرفتن پیشنهاد', confirm_label='بله، پس گرفته شود', icon='close') }}
+              {% elif offer.status.value in ('declined', 'withdrawn') and can_offer %}
+                {{ confirm_button('پیشنهاد دوباره', url_for('halls.offer_reoffer', offer_id=offer.id), 'پیشنهاد دوباره برای «' ~ offer.atelier.name ~ '» فرستاده می‌شود. ادامه می‌دهید؟', title='پیشنهاد دوباره', confirm_label='بله، بفرست', tone='primary', icon='refresh') }}
+              {% endif %}
+            </span>
+          </div>
+        </li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+    </div>
+  {% endcall %}
+
+  {#- ------------------------------ outcome and rating ------------------------------ -#}
+  {% if event.atelier_id %}
+  {% call card(title='نتیجهٔ مراسم', subtitle='فقط وضعیت و تعداد نیروها؛ اطلاعات مالی اتلیه برای تالار نمایش داده نمی‌شود.') %}
+    <dl class="kv">
+      <dt>وضعیت مراسم</dt><dd>{{ event.status.label }}</dd>
+      <dt>نیروهای قطعی</dt><dd>{{ outcome.filled|fa }} از {{ outcome.needed|fa }} نفر{% if outcome.invited %} · {{ outcome.invited|fa }} نفر منتظر پاسخ{% endif %}</dd>
+    </dl>
+    <ul class="hl-roles" aria-label="نیروها به تفکیک نقش">
+      {% for role in outcome.roles %}
+      <li class="hl-role"><span class="text-muted text-sm">{{ role.label }}</span><span class="hl-role__num">{{ role.filled|fa }}<small class="text-muted"> / {{ role.needed|fa }}</small></span></li>
+      {% endfor %}
+    </ul>
+  {% endcall %}
+
+  {% call card(title='امتیاز به اتلیه', id='review') %}
+    {% if review_blocker %}
+      <p class="text-muted">{{ review_blocker }}</p>
+    {% else %}
+      {% if review %}<p class="text-muted">امتیاز فعلی شما: {{ rating_stars(review.rating, show_value=false) }} می‌توانید آن را تغییر دهید.</p>{% endif %}
+      <form method="post" class="stack" action="{{ url_for('halls.event_review', event_id=event.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {{ rating_input('rating', review.rating if review else 0, label='امتیاز به ' ~ event.atelier.name) }}
+        {{ textarea_field('نظر شما (اختیاری)', 'comment', review.comment if review and review.comment else '', rows=3, maxlength=1000, help='نظر شما برای تالارهای دیگر هم دیده می‌شود.') }}
+        <div class="form-actions"><button class="btn btn--primary" type="submit">{{ icon('star') }}<span>{{ 'ویرایش امتیاز' if review else 'ثبت امتیاز' }}</span></button></div>
+      </form>
+    {% endif %}
+  {% endcall %}
+  {% endif %}
+
+  {#- ------------------------------ history ------------------------------ -#}
+  {% call card(title='تاریخچه', padded=false) %}
+    {% if history %}
+    <ol class="hl-timeline hl-note">
+      {% for entry in history %}
+      <li class="hl-timeline__item"><span class="hl-timeline__time">{{ entry.when|jdatetime('short') }}</span><span class="hl-timeline__text">{{ entry.text }}</span></li>
+      {% endfor %}
+    </ol>
+    {% else %}
+    <p class="text-muted hl-note">هنوز رویدادی ثبت نشده است.</p>
+    {% endif %}
+  {% endcall %}
+
+  {#- ------------------------------ danger zone ------------------------------ -#}
+  {% if cancelled or can_cancel or can_delete %}
+  {% call card(title='لغو و حذف', tone='danger') %}
+    <div class="stack">
+    {% if cancelled %}
+      <p class="text-muted">این مراسم لغو شده است. می‌توانید آن را به‌صورت پیش‌نویس دوباره فعال کنید.</p>
+      {{ confirm_button('فعال‌سازی دوباره', url_for('halls.event_reactivate', event_id=event.id), 'مراسم به‌صورت پیش‌نویس و بدون اتلیه برمی‌گردد. ادامه می‌دهید؟', title='فعال‌سازی دوباره', confirm_label='بله، فعال شود', tone='primary', icon='refresh') }}
+    {% endif %}
+    {% if can_cancel %}
+      <form method="post" class="stack" action="{{ url_for('halls.event_cancel', event_id=event.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {{ textarea_field('دلیل لغو (اختیاری)', 'reason', '', rows=2, maxlength=300, id='cancel-reason', help='برای اتلیه و نیروهای افیش‌شده فرستاده می‌شود.') }}
+        <button class="btn btn--danger-soft" type="submit" data-confirm="مراسم لغو می‌شود، پیشنهادهای باز پس گرفته می‌شود و اتلیه و نیروهای افیش‌شده باخبر می‌شوند. ادامه می‌دهید؟" data-confirm-title="لغو مراسم" data-confirm-label="بله، لغو شود">{{ icon('x-circle') }}<span>لغو مراسم</span></button>
+      </form>
+    {% endif %}
+    {% if can_delete %}
+      <p class="text-muted text-sm">مراسمی که فقط پیش‌نویس است و هنوز به کسی پیشنهاد نشده را می‌توانید کامل حذف کنید.</p>
+      {{ confirm_button('حذف مراسم', url_for('halls.event_delete', event_id=event.id), 'این مراسم برای همیشه حذف می‌شود. ادامه می‌دهید؟', title='حذف مراسم', confirm_label='بله، حذف شود', icon='trash') }}
+    {% endif %}
+    </div>
+  {% endcall %}
+  {% endif %}
+</div>
+{% endblock %}

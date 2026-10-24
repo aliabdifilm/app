@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% from 'components/ui.html' import page_header, card, badge, alert, confirm_button, icon %}
+{% from 'ateliers/_macros.html' import date_tile, event_facts, event_sub %}
+{% block title %}مراسم {{ event.hall.name }}{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='css/ateliers.css', v=asset_version|default('1')) }}">{% endblock %}
+
+{% block content %}
+<div class="page page--narrow stack stack--lg">
+  {{ page_header('مراسم ' ~ event.hall.name, event.date|jdate('weekday_long'), back_url=url_for('ateliers.events'), back_label='مراسم‌ها') }}
+
+  {% call card(cls='at-event') %}
+    <div class="at-event__head">
+      {{ date_tile(event.date) }}
+      <div class="at-event__title">
+        <h2 class="at-event__name">{{ event.hall.name }}</h2>
+        <p class="text-muted">{{ event_sub(event) }}</p>
+      </div>
+      {{ badge(event.status.label, event.status|event_tone) }}
+    </div>
+    {{ event_facts(event) }}
+    {% if event.hall.address %}<p class="text-muted">{{ icon('map-pin') }} {{ event.hall.address }}</p>{% endif %}
+    {% if event.notes %}<p class="at-note-box">{{ event.notes }}</p>{% endif %}
+    {% if same_day %}{% call alert(tone='warning') %}در همین روز {{ same_day|fa }} مراسم دیگر دارید.{% endcall %}{% endif %}
+    {% if offer %}
+      {% if offer.message %}<p class="at-note-box">پیام تالار: «{{ offer.message }}»</p>{% endif %}
+      <div class="at-actions">
+        {{ confirm_button('پذیرش مراسم', url_for('ateliers.offer_accept', offer_id=offer.id), 'با پذیرفتن، این مراسم در برنامهٔ ' ~ atelier.name ~ ' ثبت می‌شود و مدیر تالار باخبر می‌شود.', title='پذیرفتن پیشنهاد', confirm_label='بله، می‌پذیرم', tone='primary', cls='btn btn--primary', icon='check') }}
+        {{ confirm_button('رد پیشنهاد', url_for('ateliers.offer_decline', offer_id=offer.id), 'این پیشنهاد رد می‌شود و مدیر تالار باخبر می‌شود.', title='رد پیشنهاد', confirm_label='بله، رد شود', icon='close') }}
+      </div>
+    {% elif can_claim %}
+      <div class="at-actions">
+        {{ confirm_button('برداشتن مراسم', url_for('ateliers.event_claim', event_id=event.id), 'اگر این مراسم هنوز آزاد باشد، به نام ' ~ atelier.name ~ ' ثبت می‌شود و مدیر تالار باخبر می‌شود.', title='برداشتن مراسم', confirm_label='بله، برمی‌دارم', tone='primary', cls='btn btn--primary', icon='check', fields={'atelier_id': atelier.id}) }}
+      </div>
+    {% else %}
+      {% call alert(tone='info') %}این مراسم دیگر برای پذیرفتن در دسترس نیست.{% endcall %}
+    {% endif %}
+  {% endcall %}
+</div>
+{% endblock %}

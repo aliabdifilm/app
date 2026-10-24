@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+{% from 'components/ui.html' import page_header, card, badge, alert, icon, textarea_field %}
+{% from 'staff/_macros.html' import terms_box, csrf %}
+{% block title %}حقوق مراسم {{ hall.name }}{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='css/staff.css', v=asset_version|default('1')) }}">{% endblock %}
+
+{% block content %}
+<div class="page stack stack--lg">
+  {% call page_header('حقوق ' ~ row.role.label ~ ' · ' ~ hall.name, event.date|jweekday ~ ' ' ~ (event.date|jdate('long')), back_url=url_for('staff.earnings_page'), back_label='درآمد من') %}
+    {% if row.paid %}{{ badge('پرداخت شد', 'success', 'check') }}{% else %}{{ badge('پرداخت‌نشده', 'warning', 'clock') }}{% endif %}
+  {% endcall %}
+
+  <div class="grid grid--2">
+    <div class="stack stack--lg">
+      {% call card(title='مبلغ حقوق', tone='success' if row.paid else 'warning') %}
+      <p class="st-big"><strong>{{ line.total|toman }}</strong> <small>تومان</small></p>
+      <dl class="kv">
+        <div><dt>وضعیت</dt><dd>{% if row.paid %}پرداخت شده در {{ line.paid_at|jdate('long') }}{% else %}هنوز پرداخت نشده{% endif %}</dd></div>
+        {% if line.paid_method %}<div><dt>روش پرداخت</dt><dd>{{ line.paid_method.label }}</dd></div>{% endif %}
+        {% if line.paid_note %}<div><dt>یادداشت پرداخت</dt><dd>{{ line.paid_note }}</dd></div>{% endif %}
+        <div><dt>مراسم</dt><dd>{{ hall.name }} · {{ event.date|jdate('long') }}</dd></div>
+        {% if atelier %}<div><dt>اتلیه</dt><dd>{{ atelier.name }}</dd></div>{% endif %}
+        <div><dt>نقش</dt><dd>{{ row.role.label }}</dd></div>
+      </dl>
+      {% if row.recalculated_from is not none %}
+      {% call alert(tone='warning', title='مبلغ پس از پرداخت تغییر کرده') %}
+        هنگام پرداخت {{ row.recalculated_from|toman }} تومان ثبت شده بود، اما فاکتور بعداً بازنگری شد و مبلغ فعلی {{ line.total|toman }} تومان است. موضوع را با اتلیه در میان بگذارید.
+      {% endcall %}
+      {% endif %}
+      <p><a class="btn btn--ghost btn--sm" href="{{ url_for('staff.assignment', assignment_id=row.assignment.id) }}">{{ icon('eye') }}<span>دیدن افیش این مراسم</span></a></p>
+      {% endcall %}
+
+      {% call card(title='گزارش مشکل در این ردیف', subtitle='اگر عدد یا تعداد فروش را درست نمی‌دانید، به مدیر اتلیه خبر دهید.') %}
+      {% if flags_today >= flag_limit %}
+      <p class="text-muted">امروز چند بار برای این ردیف گزارش داده‌اید؛ منتظر پاسخ اتلیه بمانید.</p>
+      {% else %}
+      <form method="post" action="{{ url_for('staff.earning_flag', line_id=line.id) }}" class="stack">
+        {{ csrf() }}
+        {{ textarea_field('توضیح مشکل', 'message', form.get('message', ''), rows=3, maxlength=flag_max, required=true, error=errors.get('message'),
+                          help='مثلاً: تعداد فروش را کمتر از واقعیت می‌دانم. این پیام برای مدیر اتلیه فرستاده می‌شود.') }}
+        <div class="form-actions"><button class="btn btn--secondary" type="submit">{{ icon('send') }}<span>ارسال گزارش</span></button></div>
+      </form>
+      {% endif %}
+      {% endcall %}
+    </div>
+
+    <div class="stack stack--lg">
+      {% call card(title='محاسبهٔ حقوق', subtitle=formula) %}
+      <table class="st-calc__table st-calc__table--big">
+        <tbody>
+          {% for item in row.breakdown %}
+          <tr><th scope="row">{{ item.label }}</th><td class="text-muted">{{ item.formula }}</td><td class="cell-num">{{ item.amount }}</td></tr>
+          {% endfor %}
+          <tr class="st-calc__total"><th scope="row">جمع</th><td></td><td class="cell-num">{{ line.total|toman }}</td></tr>
+        </tbody>
+      </table>
+      <p class="text-muted text-sm">تعداد فروش این مراسم: <strong>{{ line.units|fa }}</strong>. {{ units_note }}</p>
+      {% endcall %}
+
+      {% call card(title='شرایطی که هنگام افیش برایتان ثبت شد', subtitle='این شرایط برای مراسم‌های گذشته تغییر نمی‌کند.') %}
+      {{ terms_box(term_lines, none) }}
+      {% endcall %}
+    </div>
+  </div>
+</div>
+{% endblock %}

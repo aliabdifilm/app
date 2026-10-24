@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% from 'components/ui.html' import page_header, card, alert, badge, select_field, textarea_field, checkbox_field, icon, avatar %}
+{% from 'marketplace/_macros.html' import terms_editor %}
+{% block title %}دعوت {{ person|mk_name }}{% endblock %}
+{% block head %}<meta name="robots" content="noindex"><link rel="stylesheet" href="{{ url_for('static', filename='css/marketplace.css', v=asset_version|default('1')) }}">{% endblock %}
+
+{% block content %}
+<div class="page page--narrow stack stack--lg">
+  {{ page_header('دعوت به همکاری', person|mk_name, back_url=url_for('marketplace.talent_profile', user_id=person.id), back_label='پروفایل') }}
+
+  {% if problem %}{% call alert(tone='danger', title='دعوت ارسال نشد') %}{{ problem }}{% endcall %}{% endif %}
+  {% if errors %}{% call alert(tone='danger', title='لطفاً خطاهای فرم را اصلاح کنید') %}<ul class="mk-list">{% for message in errors.values() %}<li>{{ message }}</li>{% endfor %}</ul>{% endcall %}{% endif %}
+
+  {% if not events %}
+  {% call alert(tone='warning', title='مراسم قابل افیشی ندارید') %}
+    برای دعوت باید مراسمی از اتلیه‌تان در پیش داشته باشید.
+    {% if events_url %}<a href="{{ events_url }}">مراسم‌های من</a>{% endif %}
+  {% endcall %}
+  {% else %}
+  <form method="post" class="stack stack--lg" novalidate data-mk-form>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    {% call card(title='مراسم و نقش', subtitle='دعوت همان افیش با وضعیت «دعوت شده» است؛ پس از پذیرفتن نیرو قطعی می‌شود.') %}
+      <div class="form-grid form-grid--2">
+        {{ select_field('مراسم', 'event', event_options, selected=form.get('event'), required=true, placeholder='انتخاب مراسم', error=errors.get('event')) }}
+        {{ select_field('نقش', 'role', role_options, selected=form.get('role'), required=true, error=errors.get('role'), help='فقط نقش‌هایی که این نفر ثبت کرده است.') }}
+      </div>
+      {% if check and (check.conflicts or check.unavailable) %}
+      {% call alert(tone='warning', title='این نفر همان روز مشغول است') %}
+        {% if check.conflicts %}در همان تاریخ در مراسم دیگری افیش شده است (جزئیات نمایش داده نمی‌شود).{% endif %}
+        {% if check.unavailable %}این روز را «در دسترس نیستم» ثبت کرده است.{% endif %}
+      {% endcall %}
+      {% if not blocked %}{{ checkbox_field('دعوت با علم به تداخل', 'override', checked=form.get('override'), help='دعوت ارسال می‌شود و تصمیم با خود نیرو است.') }}{% endif %}
+      {% endif %}
+    {% endcall %}
+    {% call card(title='حقوق و شرایط پرداخت', subtitle='این شرایط هنگام ارسال دعوت روی افیش ثبت می‌شود.') %}
+      {{ terms_editor(form, errors) }}
+    {% endcall %}
+    {% call card(title='پیام') %}
+      {{ textarea_field('پیام برای نیرو (اختیاری)', 'notes', form.get('notes', ''), rows=3, maxlength=300, error=errors.get('notes'), placeholder='ساعت حضور، پوشش و ...') }}
+    {% endcall %}
+    <div class="form-actions form-actions--sticky">
+      <button class="btn btn--primary btn--lg" type="submit">{{ icon('send') }}<span>ارسال دعوت</span></button>
+      <a class="btn btn--ghost btn--lg" href="{{ url_for('marketplace.talent_profile', user_id=person.id) }}">انصراف</a>
+    </div>
+  </form>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}<script src="{{ url_for('static', filename='js/marketplace.js', v=asset_version|default('1')) }}" defer></script>{% endblock %}

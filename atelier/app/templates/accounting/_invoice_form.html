@@ -1,0 +1,214 @@
+{#- The invoice popup form (AGENTS.md "پاپ‌آپ ثبت فاکتور").  Rendered as a fragment into the modal (accounting.js) or
+    inside invoice_page.html.  Field names are documented in app/modules/accounting/forms.py.
+    Numbers shown in the summary come from the server (ledger.evaluate); JavaScript only displays them. -#}
+{% from 'components/ui.html' import icon, alert, badge, money_input, stepper_field %}
+
+{% macro field_error(errors, name) -%}
+{%- if errors.get(name) %}<p class="field__error" id="err-{{ name }}" role="alert">{{ icon('alert') }}<span>{{ errors.get(name) }}</span></p>{% endif -%}
+{%- endmacro %}
+
+{% macro qty_row(row, state, errors, limits) -%}
+{%- set name = row.qty_name -%}
+<div class="inv-row{% if errors.get(name) %} inv-row--invalid{% endif %}" data-row="{{ row.key }}">
+  <label class="inv-row__label" for="f-{{ name }}">{{ row.label|replace('x', '×')|fa }}</label>
+  {{ stepper_field(name, state.qty.get(row.key) or 0, 0, limits.qty, default=0, aria_label='تعداد فروش ' ~ (row.label|replace('x', '×')|fa)) }}
+  <label class="inv-nocomm"><input type="checkbox" name="{{ row.nocomm_name }}" value="1"{% if state.nocomm.get(row.key) %} checked{% endif %}><span>بدون پورسانت</span></label>
+  {{ field_error(errors, name) }}
+</div>
+{%- endmacro %}
+
+{% macro custom_row(cat, label, r, idx, errors, limits) -%}
+{%- set base = 'custom__' ~ cat ~ '__' ~ idx ~ '__' -%}
+{%- set bad = errors.get(base ~ 'size') or errors.get(base ~ 'qty') or errors.get(base ~ 'weight') -%}
+<div class="inv-custom__row{% if bad %} inv-row--invalid{% endif %}" data-custom-row>
+  <div class="inv-custom__head">
+    <span class="inv-custom__tag">{{ label }}</span>
+    <button type="button" class="icon-btn" data-remove-row aria-label="حذف این ردیف">{{ icon('trash') }}</button>
+  </div>
+  <div class="inv-custom__fields">
+    <div class="field">
+      <label class="field__label" for="f-{{ base }}size">ابعاد (سانتی‌متر)</label>
+      <input class="input input--num" id="f-{{ base }}size" type="text" name="{{ base }}size" value="{{ r.size }}" dir="ltr" inputmode="text"
+        autocomplete="off" maxlength="20" placeholder="مثلاً ۵۰×۷۰"{% if errors.get(base ~ 'size') %} aria-invalid="true" aria-describedby="err-{{ base }}size"{% endif %}>
+    </div>
+    {{ stepper_field(base ~ 'qty', r.qty or 0, 0, limits.qty, label='تعداد فروش', default=0) }}
+    {{ stepper_field(base ~ 'weight', (r.weight if r.weight != '' else 1), 0, limits.weight, label='تعداد محاسبه برای حقوق نیرو', default=1) }}
+  </div>
+  <label class="inv-nocomm"><input type="checkbox" name="{{ base }}nocomm" value="1"{% if r.nocomm %} checked{% endif %}><span>بدون پورسانت</span></label>
+  {{ field_error(errors, base ~ 'size') }}{{ field_error(errors, base ~ 'qty') }}{{ field_error(errors, base ~ 'weight') }}
+</div>
+{%- endmacro %}
+
+{% macro extra_row(r, idx, kinds, errors, limits) -%}
+{%- set base = 'extra__' ~ idx ~ '__' -%}
+<div class="inv-extra__row{% if errors.get(base ~ 'label') or errors.get(base ~ 'amount') or errors.get(base ~ 'kind') %} inv-row--invalid{% endif %}" data-extra-row>
+  <div class="field">
+    <label class="field__label" for="f-{{ base }}kind">نوع</label>
+    <div class="select-wrap"><select class="select" id="f-{{ base }}kind" name="{{ base }}kind">
+      {% for value, text in kinds %}<option value="{{ value }}"{% if (r.kind or 'other') == value %} selected{% endif %}>{{ text }}</option>{% endfor %}
+    </select>{{ icon('chevron-down') }}</div>
+  </div>
+  <div class="field">
+    <label class="field__label" for="f-{{ base }}label">عنوان هزینه</label>
+    <input class="input" id="f-{{ base }}label" type="text" name="{{ base }}label" value="{{ r.label }}" maxlength="200" autocomplete="off" placeholder="مثلاً کاغذ، جوهر، ایاب‌وذهاب"{% if errors.get(base ~ 'label') %} aria-invalid="true" aria-describedby="err-{{ base }}label"{% endif %}>
+  </div>
+  {{ money_input(base ~ 'amount', r.amount if r.amount != '' else none, label='مبلغ', max=limits.amount) }}
+  <button type="button" class="icon-btn inv-extra__remove" data-remove-row aria-label="حذف این هزینه">{{ icon('trash') }}</button>
+  {{ field_error(errors, base ~ 'label') }}{{ field_error(errors, base ~ 'kind') }}{{ field_error(errors, base ~ 'amount') }}
+</div>
+{%- endmacro %}
+
+{% macro summary(comp) -%}
+<aside class="inv-sum card" aria-label="خلاصهٔ حساب مراسم" data-summary>
+  <div class="card__header"><h3 class="card__title">خلاصهٔ حساب</h3><span class="inv-sum__spinner" data-sum-busy hidden>در حال محاسبه…</span></div>
+  <div class="card__body stack stack--sm" aria-live="polite">
+    <dl class="kv inv-sum__kv">
+      <dt>جمع محصولات برای پورسانت</dt><dd><span class="num" data-sum="units">{{ comp.units|fa if comp else '—' }}</span> <small class="text-muted">واحد</small></dd>
+      <dt>درآمد</dt><dd><span class="num" data-sum="income">{{ comp.income|toman if comp else '—' }}</span> <small class="text-muted">تومان</small></dd>
+      <dt>حقوق نیروها</dt><dd><span class="num" data-sum="staff_pay">{{ comp.staff_total|toman if comp else '—' }}</span> <small class="text-muted">تومان</small></dd>
+      <dt>سایر هزینه‌ها</dt><dd><span class="num" data-sum="other_expenses">{{ (comp.expense_total - comp.staff_total)|toman if comp else '—' }}</span> <small class="text-muted">تومان</small></dd>
+      <dt>جمع هزینه‌ها</dt><dd><span class="num" data-sum="expense_total">{{ comp.expense_total|toman if comp else '—' }}</span> <small class="text-muted">تومان</small></dd>
+    </dl>
+    <div class="inv-sum__net{% if comp and comp.net_profit < 0 %} is-negative{% endif %}" data-sum-net-box>
+      <span>سود خالص</span>
+      <strong class="num"><span data-sum="net">{% if comp %}{{ '−' if comp.net_profit < 0 }}{{ comp.net_profit|abs|toman }}{% else %}—{% endif %}</span> <small>تومان</small></strong>
+    </div>
+    <h4 class="inv-sum__title">حقوق هر نیرو</h4>
+    <ul class="inv-sum__people" data-sum-people>
+      {% if comp %}{% for item in comp.people %}
+      <li class="inv-person" data-person="{{ item.person.key }}">
+        <div class="inv-person__head"><strong>{{ item.person.name }}</strong><span class="text-muted">{{ item.person.role.label }}</span></div>
+        <div class="inv-person__parts text-sm">
+          <span>پایه <b class="num">{{ item.pay.base|toman }}</b></span>
+          <span>پورسانت <b class="num">{{ item.pay.commission|toman }}</b></span>
+          <span>پاداش <b class="num">{{ item.pay.bonus|toman }}</b>{% if item.pay.applied_tier %} <small class="text-muted">(پلهٔ {{ item.pay.applied_tier.threshold|fa }}+)</small>{% endif %}</span>
+        </div>
+        <div class="inv-person__total">جمع <b class="num">{{ item.pay.total|toman }}</b> <small class="text-muted">تومان</small></div>
+      </li>
+      {% endfor %}{% endif %}
+    </ul>
+    <p class="text-sm text-muted" data-sum-nobody{% if comp and comp.people %} hidden{% endif %}>نیروی تأییدشده‌ای برای این مراسم ثبت نشده است؛ هزینهٔ نیروها صفر محاسبه می‌شود.</p>
+    <div class="inv-sum__warnings" data-sum-warnings role="status"></div>
+  </div>
+</aside>
+{%- endmacro %}
+
+<form method="post" action="{{ url_for('accounting.invoice_save', event_id=event.id) }}" class="inv stack stack--lg" data-invoice-form
+      data-preview-url="{{ url_for('accounting.invoice_preview', event_id=event.id) }}"
+      data-title="{{ ('ویرایش فاکتور' if is_edit else 'ثبت فاکتور') ~ ' · ' ~ event.hall.name ~ ' · ' ~ (event.date|jdate) }}" aria-label="فاکتور مراسم">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <input type="hidden" name="base_revision" value="{{ state.base_revision }}">
+  <input type="hidden" name="save_token" value="{{ state.nonce }}">
+
+  <header class="inv-head">
+    <p class="inv-head__line"><strong>{{ event.hall.name }}</strong><span class="text-muted"> · {{ event.date|jdate('weekday_long') }}</span></p>
+    <p class="text-sm text-muted">{{ atelier.name }}{% if is_edit %} · نسخهٔ {{ state.base_revision|fa }}{% endif %}</p>
+  </header>
+
+  {% if errors %}
+  {% call alert(tone='danger', title='فاکتور ذخیره نشد') %}
+    {% if errors.get('__all__') %}{{ errors.get('__all__') }}
+    {% else %}موارد زیر را اصلاح کنید و دوباره بفرستید:
+    <ul class="inv-errors">{% for message in errors.values()|unique|list %}{% if loop.index <= 8 %}<li>{{ message }}</li>{% endif %}{% endfor %}</ul>
+    {% endif %}
+  {% endcall %}
+  {% endif %}
+  {% if is_future %}{{ alert('تاریخ این مراسم هنوز نرسیده است؛ مطمئن شوید که فاکتور مراسم درست را ثبت می‌کنید.', 'warning') }}{% endif %}
+  {% if invoice and invoice.status.value == 'draft' %}{{ alert('این فاکتور بازگشایی شده بود؛ با ذخیره، دوباره ثبت و شرایط پرداخت نیروها قفل می‌شود.', 'info') }}{% endif %}
+
+  <div class="inv-layout">
+    <div class="inv-main stack stack--lg">
+
+      {#- ---- 1. sold products ---- -#}
+      <section class="stack" aria-labelledby="inv-h-products">
+        <h3 class="inv-h" id="inv-h-products">محصولات فروش‌رفته در این مراسم</h3>
+        {% for group in groups %}
+        <fieldset class="inv-group">
+          <legend class="inv-group__title">{{ group.title }}</legend>
+          {% for sec in group.sections %}
+            {% for row in sec.rows %}{{ qty_row(row, state, errors, limits) }}{% endfor %}
+            {% if sec.allows_custom %}
+            {% set cat = sec.category.value %}
+            {% set rows = state.custom[cat] %}
+            <div class="inv-custom" data-custom-rows="{{ cat }}" data-next-index="{{ (rows|map(attribute='idx')|max + 1) if rows else 0 }}" data-max="{{ max_custom }}">
+              {% for r in rows %}{{ custom_row(cat, sec.custom_label, r, r.idx, errors, limits) }}{% endfor %}
+            </div>
+            <button type="button" class="btn btn--secondary btn--sm inv-add" data-add-custom="{{ cat }}">{{ icon('plus') }}<span>{{ sec.custom_label }}</span></button>
+            <template data-custom-template="{{ cat }}">{{ custom_row(cat, sec.custom_label, {'size': '', 'qty': 0, 'weight': 1, 'nocomm': false}, '__IDX__', {}, limits) }}</template>
+            {% endif %}
+          {% endfor %}
+        </fieldset>
+        {% endfor %}
+        <p class="text-sm text-muted">«تعداد محاسبه برای حقوق نیرو» برای ردیف‌های «ابعاد دیگر» است و پیش‌فرض آن ۱ است؛ مثلاً یک چاپ بزرگ را می‌توانید ۳ واحد حساب کنید. جمع «تعداد × ضریب» مبنای پورسانت همهٔ نیروهاست.</p>
+      </section>
+
+      {#- ---- 2. payments ---- -#}
+      <fieldset class="inv-group">
+        <legend class="inv-group__title">دریافتی‌ها (تومان)</legend>
+        <div class="form-grid form-grid--3">
+          {% for method in PaymentMethod %}
+          {{ money_input('pay__' ~ method.value, state.pay.get(method.value), label='جمع ' ~ method.label, error=errors.get('pay__' ~ method.value), max=limits.amount) }}
+          {% endfor %}
+        </div>
+      </fieldset>
+
+      {#- ---- 3. expenses ---- -#}
+      <fieldset class="inv-group">
+        <legend class="inv-group__title">هزینه‌ها (تومان)</legend>
+
+        <div class="inv-venue">
+          {{ money_input('venue_rent', state.venue_rent, label='اجارهٔ باغ/تالار', error=errors.get('venue_rent'), max=limits.amount,
+                         help='به‌طور خودکار از تنظیمات اتلیه پر می‌شود؛ در صورت نیاز تغییرش دهید.') }}
+          <button type="button" class="inv-link" data-restore-default="f-venue_rent" data-default="{{ suggestions.venue_rent }}"
+            {%- if (state.venue_rent|string) == (suggestions.venue_rent|string) %} hidden{% endif %}>بازگشت به مقدار پیش‌فرض ({{ suggestions.venue_rent|toman }} تومان)</button>
+        </div>
+
+        <div class="inv-auto" aria-labelledby="inv-h-staff">
+          <h4 class="inv-h inv-h--sm" id="inv-h-staff">هزینهٔ نیروها <small class="text-muted">(خودکار؛ از شرایط زمان افیش و فرمول حقوق)</small></h4>
+          <ul class="inv-auto__list" data-staff-costs>
+            {% if comp %}{% for item in comp.people %}
+            <li data-person="{{ item.person.key }}"><span>{{ item.person.name }} <small class="text-muted">· {{ item.person.role.label }}</small>{% if item.person.key in paid_lines %} <small class="text-muted">· پرداخت‌شده</small>{% endif %}</span><b class="num" data-person-total="{{ item.person.key }}">{{ item.pay.total|toman }}</b></li>
+            {% endfor %}{% endif %}
+          </ul>
+          <p class="text-sm text-muted" data-sum-nobody-inline{% if comp and comp.people %} hidden{% endif %}>نیروی تأییدشده‌ای ثبت نشده است.</p>
+        </div>
+
+        {% if suggestions.equipment %}
+        <div class="inv-equipment stack stack--sm">
+          <h4 class="inv-h inv-h--sm">اجارهٔ تجهیزات <small class="text-muted">(پیشنهاد از تجهیزات مراسم؛ قابل ویرایش)</small></h4>
+          <div class="form-grid form-grid--2">
+            {% for item in suggestions.equipment %}
+            {{ money_input('equip__' ~ item.usage_id ~ '__amount', state.equipment.get(item.usage_id), label=item.label, error=errors.get('equip__' ~ item.usage_id ~ '__amount'), max=limits.amount,
+                           help='پیشنهاد: ' ~ (item.amount|toman) ~ ' تومان') }}
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+
+        <div class="inv-extra stack stack--sm">
+          <h4 class="inv-h inv-h--sm">هزینه‌های دیگر</h4>
+          <div class="inv-extra__rows" data-extra-rows data-next-index="{{ (state.extras|map(attribute='idx')|max + 1) if state.extras else 0 }}" data-max="{{ max_extra }}">
+            {% for r in state.extras %}{{ extra_row(r, r.idx, extra_kinds, errors, limits) }}{% endfor %}
+          </div>
+          <button type="button" class="btn btn--secondary btn--sm inv-add" data-add-extra>{{ icon('plus') }}<span>هزینهٔ دیگر</span></button>
+          <template data-extra-template>{{ extra_row({'kind': 'other', 'label': '', 'amount': ''}, '__IDX__', extra_kinds, {}, limits) }}</template>
+        </div>
+      </fieldset>
+
+      <div class="field">
+        <label class="field__label" for="f-notes">یادداشت (اختیاری)</label>
+        <textarea class="textarea" id="f-notes" name="notes" rows="2" maxlength="1000" placeholder="توضیح دربارهٔ این مراسم یا فاکتور">{{ state.notes }}</textarea>
+        {{ field_error(errors, 'notes') }}
+      </div>
+    </div>
+
+    <div class="inv-side">{{ summary(comp) }}</div>
+  </div>
+
+  <div class="inv-actions">
+    <div class="inv-actions__net" aria-hidden="true">سود خالص: <strong class="num"><span data-sum="net">{% if comp %}{{ '−' if comp.net_profit < 0 }}{{ comp.net_profit|abs|toman }}{% else %}—{% endif %}</span></strong></div>
+    <button type="submit" class="btn btn--primary">{{ icon('check') }}<span>{{ 'ذخیرهٔ تغییرات فاکتور' if is_edit else 'ثبت فاکتور' }}</span></button>
+    {% if in_modal %}<button type="button" class="btn" data-modal-close>انصراف</button>
+    {% else %}<a class="btn" href="{{ index_url }}">انصراف</a>{% endif %}
+  </div>
+</form>

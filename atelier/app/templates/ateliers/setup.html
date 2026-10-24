@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% from 'components/ui.html' import page_header, card, form_field, money_input, alert, icon %}
+{% block title %}ثبت اتلیه{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='css/ateliers.css', v=asset_version|default('1')) }}">{% endblock %}
+
+{% block content %}
+<div class="page page--narrow stack stack--lg">
+  {{ page_header('ثبت اتلیه' if first else 'اتلیهٔ تازه',
+                 'چند اطلاعات ساده بدهید تا بتوانید مراسم بگیرید و نیرو افیش کنید.' if first else 'اتلیهٔ دیگری به حساب خود اضافه کنید.',
+                 back_url=None if first else url_for('ateliers.settings')) }}
+
+  {% call card() %}
+  <form method="post" action="{{ url_for('ateliers.setup', new='1' if adding else None) }}" enctype="multipart/form-data" class="stack" novalidate>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="form-grid form-grid--2">
+      {{ form_field('نام اتلیه', name='name', value=form.get('name', ''), required=true, error=errors.get('name'), maxlength=150, autocomplete='organization') }}
+      {{ form_field('شهر', name='city', value=form.get('city', ''), required=true, error=errors.get('city'), maxlength=80) }}
+      {{ form_field('تلفن', name='phone', type='tel', inputmode='numeric', dir='ltr', value=form.get('phone', ''), error=errors.get('phone'), autocomplete='tel') }}
+      {{ money_input('default_venue_rent', form.get('default_venue_rent'), label='اجارهٔ پیش‌فرض باغ/تالار', error=errors.get('default_venue_rent'),
+                     help='در فاکتور مراسم خودکار وارد می‌شود و هر بار قابل تغییر است. اجارهٔ هر تالار را بعداً در تنظیمات می‌دهید.') }}
+    </div>
+    {% call(fid) form_field('لوگوی اتلیه (اختیاری)', name='logo', id='f-logo', error=errors.get('logo'), help='تصویر JPG، PNG یا WebP؛ تا ۵ مگابایت.') %}
+      <input class="input" type="file" id="{{ fid }}" name="logo" accept="image/jpeg,image/png,image/webp">
+    {% endcall %}
+    <div class="form-actions">
+      <button class="btn btn--primary btn--lg" type="submit">{{ icon('check') }}<span>ثبت اتلیه</span></button>
+      {% if not first %}<a class="btn btn--ghost btn--lg" href="{{ url_for('ateliers.settings') }}">انصراف</a>{% endif %}
+    </div>
+  </form>
+  {% endcall %}
+</div>
+{% endblock %}

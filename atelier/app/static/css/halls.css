@@ -1,0 +1,181 @@
+/*
+ * Atelier Sayyar - hall manager panel (module `halls`).
+ * Tokens only (no hex colours), logical properties (RTL first), mobile first (390px).
+ * Prefix `hl-` keeps these classes out of the shared design system (css/app.css).
+ * No inline styles anywhere: bars are native <progress> elements, geometry comes from classes.
+ */
+
+/* -- small layout helpers -------------------------------------------------- */
+.hl-cards { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--sp-4); grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); }
+.hl-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
+.hl-filter { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--sp-3); }
+.hl-filter .field { flex: 1 1 160px; margin: 0; }
+.hl-filter__actions { display: flex; gap: var(--sp-2); align-items: center; }
+.hl-scope { margin: 0; color: var(--text-muted); font-size: var(--fs-sm); }
+.hl-legend { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin: 0; }
+.hl-section-title { font-size: var(--fs-lg); margin: 0; }
+.hl-note-box {
+  margin: 0; padding: var(--sp-3) var(--sp-4); border-radius: var(--r-md);
+  background: var(--surface-2); color: var(--text); border-inline-start: 3px solid var(--border-strong);
+  overflow-wrap: anywhere; white-space: pre-line;
+}
+.hl-views { display: inline-flex; gap: var(--sp-1); }
+
+/* -- date tile and event header -------------------------------------------- */
+.hl-date {
+  display: inline-flex; flex-direction: column; align-items: center; justify-content: center; flex: none;
+  inline-size: 3.5rem; block-size: 3.5rem; border-radius: var(--r-md);
+  background: var(--accent-soft); color: var(--accent-ink); line-height: 1.1;
+}
+.hl-date__day { font-size: var(--fs-xl); font-weight: 800; }
+.hl-date__month { font-size: var(--fs-xs); font-weight: 600; }
+.hl-event { display: flex; flex-direction: column; gap: var(--sp-3); }
+.hl-event__head { display: flex; align-items: center; gap: var(--sp-3); }
+.hl-event__pick { flex: none; }
+.hl-event__title { flex: 1; min-width: 0; }
+.hl-event__name { font-size: var(--fs-lg); margin: 0; overflow-wrap: anywhere; }
+.hl-event__name a { color: inherit; text-decoration: none; }
+.hl-event__name a:hover { color: var(--accent-text); text-decoration: underline; }
+.hl-event__title p { margin: 0; }
+.hl-facts { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4); color: var(--text-muted); font-size: var(--fs-sm); }
+.hl-fact { display: inline-flex; align-items: center; gap: var(--sp-1); }
+
+/* -- rows inside cards ----------------------------------------------------- */
+.hl-list { list-style: none; margin: 0; padding: 0; }
+.hl-list__item + .hl-list__item { border-block-start: 1px solid var(--border); }
+.hl-row {
+  display: flex; align-items: center; gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4); color: inherit; text-decoration: none; min-height: var(--tap);
+}
+a.hl-row:hover { background: var(--surface-2); color: inherit; }
+.hl-row__body { display: flex; flex-direction: column; gap: var(--sp-1); min-width: 0; flex: 1; }
+.hl-row__body strong { overflow-wrap: anywhere; }
+.hl-row__side { display: flex; flex-direction: column; align-items: flex-end; gap: var(--sp-1); flex: none; }
+
+/* -- bulk selection bar ---------------------------------------------------- */
+.hl-bulkbar {
+  position: sticky; inset-block-end: calc(var(--sp-3) + env(safe-area-inset-bottom, 0px)); z-index: 5;
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-4); border-radius: var(--r-lg);
+  background: var(--surface); border: 1px solid var(--border-strong); box-shadow: var(--shadow-md);
+}
+.hl-bulkbar[hidden] { display: none; }
+.hl-bulkbar__count { font-weight: 700; margin-inline-end: auto; }
+.hl-selectall { display: inline-flex; align-items: center; gap: var(--sp-2); }
+.hl-reason { flex: 1 1 14rem; }
+
+/* -- occupancy / bars ------------------------------------------------------ */
+.hl-bar {
+  appearance: none; -webkit-appearance: none; display: block; inline-size: 100%; block-size: 0.625rem;
+  border: 0; border-radius: var(--r-pill); background: var(--surface-3); overflow: hidden;
+}
+.hl-bar::-webkit-progress-bar { background: var(--surface-3); border-radius: var(--r-pill); }
+.hl-bar::-webkit-progress-value { background: var(--accent); border-radius: var(--r-pill); }
+.hl-bar::-moz-progress-bar { background: var(--accent); border-radius: var(--r-pill); }
+.hl-bar--success::-webkit-progress-value { background: var(--success); }
+.hl-bar--success::-moz-progress-bar { background: var(--success); }
+.hl-occ { display: flex; flex-direction: column; gap: var(--sp-2); }
+.hl-occ__head { display: flex; justify-content: space-between; gap: var(--sp-3); align-items: baseline; }
+.hl-occ__meta { color: var(--text-muted); font-size: var(--fs-sm); }
+.hl-months { display: grid; gap: var(--sp-3); margin: 0; padding: 0; list-style: none; }
+.hl-month { display: grid; grid-template-columns: 5.5rem minmax(0, 1fr) 3rem; gap: var(--sp-3); align-items: center; }
+.hl-month__name { font-weight: 600; }
+.hl-month__num { text-align: end; font-variant-numeric: tabular-nums; }
+.hl-month__detail { grid-column: 1 / -1; color: var(--text-muted); font-size: var(--fs-xs); margin-block-start: calc(var(--sp-2) * -1); }
+
+/* -- hall profile ---------------------------------------------------------- */
+.hl-gallery { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--sp-3); grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr)); }
+.hl-photo { position: relative; margin: 0; border-radius: var(--r-md); overflow: hidden; background: var(--surface-2); aspect-ratio: 4 / 3; }
+.hl-photo img { inline-size: 100%; block-size: 100%; object-fit: cover; display: block; }
+.hl-photo__remove { position: absolute; inset-block-start: var(--sp-2); inset-inline-end: var(--sp-2); }
+.hl-photo figcaption { position: absolute; inset-inline: 0; inset-block-end: 0; padding: var(--sp-1) var(--sp-2); font-size: var(--fs-xs); background: var(--surface); color: var(--text); opacity: 0.92; }
+.hl-cover { inline-size: 4rem; block-size: 4rem; border-radius: var(--r-md); object-fit: cover; flex: none; background: var(--surface-2); }
+.hl-cover--blank { display: inline-flex; align-items: center; justify-content: center; color: var(--text-muted); }
+.hl-chips { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin: 0; padding: 0; list-style: none; }
+.hl-upload { display: flex; flex-wrap: wrap; gap: var(--sp-3); align-items: flex-end; }
+.hl-upload .field { flex: 1 1 14rem; margin: 0; }
+.hl-mapline { overflow-wrap: anywhere; }
+
+/* -- picking dates and ateliers ------------------------------------------- */
+.hl-pick { display: flex; flex-direction: column; gap: var(--sp-2); }
+.hl-pickrow {
+  display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-3) var(--sp-4);
+  border: 1px solid var(--border); border-radius: var(--r-md); background: var(--surface); min-height: var(--tap);
+}
+.hl-pickrow:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+.hl-pickrow__body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--sp-1); }
+.hl-pickrow__body strong { overflow-wrap: anywhere; }
+.hl-pickrow input[type="checkbox"] { inline-size: 1.25rem; block-size: 1.25rem; flex: none; accent-color: var(--accent); }
+
+/* -- atelier cards --------------------------------------------------------- */
+.hl-atelier { display: flex; flex-direction: column; gap: var(--sp-3); }
+.hl-atelier__head { display: flex; align-items: center; gap: var(--sp-3); }
+.hl-atelier__title { flex: 1; min-width: 0; }
+.hl-atelier__name { margin: 0; font-size: var(--fs-lg); overflow-wrap: anywhere; }
+.hl-atelier__name a { color: inherit; text-decoration: none; }
+.hl-atelier__name a:hover { color: var(--accent-text); text-decoration: underline; }
+.hl-atelier__desc { margin: 0; color: var(--text-muted); font-size: var(--fs-sm); overflow-wrap: anywhere; }
+.hl-review { padding: var(--sp-3) var(--sp-4); }
+.hl-review p { margin: var(--sp-1) 0 0; overflow-wrap: anywhere; white-space: pre-line; }
+
+/* -- the multi-date picker ------------------------------------------------- */
+.hl-md { display: flex; flex-direction: column; gap: var(--sp-3); }
+.hl-md__bar { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); }
+.hl-md__title { font-weight: 700; font-size: var(--fs-lg); margin: 0; }
+.hl-md__grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: var(--sp-1); }
+.hl-md__dow { text-align: center; font-size: var(--fs-xs); color: var(--text-muted); padding-block: var(--sp-1); }
+.hl-md__dow--end { color: var(--danger); }
+.hl-md__day {
+  min-block-size: var(--tap); border-radius: var(--r-md); border: 1px solid var(--border);
+  background: var(--surface); color: var(--text); font: inherit; font-weight: 600; cursor: pointer;
+}
+.hl-md__day:hover { background: var(--surface-2); }
+.hl-md__day--friday { color: var(--danger); }
+.hl-md__day--past { opacity: 0.45; cursor: not-allowed; }
+.hl-md__day--blank { border: 0; background: transparent; cursor: default; }
+.hl-md__day[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.hl-md__count { margin: 0; font-weight: 700; }
+.hl-md__tools { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.hl-md__chips { max-block-size: 9rem; overflow: auto; }
+.hl-chip {
+  display: inline-flex; align-items: center; gap: var(--sp-1); padding: var(--sp-1) var(--sp-2);
+  border-radius: var(--r-pill); background: var(--accent-soft); color: var(--accent-ink); font-size: var(--fs-sm);
+}
+.hl-chip button { border: 0; background: transparent; color: inherit; cursor: pointer; font: inherit; padding: 0 var(--sp-1); min-inline-size: 1.5rem; min-block-size: 1.5rem; }
+.hl-rule { display: flex; flex-direction: column; gap: var(--sp-3); }
+.hl-weekdays { display: flex; flex-wrap: wrap; gap: var(--sp-2); border: 0; padding: 0; margin: 0; }
+.hl-weekdays legend { padding: 0; margin-block-end: var(--sp-2); font-weight: 600; }
+.hl-weekday { display: inline-flex; align-items: center; gap: var(--sp-1); min-block-size: var(--tap); padding-inline: var(--sp-3); border: 1px solid var(--border-strong); border-radius: var(--r-pill); background: var(--surface); }
+.hl-weekday:has(input:checked) { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-ink); }
+.hl-md-shell { display: none; }
+.js .hl-md-shell { display: block; }
+.hl-rule-submit-js { display: none; }
+.js .hl-rule-submit-js { display: inline-flex; }
+
+/* -- timeline -------------------------------------------------------------- */
+.hl-timeline { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.hl-timeline__item { display: flex; gap: var(--sp-3); padding-block: var(--sp-2); border-block-end: 1px solid var(--border); }
+.hl-timeline__item:last-child { border-block-end: 0; }
+.hl-timeline__time { flex: none; inline-size: 7.5rem; color: var(--text-muted); font-size: var(--fs-xs); padding-block-start: 2px; }
+.hl-timeline__text { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+
+/* -- staff head-count (outcome) -------------------------------------------- */
+.hl-roles { display: grid; gap: var(--sp-2); grid-template-columns: repeat(auto-fit, minmax(min(100%, 8rem), 1fr)); margin: 0; padding: 0; list-style: none; }
+.hl-role { display: flex; flex-direction: column; gap: var(--sp-1); padding: var(--sp-3); border-radius: var(--r-md); background: var(--surface-2); }
+.hl-role__num { font-size: var(--fs-xl); font-weight: 800; }
+
+/* phones show the fixed tab bar (below 900px): sticky bars must stay above it */
+@media (max-width: 899px) {
+  .page .form-actions--sticky { inset-block-end: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px)); }
+  .hl-bulkbar { inset-block-end: calc(var(--tabbar-h) + var(--sp-3) + env(safe-area-inset-bottom, 0px)); }
+}
+
+@media (max-width: 639px) {
+  .hl-month { grid-template-columns: 4.5rem minmax(0, 1fr) 2.5rem; }
+  .hl-timeline__item { flex-direction: column; gap: 0; }
+  .hl-timeline__time { inline-size: auto; }
+}
+
+.hl-note { padding: var(--sp-3) var(--sp-4); margin: 0; }
+
+.hl-event__state { display: flex; flex-wrap: wrap; gap: var(--sp-2); }

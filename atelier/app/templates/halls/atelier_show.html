@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+{% from 'components/ui.html' import page_header, card, badge, empty_state, rating_stars, icon, avatar %}
+{% from 'halls/_macros.html' import date_tile, state_badge %}
+{% block title %}{{ atelier.name }}{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='css/halls.css', v=asset_version|default('1')) }}">{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/halls.js', v=asset_version|default('1')) }}" defer></script>{% endblock %}
+
+{% block content %}
+<div class="page stack stack--lg">
+  {{ page_header(atelier.name, (atelier.city or 'شهر نامشخص') ~ (' · تأییدشده' if atelier.manager.is_verified else ''), back_url=url_for('halls.directory'), back_label='اتلیه‌ها',
+       actions=('<a class="btn btn--primary" href="' ~ url_for('halls.offer_new', atelier=atelier.id) ~ '">پیشنهاد مراسم</a> <a class="btn btn--secondary" href="' ~ url_for('halls.agreement_new', atelier=atelier.id) ~ '">ثبت توافق‌نامه</a>')|safe) }}
+
+  <div class="grid grid--2">
+    {% call card(title='دربارهٔ اتلیه') %}
+      <div class="hl-atelier__head">
+        {{ avatar(atelier.name, size='xl', src=media_url(atelier.logo_path) if atelier.logo_path else none, alt='') }}
+        <div class="hl-atelier__title">
+          {% if rating %}{{ rating_stars(rating[0], count=rating[1]) }}{% else %}<span class="text-faint text-sm">هنوز امتیازی از تالارها ندارد</span>{% endif %}
+          {% if atelier.manager.is_verified %}<p>{{ badge('تأییدشده توسط سامانه', 'success', 'shield') }}</p>{% endif %}
+        </div>
+      </div>
+      {% if atelier.description %}<p class="hl-note-box">{{ atelier.description }}</p>{% endif %}
+      {% if known and atelier.phone %}
+      <dl class="kv"><dt>تلفن</dt><dd><bdo dir="ltr" class="num">{{ atelier.phone|fa }}</bdo></dd></dl>
+      {% elif not known %}
+      <p class="text-muted text-sm">شمارهٔ تماس اتلیه پس از اولین همکاری یا ثبت توافق‌نامه نمایش داده می‌شود.</p>
+      {% endif %}
+    {% endcall %}
+
+    {% call card(title='سابقه با تالار شما') %}
+      <dl class="kv">
+        <dt>قطعی / آینده</dt><dd>{{ (with_me.get('confirmed', 0))|fa }}</dd>
+        <dt>برگزارشده</dt><dd>{{ (with_me.get('done', 0) + with_me.get('invoiced', 0))|fa }}</dd>
+        <dt>لغوشده</dt><dd>{{ (with_me.get('cancelled', 0))|fa }}</dd>
+      </dl>
+      {% if upcoming %}
+      <ul class="hl-list">
+        {% for event in upcoming %}
+        <li class="hl-list__item"><a class="hl-row" href="{{ url_for('halls.event_show', event_id=event.id) }}">
+          {{ date_tile(event.date) }}
+          <span class="hl-row__body"><strong>{{ event.date|jdate('weekday_long') }}</strong><span class="text-muted text-sm">{{ event.hall.name }}</span></span>
+          {{ state_badge(event) }}
+        </a></li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+    {% endcall %}
+  </div>
+
+  {% call card(title='توافق‌نامه‌ها با تالار شما', padded=false) %}
+    {% if agreements %}
+    <ul class="hl-list">
+      {% for agreement in agreements %}
+      <li class="hl-list__item"><a class="hl-row" href="{{ url_for('halls.agreement_edit', agreement_id=agreement.id) }}">
+        <span class="hl-row__body"><strong>{{ agreement.hall.name }}</strong>
+          <span class="text-muted text-sm">از {{ agreement.start_date|jdate }}{% if agreement.end_date %} تا {{ agreement.end_date|jdate }}{% else %} · بدون پایان{% endif %}</span></span>
+        {% if agreement.terminated_at %}{{ badge('پایان‌یافته', 'neutral') }}{% elif agreement.is_exclusive %}{{ badge('انحصاری', 'accent') }}{% endif %}
+      </a></li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="text-muted hl-note">با این اتلیه توافق‌نامه‌ای ندارید.</p>
+    {% endif %}
+  {% endcall %}
+
+  {% call card(title='نظر تالارها دربارهٔ این اتلیه', padded=false) %}
+    {% if reviews %}
+    <ul class="hl-list">
+      {% for review, hall_name, day in reviews %}
+      <li class="hl-list__item hl-review">
+        <div class="cluster cluster--between"><strong>{{ hall_name }} · {{ day|jdate('long') }}</strong>{{ rating_stars(review.rating, show_value=false) }}</div>
+        {% if review.comment %}<p>{{ review.comment }}</p>{% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    {{ empty_state('star', 'هنوز نظری ثبت نشده', 'پس از برگزاری مراسم می‌توانید به اتلیه امتیاز بدهید.') }}
+    {% endif %}
+  {% endcall %}
+</div>
+{% endblock %}

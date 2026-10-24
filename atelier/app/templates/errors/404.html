@@ -1,0 +1,12 @@
+{#- 404: page not found.  Keeps the app shell for logged-in users, the public header otherwise. -#}
+{% extends 'base.html' %}
+{% from 'components/ui.html' import error_page %}
+{% block title %}صفحه پیدا نشد{% endblock %}
+{% block content %}
+<div class="page">
+  {% call error_page(404, 'صفحه‌ای که دنبالش بودید پیدا نشد', 'نشانی واردشده وجود ندارد یا جابه‌جا شده است. از منو به بخش مورد نظر بروید یا به صفحهٔ اصلی برگردید.', icon='search') %}
+    <a class="btn btn--primary" href="{{ home_url|default('/') }}">صفحهٔ اصلی</a>
+    <button type="button" class="btn" data-history-back>بازگشت به صفحهٔ قبل</button>
+  {% endcall %}
+</div>
+{% endblock %}

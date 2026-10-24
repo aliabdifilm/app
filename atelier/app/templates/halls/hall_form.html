@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+{% from 'components/ui.html' import page_header, card, form_field, money_input, textarea_field, checkbox_field, accordion, alert, icon %}
+{% set titles = {'setup': 'ثبت تالار', 'new': 'تالار تازه', 'edit': 'ویرایش تالار'} %}
+{% block title %}{{ titles[mode] }}{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='css/halls.css', v=asset_version|default('1')) }}">{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/halls.js', v=asset_version|default('1')) }}" defer></script>{% endblock %}
+
+{% block content %}
+<div class="page page--narrow stack stack--lg">
+  {% if mode == 'setup' %}
+    {{ page_header('تالار خود را ثبت کنید', 'با ثبت تالار می‌توانید مراسم‌ها را اضافه کنید و تاریخ‌ها را به اتلیه‌ها بدهید.') }}
+  {% elif mode == 'edit' %}
+    {{ page_header('ویرایش ' ~ hall.name, 'مشخصات، اطلاعات استقرار و پیش‌فرض‌های تالار', back_url=url_for('halls.hall_show', hall_id=hall.id)) }}
+  {% else %}
+    {{ page_header('تالار تازه', 'اگر چند تالار یا باغ دارید، هر کدام را جدا ثبت کنید.', back_url=url_for('halls.index')) }}
+  {% endif %}
+
+  <form method="post" class="stack stack--lg" novalidate
+        action="{{ url_for('halls.setup') if mode == 'setup' else (url_for('halls.hall_edit', hall_id=hall.id) if mode == 'edit' else url_for('halls.hall_new')) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    {% call card(title='مشخصات تالار') %}
+      <div class="form-grid form-grid--2">
+        {{ form_field('نام تالار', name='name', value=form.get('name', ''), required=true, error=errors.get('name'), maxlength=150, autocomplete='organization') }}
+        {{ form_field('شهر', name='city', value=form.get('city', ''), required=true, error=errors.get('city'), maxlength=80, autocomplete='address-level2') }}
+        <div class="span-all">{{ form_field('نشانی', name='address', value=form.get('address', ''), error=errors.get('address'), maxlength=300, autocomplete='street-address') }}</div>
+        {{ form_field('تلفن تالار', name='phone', type='tel', inputmode='numeric', dir='ltr', value=form.get('phone', ''), error=errors.get('phone'), maxlength=30, autocomplete='tel') }}
+        {{ form_field('پیوند نقشه', name='map_url', type='url', dir='ltr', value=form.get('map_url', ''), error=errors.get('map_url'), maxlength=500,
+                      help='پیوند اشتراک‌گذاری نشان، بلد یا گوگل‌مپ؛ با https:// شروع شود.', placeholder='https://') }}
+        <div class="span-all">{{ textarea_field('توضیحات', 'notes', form.get('notes', ''), rows=3, error=errors.get('notes'), help='ظرفیت، امکانات، قوانین تالار ...') }}</div>
+      </div>
+    {% endcall %}
+
+    {% call card(title='مراسم‌ها و اجاره') %}
+      <div class="stack">
+        <fieldset class="hl-weekdays" aria-describedby="ct-help">
+          <legend>نوع مراسم‌هایی که معمولاً برگزار می‌شود</legend>
+          {% set chosen = form.get('ceremony_types') or [] %}
+          {% for value, label in ceremony_choices %}
+          <label class="hl-weekday"><input type="checkbox" name="ceremony_types" value="{{ value }}"{% if value in chosen %} checked{% endif %}><span>{{ label }}</span></label>
+          {% endfor %}
+        </fieldset>
+        <p class="field__help" id="ct-help">فقط برای راحتی شماست؛ هنگام ثبت مراسم، همین نوع‌ها پیشنهاد می‌شود.</p>
+        {% if errors.get('ceremony_types') %}<p class="field__error" role="alert">{{ icon('alert') }}<span>{{ errors.get('ceremony_types') }}</span></p>{% endif %}
+        {{ money_input('default_rent', form.get('default_rent', ''), label='اجارهٔ پیش‌فرض هر مراسم', error=errors.get('default_rent'),
+                       help='اگر برای اتلیه‌ها اجارهٔ ثابتی دارید بنویسید؛ در فاکتور اتلیه به‌عنوان اجارهٔ باغ/تالار پیشنهاد می‌شود و اتلیه می‌تواند آن را تغییر دهد.') }}
+        {{ checkbox_field('هر روز فقط به یک اتلیه', 'single_atelier_per_day', checked=form.get('single_atelier_per_day', false),
+                          help='اگر روشن باشد، وقتی اتلیه‌ای مراسمی از این تالار را در یک روز گرفت، اتلیهٔ دیگری در همان روز نمی‌تواند مراسم دیگری از این تالار بردارد.') }}
+        {% if mode == 'edit' %}
+        {{ checkbox_field('تالار فعال است', 'is_active', checked=form.get('is_active', true),
+                          help='تالار غیرفعال مراسم تازه نمی‌پذیرد؛ مراسم‌های قبلی و گزارش‌ها می‌مانند.') }}
+        {% endif %}
+      </div>
+    {% endcall %}
+
+    {% set ns = namespace(open=false) %}
+    {% for key in logistics_labels %}{% if form.get('logistics_' ~ key) or errors.get('logistics_' ~ key) %}{% set ns.open = true %}{% endif %}{% endfor %}
+    {% call accordion('logistics', 'اطلاعات استقرار برای تیم اتلیه', open=ns.open, meta='اختیاری') %}
+      <p class="text-muted text-sm">این اطلاعات به تیم اتلیه کمک می‌کند بدون تماس تلفنی محل را پیدا کنند و دستگاه‌ها را برپا کنند.</p>
+      <div class="form-grid form-grid--2">
+        {% for key, label in logistics_labels.items() %}
+        {% if key == 'contact_phone' %}
+        {{ form_field(label, name='logistics_' ~ key, type='tel', inputmode='numeric', dir='ltr', value=form.get('logistics_' ~ key, ''), error=errors.get('logistics_' ~ key), maxlength=300) }}
+        {% else %}
+        {{ form_field(label, name='logistics_' ~ key, value=form.get('logistics_' ~ key, ''), error=errors.get('logistics_' ~ key), maxlength=300) }}
+        {% endif %}
+        {% endfor %}
+      </div>
+    {% endcall %}
+
+    <div class="form-actions form-actions--sticky">
+      <button class="btn btn--primary" type="submit">{{ icon('check') }}<span>{{ 'ذخیره' if mode == 'edit' else 'ثبت تالار' }}</span></button>
+      <a class="btn" href="{{ url_for('halls.hall_show', hall_id=hall.id) if mode == 'edit' else url_for('halls.index') if mode == 'new' else url_for('main.dashboard') }}">انصراف</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

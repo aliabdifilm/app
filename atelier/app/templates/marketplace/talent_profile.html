@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+{% from 'components/ui.html' import page_header, card, alert, badge, pagination, icon, avatar, rating_stars, empty_state %}
+{% from 'marketplace/_macros.html' import skill_badges, contact_box, review_item, review_party %}
+{% block title %}{{ person|mk_name }}{% endblock %}
+{% block head %}<meta name="robots" content="noindex"><link rel="stylesheet" href="{{ url_for('static', filename='css/marketplace.css', v=asset_version|default('1')) }}">{% endblock %}
+
+{% block content %}
+<div class="page page--narrow stack stack--lg">
+  {{ page_header(person|mk_name, 'پروفایل نیرو', back_url=url_for('marketplace.talent_index'), back_label='جستجوی نیرو') }}
+
+  {% if not profile.is_listed %}
+  {% call alert(tone='info', title='این پروفایل در جستجو نمایش داده نمی‌شود') %}شما به‌دلیل درخواست یا دعوتی که با این نفر دارید آن را می‌بینید.{% endcall %}
+  {% endif %}
+
+  {% call card(tone='accent') %}
+    <div class="stack stack--sm">
+    <div class="mk-person">
+      {{ avatar(person|mk_name, size='lg', src=media_url(person.avatar_path) if person.avatar_path else none) }}
+      <div class="mk-person__text">
+        <h2 class="mk-person__name">{{ person|mk_name }}</h2>
+        <p class="mk-chips">
+          {% if person.is_verified %}{{ badge('تأییدشده', 'success', 'shield') }}{% endif %}
+          {% if profile.city or person.city %}<span class="mk-fact">{{ icon('map-pin') }}{{ profile.city or person.city }}</span>{% endif %}
+          <span class="mk-fact">{{ icon('award') }}{{ profile.experience_years|fa }} سال سابقه</span>
+        </p>
+        {% if rating %}{{ rating_stars(rating.average, count=rating.count) }}{% else %}<span class="text-faint text-sm">هنوز امتیازی ندارد</span>{% endif %}
+      </div>
+    </div>
+    <p class="mk-chips">{{ skill_badges(profile.skills) }}</p>
+    {% if profile.bio %}<p class="mk-text">{{ profile.bio }}</p>{% else %}<p class="text-faint text-sm">توضیحی ننوشته است.</p>{% endif %}
+    {% if gear %}<p class="mk-chips"><span class="text-muted text-sm">تجهیزات شخصی:</span> {% for item in gear %}{{ badge(item, 'neutral') }} {% endfor %}</p>{% endif %}
+    {% if profile.expected_base or profile.expected_commission_per_unit %}
+    <p class="text-muted text-sm">درخواست نیرو:
+      {% if profile.expected_base %}پایه {{ profile.expected_base|toman }} تومان{% endif %}
+      {% if profile.expected_commission_per_unit %}{{ ' · ' if profile.expected_base else '' }}پورسانت هر عکس {{ profile.expected_commission_per_unit|toman }} تومان{% endif %}</p>
+    {% endif %}
+    {% if handle %}<p><a href="https://instagram.com/{{ handle }}" target="_blank" rel="noopener noreferrer nofollow">{{ icon('external') }} نمونه‌کار در اینستاگرام: <bdo dir="ltr">@{{ handle }}</bdo></a></p>
+    {% elif profile.instagram %}<p class="text-muted text-sm">نمونه‌کار: <bdo dir="ltr">{{ profile.instagram }}</bdo></p>{% endif %}
+
+    {% if relation.contact %}
+    {{ contact_box('اطلاعات تماس', person|mk_name, person.mobile) }}
+    {% else %}
+    <p class="mk-lock text-muted text-sm">{{ icon('lock') }}<span>شمارهٔ تماس پس از پذیرفته‌شدن درخواست یا دعوت بین شما و این نفر نمایش داده می‌شود.</span></p>
+    {% endif %}
+
+    {% if can_invite %}
+    <div class="mk-actions"><a class="btn btn--primary" href="{{ url_for('marketplace.talent_invite', user_id=person.id) }}">{{ icon('send') }}<span>دعوت به همکاری</span></a></div>
+    {% endif %}
+  </div>
+  {% endcall %}
+
+  {% if portfolio %}
+  {% call card(title='نمونه‌کارها') %}
+    <ul class="mk-gallery" aria-label="نمونه‌کارها">
+      {% for item in portfolio %}
+      <li class="mk-gallery__item">
+        <img src="{{ media_url(item.image_path) }}" alt="{{ item.title or item.caption or 'نمونه‌کار ' ~ person|mk_name }}" loading="lazy">
+        {% if item.title or item.caption %}<span class="mk-gallery__caption">{{ item.title or item.caption }}</span>{% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+  {% endcall %}
+  {% endif %}
+
+  {% call card(title='نظرها', subtitle=(rating.count|fa ~ ' نظر ثبت‌شده') if rating else none) %}
+    {% if reviews.items %}
+    <ul class="mk-reviews">
+      {% for review in reviews.items %}{{ review_item(review, review_party(review, 'author')) }}{% endfor %}
+    </ul>
+    {{ pagination(reviews, 'marketplace.talent_profile', user_id=person.id) }}
+    {% else %}
+    <p class="text-muted">هنوز نظری ثبت نشده است. نظرها پس از همکاری تکمیل‌شده با اتلیه‌ها ثبت می‌شود.</p>
+    {% endif %}
+  {% endcall %}
+</div>
+{% endblock %}

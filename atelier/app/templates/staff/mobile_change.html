@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% from 'components/ui.html' import page_header, card, alert, icon, form_field %}
+{% from 'staff/_macros.html' import csrf %}
+{% block title %}تغییر شمارهٔ موبایل{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='css/staff.css', v=asset_version|default('1')) }}">{% endblock %}
+
+{% block content %}
+<div class="page page--narrow stack stack--lg">
+  {{ page_header('تغییر شمارهٔ موبایل', 'شمارهٔ موبایل همان نام کاربری ورود شماست.', back_url=url_for('staff.settings'), back_label='حساب و اعلان‌ها') }}
+
+  {% if error %}{% call alert(tone='danger', title='انجام نشد') %}{{ error }}{% endcall %}{% endif %}
+
+  {% call card() %}
+  <form method="post" action="{{ url_for('staff.mobile_change') }}" class="stack" novalidate>
+    {{ csrf() }}
+    <p class="text-muted">
+      شمارهٔ فعلی: <bdo dir="ltr" class="num fw-bold">{{ current_user.mobile|fa }}</bdo>.
+      {% if has_password %}
+      برای امنیت، رمز عبور فعلی را وارد کنید؛ سپس یک کد پیامکی به شمارهٔ جدید فرستاده می‌شود.
+      {% else %}
+      برای امنیت، ابتدا یک کد پیامکی به شمارهٔ فعلی و سپس کد دیگری به شمارهٔ جدید فرستاده می‌شود.
+      {% endif %}
+    </p>
+    {{ form_field('شمارهٔ موبایل جدید', name='new_mobile', type='tel', inputmode='numeric', dir='ltr', required=true,
+                  value=form.get('new_mobile', ''), error=errors.get('new_mobile'), autocomplete='tel', placeholder='۰۹۱۲۳۴۵۶۷۸۹') }}
+    {% if has_password %}
+    {{ form_field('رمز عبور فعلی', name='current_password', type='password', required=true, error=errors.get('current_password'), autocomplete='current-password') }}
+    {% endif %}
+    <div class="form-actions">
+      <button class="btn btn--primary" type="submit">{{ icon('send') }}<span>ارسال کد تأیید</span></button>
+      <a class="btn btn--ghost" href="{{ url_for('staff.settings') }}">انصراف</a>
+    </div>
+  </form>
+  {% endcall %}
+</div>
+{% endblock %}
+
+{% block scripts %}<script src="{{ url_for('static', filename='js/staff.js', v=asset_version|default('1')) }}" defer></script>{% endblock %}

@@ -1,0 +1,15 @@
+{#- Signed in but the account still waits for an admin. -#}
+{% extends 'base.html' %}
+{% from 'components/ui.html' import empty_state %}
+{% block title %}در انتظار تأیید{% endblock %}
+{% block content %}
+<div class="page page--narrow stack stack--lg">
+  {% call empty_state('clock', 'حساب شما در انتظار تأیید است', 'مدیر سامانه به‌زودی حساب «' ~ user.role.label ~ '» شما را بررسی و فعال می‌کند. پس از تأیید، یک اعلان می‌گیرید و همهٔ بخش‌ها باز می‌شوند.') %}
+    <a class="btn btn--secondary" href="{{ url_for('auth.account') }}">حساب کاربری</a>
+    <form method="post" action="{{ url_for('auth.logout') }}" class="inline-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn--ghost">خروج</button>
+    </form>
+  {% endcall %}
+</div>
+{% endblock %}

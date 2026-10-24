@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+{% from 'components/ui.html' import page_header, card, badge, stat_tile, empty_state, confirm_button, icon, form_field %}
+{% from 'halls/_macros.html' import date_tile, state_badge, atelier_name %}
+{% block title %}{{ hall.name }}{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='css/halls.css', v=asset_version|default('1')) }}">{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/halls.js', v=asset_version|default('1')) }}" defer></script>{% endblock %}
+
+{% block content %}
+<div class="page stack stack--lg">
+  {{ page_header(hall.name, hall.city ~ (' · ' ~ hall.address if hall.address else ''), back_url=url_for('halls.index'), back_label='تالارهای من',
+       actions=('<a class="btn btn--secondary" href="' ~ url_for('halls.hall_edit', hall_id=hall.id) ~ '">ویرایش</a> <a class="btn btn--primary" href="' ~ url_for('halls.event_new', hall=hall.id) ~ '">ثبت مراسم</a>')|safe) }}
+
+  {% if not hall.is_active %}
+  <div class="alert alert--warning" role="status">{{ icon('alert') }}<div class="alert__body">این تالار غیرفعال است و مراسم تازه نمی‌پذیرد. از «ویرایش» می‌توانید آن را فعال کنید.</div></div>
+  {% endif %}
+
+  <div class="grid grid--stats">
+    {{ stat_tile('مراسم پیش‌رو', counts.upcoming|fa, icon='calendar', href=url_for('halls.events', hall=hall.id)) }}
+    {{ stat_tile('بدون اتلیه', counts.free|fa, icon='alert', tone='warning' if counts.free else none, href=url_for('halls.events', tab='free', hall=hall.id)) }}
+    {{ stat_tile('قطعی', counts.confirmed|fa, icon='check-circle', tone='success', href=url_for('halls.events', tab='confirmed', hall=hall.id)) }}
+  </div>
+
+  <div class="grid grid--2">
+    {% call card(title='مشخصات') %}
+      <dl class="kv">
+        <dt>شهر</dt><dd>{{ hall.city or '—' }}</dd>
+        <dt>نشانی</dt><dd>{{ hall.address or '—' }}</dd>
+        <dt>تلفن</dt><dd>{% if hall.phone %}<bdo dir="ltr" class="num">{{ hall.phone|fa }}</bdo>{% else %}—{% endif %}</dd>
+        <dt>نقشه</dt><dd class="hl-mapline">{% if hall.map_url %}<a href="{{ hall.map_url }}" target="_blank" rel="noopener noreferrer">{{ icon('map-pin') }} باز کردن نقشه</a>{% else %}—{% endif %}</dd>
+        <dt>نوع مراسم</dt><dd>{% if hall.ceremony_types %}<span class="hl-chips">{% for t in hall.ceremony_types %}<span class="badge">{{ t.label }}</span>{% endfor %}</span>{% else %}—{% endif %}</dd>
+        <dt>اجارهٔ پیش‌فرض</dt><dd>{% if hall.default_rent is not none %}{{ hall.default_rent|toman }} <small class="text-muted">تومان</small>{% else %}—{% endif %}</dd>
+        <dt>واگذاری روزانه</dt><dd>{{ 'هر روز فقط یک اتلیه' if hall.single_atelier_per_day else 'چند اتلیه در یک روز' }}</dd>
+      </dl>
+      {% if hall.notes %}<p class="hl-note-box">{{ hall.notes }}</p>{% endif %}
+    {% endcall %}
+
+    {% call card(title='اطلاعات استقرار', subtitle='برای تیم اتلیه') %}
+      {% if hall.logistics %}
+      <dl class="kv">
+        {% for key, label in logistics_labels.items() %}{% if hall.logistics.get(key) %}
+        <dt>{{ label }}</dt><dd>{% if key == 'contact_phone' %}<bdo dir="ltr" class="num">{{ hall.logistics[key]|fa }}</bdo>{% else %}{{ hall.logistics[key] }}{% endif %}</dd>
+        {% endif %}{% endfor %}
+      </dl>
+      {% else %}
+      {{ empty_state('info', 'هنوز چیزی ننوشته‌اید', 'ورودی بارگیری، پریز برق، پارکینگ و محل استقرار را بنویسید تا تیم اتلیه به شما زنگ نزند.',
+                      action=('<a class="btn" href="' ~ url_for('halls.hall_edit', hall_id=hall.id) ~ '">تکمیل اطلاعات</a>')|safe) }}
+      {% endif %}
+    {% endcall %}
+  </div>
+
+  {#- ------------------------------ photos ------------------------------ -#}
+  {% call card(title='عکس‌های تالار', subtitle='تا ' ~ max_photos|fa ~ ' عکس (JPG، PNG یا WebP)', id='photos') %}
+    {% if photos %}
+    <ul class="hl-gallery">
+      {% for photo in photos %}
+      <li>
+        <figure class="hl-photo">
+          <img src="{{ media_url(photo.image_path) }}" alt="{{ photo.caption or ('عکس ' ~ hall.name) }}" loading="lazy">
+          {% if photo.caption %}<figcaption>{{ photo.caption }}</figcaption>{% endif %}
+          <span class="hl-photo__remove">{{ confirm_button('حذف', url_for('halls.hall_photo_remove', hall_id=hall.id, photo_id=photo.id), 'این عکس از تالار حذف می‌شود. ادامه می‌دهید؟', title='حذف عکس', confirm_label='بله، حذف شود', icon='trash') }}</span>
+        </figure>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="text-muted">هنوز عکسی اضافه نکرده‌اید. عکس تالار به اتلیه‌ها کمک می‌کند بدانند کجا می‌روند.</p>
+    {% endif %}
+    {% if photos|length < max_photos %}
+    <form class="hl-upload" method="post" enctype="multipart/form-data" action="{{ url_for('halls.hall_photo_add', hall_id=hall.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="field">
+        <label class="field__label" for="photo-file">افزودن عکس</label>
+        <input class="input" id="photo-file" type="file" name="photo" accept="image/jpeg,image/png,image/webp" multiple required>
+      </div>
+      {{ form_field('توضیح (اختیاری)', name='caption', maxlength=200, id='photo-caption') }}
+      <button class="btn btn--secondary" type="submit">{{ icon('upload') }}<span>بارگذاری</span></button>
+    </form>
+    {% endif %}
+  {% endcall %}
+
+  {#- ------------------------------ upcoming ------------------------------ -#}
+  {% call card(title='مراسم‌های پیش‌رو', actions=('<a class="btn btn--sm btn--ghost" href="' ~ url_for('halls.events', hall=hall.id) ~ '">همه</a>')|safe, padded=false) %}
+    {% if upcoming %}
+    <ul class="hl-list">
+      {% for event in upcoming %}
+      <li class="hl-list__item">
+        <a class="hl-row" href="{{ url_for('halls.event_show', event_id=event.id) }}">
+          {{ date_tile(event.date) }}
+          <span class="hl-row__body"><strong>{{ event.date|jdate('weekday_long') }}</strong><span class="text-muted text-sm">{{ event.ceremony_type.label }}{% if event.start_time %} · {{ event.start_time|hl_time }}{% endif %}</span></span>
+          {{ state_badge(event, pending.get(event.id, 0)) }}
+        </a>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    {{ empty_state('calendar', 'مراسم پیش‌رویی نیست', 'یک مراسم یا چند تاریخ را ثبت کنید.',
+                    action=('<a class="btn btn--primary" href="' ~ url_for('halls.event_new', hall=hall.id) ~ '">ثبت مراسم</a> <a class="btn" href="' ~ url_for('halls.bulk_new', hall=hall.id) ~ '">افزودن چند تاریخ</a>')|safe) }}
+    {% endif %}
+  {% endcall %}
+
+  {% call card(title='توافق‌نامه‌ها', actions=('<a class="btn btn--sm btn--ghost" href="' ~ url_for('halls.agreements', hall=hall.id) ~ '">همه</a>')|safe, padded=false) %}
+    {% if agreements %}
+    <ul class="hl-list">
+      {% for agreement in agreements %}
+      <li class="hl-list__item"><a class="hl-row" href="{{ url_for('halls.agreement_edit', agreement_id=agreement.id) }}">
+        <span class="hl-row__body"><strong>{{ agreement.atelier.name }}</strong>
+          <span class="text-muted text-sm">از {{ agreement.start_date|jdate }}{% if agreement.end_date %} تا {{ agreement.end_date|jdate }}{% else %} · بدون پایان{% endif %}</span></span>
+        {% if agreement.is_exclusive %}{{ badge('انحصاری', 'accent') }}{% endif %}
+      </a></li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="text-muted hl-note">برای این تالار توافق‌نامه‌ای ثبت نشده است. از صفحهٔ هر اتلیه می‌توانید توافق‌نامه ثبت کنید.</p>
+    {% endif %}
+  {% endcall %}
+
+  {% call card(title='حذف تالار', tone='danger') %}
+    <p class="text-muted">فقط تالاری که هیچ مراسمی ندارد حذف می‌شود. برای نگه‌داشتن سابقه، به‌جای حذف آن را غیرفعال کنید.</p>
+    {{ confirm_button('حذف تالار', url_for('halls.hall_delete', hall_id=hall.id), 'تالار «' ~ hall.name ~ '» برای همیشه حذف می‌شود. ادامه می‌دهید؟', title='حذف تالار', confirm_label='بله، حذف شود', icon='trash') }}
+  {% endcall %}
+</div>
+{% endblock %}

@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+{% from 'components/ui.html' import page_header, card, badge, empty_state, pagination, confirm_button, icon %}
+{% from 'halls/_macros.html' import date_tile, event_facts, state_badge, hall_filter, atelier_name, stars, event_card %}
+{% block title %}پیشنهادها{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='css/halls.css', v=asset_version|default('1')) }}">{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/halls.js', v=asset_version|default('1')) }}" defer></script>{% endblock %}
+
+{% block content %}
+<div class="page stack stack--lg">
+  {{ page_header('پیشنهادها', 'تاریخ‌هایی که به اتلیه‌ها داده‌اید و پاسخ آن‌ها',
+       actions=('<a class="btn btn--primary" href="' ~ url_for('halls.offer_new', hall=hall_arg) ~ '">پیشنهاد تازه</a>')|safe) }}
+
+  {{ hall_filter(hall_choices, selected, 'halls.offers', tab=tab) }}
+
+  <nav class="tabs" aria-label="وضعیت پیشنهادها">
+    <div class="tabs__list">
+      {% for key, label, number in tabs %}
+      <a class="tabs__tab" href="{{ url_for('halls.offers', tab=key, hall=hall_arg) }}"{% if key == tab %} aria-current="page"{% endif %}>
+        <span>{{ label }}</span>{% if number %}<span class="badge badge--accent">{{ number|fa }}</span>{% endif %}
+      </a>
+      {% endfor %}
+    </div>
+  </nav>
+
+  {% if tab == 'open' %}
+    {% if page.items %}
+    <p class="hl-scope">این مراسم‌ها در فهرست باز همهٔ اتلیه‌ها دیده می‌شوند؛ اولین اتلیه‌ای که بردارد، آن را می‌گیرد.</p>
+    <ul class="hl-cards" aria-label="مراسم‌های باز برای همه">
+      {% for event in page.items %}<li>{{ event_card(event, 0, show_hall=(halls|length > 1)) }}</li>{% endfor %}
+    </ul>
+    {{ pagination(page, 'halls.offers', tab=tab, hall=hall_arg) }}
+    {% else %}
+    {{ empty_state('megaphone', 'مراسم بازی ندارید', 'مراسم‌های بدون اتلیه را از فهرست مراسم‌ها انتخاب کنید و «باز برای همه» را بزنید.',
+                    action=('<a class="btn btn--primary" href="' ~ url_for('halls.events', tab='free') ~ '">مراسم‌های بدون اتلیه</a>')|safe) }}
+    {% endif %}
+  {% else %}
+    {% if page.items %}
+    <ul class="hl-cards" aria-label="پیشنهادها">
+      {% for offer in page.items %}
+      {% set event = offer.event %}
+      {% set live = offer.status.value != 'accepted' or event.atelier_id == offer.atelier_id %}
+      <li>
+        {% call card(cls='hl-event', tone=('accent' if offer.status.value == 'pending' else none)) %}
+          <div class="hl-event__head">
+            {{ date_tile(event.date) }}
+            <div class="hl-event__title">
+              <h2 class="hl-event__name"><a href="{{ url_for('halls.event_show', event_id=event.id) }}">{{ event.date|jdate('weekday_long') }}</a></h2>
+              <p class="text-muted">{{ event.hall.name }}{% if event.start_time %} · {{ event.start_time|hl_time }}{% endif %}</p>
+            </div>
+            {{ badge(offer.status.label if live else 'بازگردانده شد', (offer.status|hl_offer_tone) if live else 'neutral') }}
+          </div>
+          <p class="hl-facts"><span class="hl-fact">{{ icon('camera') }}{{ atelier_name(offer.atelier) }}</span>{{ stars(ratings, offer.atelier_id) }}</p>
+          {% if offer.message %}<p class="hl-note-box">«{{ offer.message }}»</p>{% endif %}
+          <p class="text-muted text-sm">فرستاده شد: {{ offer.offered_at|jdatetime('short') if offer.offered_at else '—' }}{% if offer.responded_at %} · پاسخ: {{ offer.responded_at|jdatetime('short') }}{% endif %}</p>
+          <div class="hl-actions">
+            {% if offer.status.value == 'pending' %}
+              {{ confirm_button('پس گرفتن', url_for('halls.offer_withdraw', offer_id=offer.id), 'پیشنهاد به «' ~ offer.atelier.name ~ '» پس گرفته می‌شود و مدیر آن باخبر می‌شود. ادامه می‌دهید؟', title='پس گرفتن پیشنهاد', confirm_label='بله، پس گرفته شود', icon='close') }}
+            {% elif offer.status.value in ('declined', 'withdrawn') and event.atelier_id is none and event.status in offerable and event.date >= today %}
+              {{ confirm_button('پیشنهاد دوباره', url_for('halls.offer_reoffer', offer_id=offer.id), 'پیشنهاد دوباره برای «' ~ offer.atelier.name ~ '» فرستاده می‌شود. ادامه می‌دهید؟', title='پیشنهاد دوباره', confirm_label='بله، بفرست', tone='primary', icon='refresh') }}
+            {% endif %}
+            <a class="btn btn--sm btn--ghost" href="{{ url_for('halls.event_show', event_id=event.id) }}">جزئیات مراسم</a>
+          </div>
+        {% endcall %}
+      </li>
+      {% endfor %}
+    </ul>
+    {{ pagination(page, 'halls.offers', tab=tab, hall=hall_arg) }}
+    {% else %}
+    {% if tab == 'pending' %}
+      {{ empty_state('send', 'پیشنهادی در انتظار پاسخ نیست', 'تاریخ‌های بدون اتلیه را انتخاب کنید و به یک یا چند اتلیه پیشنهاد دهید.',
+                      action=('<a class="btn btn--primary" href="' ~ url_for('halls.offer_new') ~ '">پیشنهاد به اتلیه</a>')|safe) }}
+    {% else %}
+      {{ empty_state('inbox', 'موردی در این بخش نیست', 'وقتی اتلیه‌ها به پیشنهادها پاسخ بدهند، این‌جا می‌بینید.') }}
+    {% endif %}
+    {% endif %}
+  {% endif %}
+</div>
+{% endblock %}

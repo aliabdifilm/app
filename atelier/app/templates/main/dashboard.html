@@ -1,0 +1,32 @@
+{#- Fallback dashboard: shown when no module registered a home page for the role (nav.register_home).
+    Lists the role's menu entries as big tappable tiles. -#}
+{% extends 'base.html' %}
+{% from 'components/ui.html' import page_header, alert, icon, empty_state, badge %}
+{% block title %}داشبورد{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css', v=asset_version|default('1')) }}">{% endblock %}
+{% block content %}
+<div class="page stack stack--lg">
+  {{ page_header('سلام، ' ~ user.display_name, 'به اتلیه سیار خوش آمدید.') }}
+
+  {% if onboarding_url %}
+  {% call alert(tone='warning', title='پروفایل شما هنوز کامل نیست') %}
+    برای استفاده از همهٔ امکانات، <a href="{{ onboarding_url }}">اطلاعات خود را تکمیل کنید</a>.
+  {% endcall %}
+  {% endif %}
+
+  {% if nav_items %}
+  <nav class="grid grid--fit" aria-label="بخش‌های سامانه">
+    {% for item in nav_items %}
+    <a class="card card--link tile" href="{{ item.url }}">
+      <div class="card__body cluster cluster--between">
+        <span class="cluster cluster--sm">{{ icon(item.icon or 'list') }}<strong>{{ item.label }}</strong></span>
+        {% if item.badge %}{{ badge(item.badge, 'accent') }}{% endif %}
+      </div>
+    </a>
+    {% endfor %}
+  </nav>
+  {% else %}
+  {{ empty_state('inbox', 'هنوز بخشی برای نقش شما فعال نشده است', 'وقتی ماژول‌های سامانه برای نقش «' ~ user.role.label ~ '» فعال شوند، میان‌برها این‌جا نمایش داده می‌شوند.') }}
+  {% endif %}
+</div>
+{% endblock %}

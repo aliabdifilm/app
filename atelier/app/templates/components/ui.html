@@ -1,0 +1,554 @@
+{#-
+  Atelier Sayyar - UI macros.  Import what you need:
+
+      {% from 'components/ui.html' import page_header, card, badge, form_field %}
+
+  Rules
+  * Text arguments are escaped.  Arguments documented as "HTML" (actions,
+    action, input_html, footer) must be Markup/|safe, or use {% call %} bodies.
+  * Macros that take a body use {% call macro(...) %}...{% endcall %}.
+  * They rely on the inline sprite (included by base.html) and on the Jinja
+    filters registered by the app shell: toman, fa, jdate, jdatetime, jweekday.
+  * No inline <script>/<style>/style="" is emitted anywhere (CSP friendly).
+  Full catalogue with examples: docs/UI_GUIDE.md and docs/styleguide.html.
+-#}
+
+{#- ---------------------------------------------------------------- icons -#}
+{% macro _svg(name, size=none, cls='') -%}
+<svg class="icon{% if cls %} {{ cls }}{% endif %}"{% if size %} width="{{ size }}" height="{{ size }}"{% endif %} aria-hidden="true" focusable="false"><use href="#i-{{ name }}"/></svg>
+{%- endmacro %}
+
+{# icon(name, size=None, cls='') - inline SVG from the sprite; decorative (aria-hidden). #}
+{% macro icon(name, size=none, cls='') -%}{{ _svg(name, size, cls) }}{%- endmacro %}
+
+{#- ----------------------------------------------------------- page chrome -#}
+{# page_header(title, subtitle=None, actions=None[HTML], back_url=None, back_label)
+   Optional {% call %} body is appended to the actions area. #}
+{% macro page_header(title, subtitle=none, actions=none, back_url=none, back_label='بازگشت') -%}
+<header class="page-header">
+  <div class="page-header__titles">
+    {%- if back_url %}
+    <a class="back-link" href="{{ back_url }}">{{ _svg('arrow-right') }}<span>{{ back_label }}</span></a>
+    {%- endif %}
+    <h1 class="page-header__title">{{ title }}</h1>
+    {%- if subtitle %}
+    <p class="page-header__subtitle">{{ subtitle }}</p>
+    {%- endif %}
+  </div>
+  {%- if actions or caller is defined %}
+  <div class="page-header__actions">{% if actions %}{{ actions }}{% endif %}{% if caller is defined %}{{ caller() }}{% endif %}</div>
+  {%- endif %}
+</header>
+{%- endmacro %}
+
+{# card(title=None, subtitle=None, actions=None[HTML], footer=None[HTML], tone=None,
+        flat=False, padded=True, cls='', id=None, tag='h2')
+   tone: accent | success | warning | danger (coloured start border). Body via {% call %}. #}
+{% macro card(title=none, subtitle=none, actions=none, footer=none, tone=none, flat=false, padded=true, cls='', id=none, tag='h2') -%}
+<section class="card{% if tone %} card--{{ tone }}{% endif %}{% if flat %} card--flat{% endif %}{% if cls %} {{ cls }}{% endif %}"{% if id %} id="{{ id }}"{% endif %}>
+  {%- if title or actions %}
+  <div class="card__header">
+    <div>
+      {%- if title %}<{{ tag }} class="card__title">{{ title }}</{{ tag }}>{% endif %}
+      {%- if subtitle %}<p class="card__subtitle">{{ subtitle }}</p>{% endif %}
+    </div>
+    {%- if actions %}<div class="card__actions cluster cluster--sm">{{ actions }}</div>{% endif %}
+  </div>
+  {%- endif %}
+  <div class="{{ 'card__body' if padded else 'card__flush' }}">{% if caller is defined %}{{ caller() }}{% endif %}</div>
+  {%- if footer %}
+  <div class="card__footer">{{ footer }}</div>
+  {%- endif %}
+</section>
+{%- endmacro %}
+
+{# stat_tile(label, value, hint=None, tone=None, icon=None, href=None, unit=None)
+   value is shown as given: format it first (e.g. {{ n|toman }}).  tone: success|warning|danger|info #}
+{% macro stat_tile(label, value, hint=none, tone=none, icon=none, href=none, unit=none) -%}
+{%- if href %}<a class="stat{% if tone %} stat--{{ tone }}{% endif %}" href="{{ href }}">{% else %}<div class="stat{% if tone %} stat--{{ tone }}{% endif %}">{% endif %}
+  <div class="stat__top">
+    <span class="stat__label">{{ label }}</span>
+    {%- if icon %}<span class="stat__icon">{{ _svg(icon) }}</span>{% endif %}
+  </div>
+  <div class="stat__value"><span class="stat__num">{{ value }}</span>{% if unit %}<span class="stat__unit">{{ unit }}</span>{% endif %}</div>
+  {%- if hint %}<div class="stat__hint">{{ hint }}</div>{% endif %}
+{% if href %}</a>{% else %}</div>{% endif %}
+{%- endmacro %}
+
+{# badge(text, tone='neutral', icon=None)  tone: neutral|accent|success|warning|danger|info|solid #}
+{% macro badge(text, tone='neutral', icon=none) -%}
+<span class="badge{% if tone and tone != 'neutral' %} badge--{{ tone }}{% endif %}">{% if icon %}{{ _svg(icon) }}{% endif %}{{ text }}</span>
+{%- endmacro %}
+
+{# alert(text=None, tone='info', title=None)  tone: info|success|warning|danger.  Body via {% call %} or text. #}
+{% macro alert(text=none, tone='info', title=none) -%}
+<div class="alert{% if tone != 'info' %} alert--{{ tone }}{% endif %}" role="{{ 'alert' if tone in ('danger', 'warning') else 'status' }}">
+  {{ _svg({'info': 'info', 'success': 'check-circle', 'warning': 'alert', 'danger': 'x-circle'}.get(tone, 'info')) }}
+  <div class="alert__body">
+    {%- if title %}<strong class="alert__title">{{ title }}</strong>{% endif %}
+    {%- if text %}{{ text }}{% endif %}{% if caller is defined %}{{ caller() }}{% endif %}
+  </div>
+</div>
+{%- endmacro %}
+
+{# empty_state(icon, title, text=None, action=None[HTML])  Optional {% call %} body replaces action. #}
+{% macro empty_state(icon, title, text=none, action=none) -%}
+<div class="empty">
+  <span class="empty__icon">{{ _svg(icon or 'inbox') }}</span>
+  <h2 class="empty__title">{{ title }}</h2>
+  {%- if text %}<p class="empty__text">{{ text }}</p>{% endif %}
+  {%- if action or caller is defined %}<div class="empty__action">{% if action %}{{ action }}{% endif %}{% if caller is defined %}{{ caller() }}{% endif %}</div>{% endif %}
+</div>
+{%- endmacro %}
+
+{# avatar(initials, size=None, tone=None, src=None, alt='')
+   `initials` may be a full name ("علی عبدی" -> "ع‌ع") or 1-2 letters.  size: sm|lg|xl.  tone: info|success|warning|neutral #}
+{% macro avatar(initials, size=none, tone=none, src=none, alt='') -%}
+{%- set words = (initials or '').split() -%}
+<span class="avatar{% if size %} avatar--{{ size }}{% endif %}{% if tone %} avatar--{{ tone }}{% endif %}"{% if not src %} aria-hidden="true"{% endif %}>
+  {%- if src %}<img src="{{ src }}" alt="{{ alt }}" loading="lazy">
+  {%- elif words|length > 1 %}{{ words[0][0] }}&zwnj;{{ words[1][0] }}
+  {%- else %}{{ (initials or '؟')[:2] }}{% endif -%}
+</span>
+{%- endmacro %}
+
+{# rating_stars(value, max=5, count=None, show_value=True) - read-only, half stars supported. #}
+{% macro rating_stars(value, max=5, count=none, show_value=true) -%}
+{%- set v = (value or 0)|float -%}
+{%- set shown = ((v * 2)|round(0, 'common')|int) / 2 -%}
+{%- set text = ('%.1f'|format(v))|fa|replace('.', '٫') -%}
+<span class="stars" role="img" aria-label="امتیاز {{ text }} از {{ max|fa }}">
+  {%- for i in range(1, max + 1) -%}
+    {%- if shown >= i %}{{ _svg('star-fill') }}
+    {%- elif shown >= i - 0.5 %}{{ _svg('star-half') }}
+    {%- else %}{{ _svg('star', cls='stars__empty') }}{% endif -%}
+  {%- endfor -%}
+  {%- if show_value %}<span class="stars__value">{{ text }}</span>{% endif -%}
+  {%- if count is not none %}<span class="stars__count">({{ count|fa }})</span>{% endif -%}
+</span>
+{%- endmacro %}
+
+{# rating_input(name, value=0, label='امتیاز') - radio group of 1..5 stars (CSS only). #}
+{% macro rating_input(name, value=0, label='امتیاز', max=5) -%}
+<fieldset class="stars-input">
+  <legend class="visually-hidden">{{ label }}</legend>
+  {%- for i in range(max, 0, -1) %}
+  <input type="radio" name="{{ name }}" id="{{ name }}-{{ i }}" value="{{ i }}"{% if (value or 0)|int == i %} checked{% endif %}>
+  <label for="{{ name }}-{{ i }}" title="{{ i|fa }} از {{ max|fa }}">{{ _svg('star') }}<span class="visually-hidden">{{ i|fa }} ستاره</span></label>
+  {%- endfor %}
+</fieldset>
+{%- endmacro %}
+
+{#- ----------------------------------------------------------------- forms -#}
+{# form_field(label, name=None, type='text', value='', help=None, error=None, required=False,
+              placeholder=None, autocomplete=None, inputmode=None, id=None, input_html=None[HTML],
+              attrs=None[dict], disabled=False, readonly=False, dir=None, maxlength=None,
+              min=None, max=None, step=None, pattern=None)
+   * Plain input: pass name/type/value.
+   * Custom control: pass input_html, or {% call(field_id) form_field(...) %}<input id="{{ field_id }}">{% endcall %}
+   * `error` may be text or a list of messages (a WTForms-style errors list). #}
+{% macro form_field(label, name=none, type='text', value='', help=none, error=none, required=false,
+                    placeholder=none, autocomplete=none, inputmode=none, id=none, input_html=none,
+                    attrs=none, disabled=false, readonly=false, dir=none, maxlength=none,
+                    min=none, max=none, step=none, pattern=none) -%}
+{%- set fid = id or ('f-' ~ (name or 'field')) -%}
+{%- set err = (error|join('، ')) if (error is iterable and error is not string) else error -%}
+<div class="field{% if err %} field--invalid{% endif %}">
+  {%- if label %}
+  <label class="field__label" for="{{ fid }}">{{ label }}{% if required %}<span class="field__req" aria-hidden="true">*</span><span class="visually-hidden"> (الزامی)</span>{% endif %}</label>
+  {%- endif %}
+  {%- if caller is defined %}{{ caller(fid) }}
+  {%- elif input_html %}{{ input_html }}
+  {%- else %}
+  <input class="input{% if type in ('tel', 'number') or inputmode == 'numeric' %} input--num{% endif %}" id="{{ fid }}" type="{{ type }}"{% if name %} name="{{ name }}"{% endif %} value="{{ value if value is not none else '' }}"
+    {%- if required %} required{% endif %}{% if disabled %} disabled{% endif %}{% if readonly %} readonly{% endif %}
+    {%- if placeholder %} placeholder="{{ placeholder }}"{% endif %}{% if autocomplete %} autocomplete="{{ autocomplete }}"{% endif %}
+    {%- if inputmode %} inputmode="{{ inputmode }}"{% endif %}{% if dir %} dir="{{ dir }}"{% endif %}
+    {%- if maxlength %} maxlength="{{ maxlength }}"{% endif %}{% if min is not none %} min="{{ min }}"{% endif %}{% if max is not none %} max="{{ max }}"{% endif %}
+    {%- if step %} step="{{ step }}"{% endif %}{% if pattern %} pattern="{{ pattern }}"{% endif %}
+    {%- if err %} aria-invalid="true"{% endif %}{% if help or err %} aria-describedby="{% if help %}{{ fid }}-help{% endif %}{% if help and err %} {% endif %}{% if err %}{{ fid }}-error{% endif %}"{% endif %}
+    {%- if attrs %} {{ attrs|xmlattr }}{% endif %}>
+  {%- endif %}
+  {%- if help %}<p class="field__help" id="{{ fid }}-help">{{ help }}</p>{% endif %}
+  {%- if err %}<p class="field__error" id="{{ fid }}-error" role="alert">{{ _svg('alert') }}<span>{{ err }}</span></p>{% endif %}
+</div>
+{%- endmacro %}
+
+{# money_input(name, value=None, label=None, required=False, help=None, error=None, id=None,
+               placeholder='۰', unit='تومان', aria_label=None, min=None, max=None, negative=False, attrs=None)
+   Visible text field with live 3-digit grouping and Persian digits; core.js submits the raw integer
+   under `name`.  Without JS the plain digits are posted.  `value` is an integer (or None). #}
+{% macro money_input(name, value=none, label=none, required=false, help=none, error=none, id=none,
+                     placeholder='۰', unit='تومان', aria_label=none, min=none, max=none, negative=false, attrs=none) -%}
+{%- set fid = id or ('f-' ~ name) -%}
+{%- set err = (error|join('، ')) if (error is iterable and error is not string) else error -%}
+<div class="field{% if err %} field--invalid{% endif %}">
+  {%- if label %}
+  <label class="field__label" for="{{ fid }}">{{ label }}{% if required %}<span class="field__req" aria-hidden="true">*</span><span class="visually-hidden"> (الزامی)</span>{% endif %}</label>
+  {%- endif %}
+  <div class="input-group">
+    <input class="input" type="text" id="{{ fid }}" name="{{ name }}" data-money inputmode="numeric" autocomplete="off"
+      value="{{ value if value is not none else '' }}" placeholder="{{ placeholder }}"
+      {%- if required %} required{% endif %}{% if aria_label and not label %} aria-label="{{ aria_label }}"{% endif %}
+      {%- if min is not none %} data-min="{{ min }}"{% endif %}{% if max is not none %} data-max="{{ max }}"{% endif %}
+      {%- if negative %} data-negative{% endif %}
+      {%- if err %} aria-invalid="true"{% endif %}{% if help or err %} aria-describedby="{% if help %}{{ fid }}-help{% endif %}{% if help and err %} {% endif %}{% if err %}{{ fid }}-error{% endif %}"{% endif %}
+      {%- if attrs %} {{ attrs|xmlattr }}{% endif %}>
+    {%- if unit %}<span class="input-group__addon">{{ unit }}</span>{% endif %}
+  </div>
+  {%- if help %}<p class="field__help" id="{{ fid }}-help">{{ help }}</p>{% endif %}
+  {%- if err %}<p class="field__error" id="{{ fid }}-error" role="alert">{{ _svg('alert') }}<span>{{ err }}</span></p>{% endif %}
+</div>
+{%- endmacro %}
+
+{# jdate_input(name, value=None, label=None, min=None, max=None, required=False, help=None, error=None,
+                id=None, aria_label=None, attrs=None)
+   `value`, `min`, `max`: a date/datetime or ISO 'YYYY-MM-DD' string (Gregorian).  Shows Jalali, a picker
+   opens on click; the ISO date is submitted under `name`.  Without JS the ISO text field is posted. #}
+{% macro jdate_input(name, value=none, label=none, min=none, max=none, required=false, help=none, error=none,
+                     id=none, aria_label=none, attrs=none) -%}
+{%- set fid = id or ('f-' ~ name) -%}
+{%- set err = (error|join('، ')) if (error is iterable and error is not string) else error -%}
+{%- set v_iso = value.strftime('%Y-%m-%d') if (value and value.strftime is defined) else (value or '') -%}
+{%- set min_iso = min.strftime('%Y-%m-%d') if (min and min.strftime is defined) else (min or '') -%}
+{%- set max_iso = max.strftime('%Y-%m-%d') if (max and max.strftime is defined) else (max or '') -%}
+<div class="field{% if err %} field--invalid{% endif %}">
+  {%- if label %}
+  <label class="field__label" for="{{ fid }}">{{ label }}{% if required %}<span class="field__req" aria-hidden="true">*</span><span class="visually-hidden"> (الزامی)</span>{% endif %}</label>
+  {%- endif %}
+  <div class="date-field">
+    <input class="input" type="text" id="{{ fid }}" name="{{ name }}" data-jdate autocomplete="off" inputmode="numeric" dir="ltr"
+      value="{{ v_iso }}" placeholder="۱۴۰۴/۰۱/۰۱"
+      {%- if min_iso %} data-min="{{ min_iso }}"{% endif %}{% if max_iso %} data-max="{{ max_iso }}"{% endif %}
+      {%- if required %} required{% endif %}{% if aria_label and not label %} aria-label="{{ aria_label }}"{% endif %}
+      {%- if err %} aria-invalid="true"{% endif %}{% if help or err %} aria-describedby="{% if help %}{{ fid }}-help{% endif %}{% if help and err %} {% endif %}{% if err %}{{ fid }}-error{% endif %}"{% endif %}
+      {%- if attrs %} {{ attrs|xmlattr }}{% endif %}>
+    <button type="button" class="date-field__btn" data-jdate-open aria-label="انتخاب تاریخ">{{ _svg('calendar') }}</button>
+  </div>
+  {%- if help %}<p class="field__help" id="{{ fid }}-help">{{ help }}</p>{% endif %}
+  {%- if err %}<p class="field__error" id="{{ fid }}-error" role="alert">{{ _svg('alert') }}<span>{{ err }}</span></p>{% endif %}
+</div>
+{%- endmacro %}
+
+{# select_field(label, name, options, selected=None, help=None, error=None, required=False,
+                placeholder=None, id=None, disabled=False, attrs=None)
+   options: [(value, label), ...] (e.g. Role.choices()) or a list of plain strings / numbers.
+   placeholder: adds a first empty option with that text. #}
+{% macro select_field(label, name, options, selected=none, help=none, error=none, required=false,
+                      placeholder=none, id=none, disabled=false, attrs=none) -%}
+{%- set fid = id or ('f-' ~ name) -%}
+{%- set err = (error|join('، ')) if (error is iterable and error is not string) else error -%}
+<div class="field{% if err %} field--invalid{% endif %}">
+  {%- if label %}
+  <label class="field__label" for="{{ fid }}">{{ label }}{% if required %}<span class="field__req" aria-hidden="true">*</span><span class="visually-hidden"> (الزامی)</span>{% endif %}</label>
+  {%- endif %}
+  <div class="select-wrap">
+    <select class="select" id="{{ fid }}" name="{{ name }}"{% if required %} required{% endif %}{% if disabled %} disabled{% endif %}
+      {%- if err %} aria-invalid="true"{% endif %}{% if help or err %} aria-describedby="{% if help %}{{ fid }}-help{% endif %}{% if help and err %} {% endif %}{% if err %}{{ fid }}-error{% endif %}"{% endif %}
+      {%- if attrs %} {{ attrs|xmlattr }}{% endif %}>
+      {%- if placeholder is not none %}<option value=""{% if selected is none or selected == '' %} selected{% endif %}>{{ placeholder }}</option>{% endif %}
+      {%- for opt in options %}
+      {%- if opt is string or opt is number %}{% set ov = opt %}{% set ol = opt %}{% else %}{% set ov = opt[0] %}{% set ol = opt[1] %}{% endif %}
+      <option value="{{ ov }}"{% if selected is not none and (ov|string) == (selected|string) %} selected{% endif %}>{{ ol }}</option>
+      {%- endfor %}
+    </select>
+    {{ _svg('chevron-down') }}
+  </div>
+  {%- if help %}<p class="field__help" id="{{ fid }}-help">{{ help }}</p>{% endif %}
+  {%- if err %}<p class="field__error" id="{{ fid }}-error" role="alert">{{ _svg('alert') }}<span>{{ err }}</span></p>{% endif %}
+</div>
+{%- endmacro %}
+
+{# textarea_field(label, name, value='', rows=4, help=None, error=None, required=False, placeholder=None,
+                  id=None, maxlength=None, attrs=None) #}
+{% macro textarea_field(label, name, value='', rows=4, help=none, error=none, required=false, placeholder=none,
+                        id=none, maxlength=none, attrs=none) -%}
+{%- set fid = id or ('f-' ~ name) -%}
+{%- set err = (error|join('، ')) if (error is iterable and error is not string) else error -%}
+<div class="field{% if err %} field--invalid{% endif %}">
+  {%- if label %}
+  <label class="field__label" for="{{ fid }}">{{ label }}{% if required %}<span class="field__req" aria-hidden="true">*</span><span class="visually-hidden"> (الزامی)</span>{% endif %}</label>
+  {%- endif %}
+  <textarea class="textarea" id="{{ fid }}" name="{{ name }}" rows="{{ rows }}"{% if required %} required{% endif %}
+    {%- if placeholder %} placeholder="{{ placeholder }}"{% endif %}{% if maxlength %} maxlength="{{ maxlength }}"{% endif %}
+    {%- if err %} aria-invalid="true"{% endif %}{% if help or err %} aria-describedby="{% if help %}{{ fid }}-help{% endif %}{% if help and err %} {% endif %}{% if err %}{{ fid }}-error{% endif %}"{% endif %}
+    {%- if attrs %} {{ attrs|xmlattr }}{% endif %}>{{ value if value is not none else '' }}</textarea>
+  {%- if help %}<p class="field__help" id="{{ fid }}-help">{{ help }}</p>{% endif %}
+  {%- if err %}<p class="field__error" id="{{ fid }}-error" role="alert">{{ _svg('alert') }}<span>{{ err }}</span></p>{% endif %}
+</div>
+{%- endmacro %}
+
+{# checkbox_field(label, name, checked=False, value='1', help=None, id=None, disabled=False) #}
+{% macro checkbox_field(label, name, checked=false, value='1', help=none, id=none, disabled=false) -%}
+{%- set fid = id or ('f-' ~ name) -%}
+<label class="check" for="{{ fid }}">
+  <input type="checkbox" id="{{ fid }}" name="{{ name }}" value="{{ value }}"{% if checked %} checked{% endif %}{% if disabled %} disabled{% endif %}>
+  <span class="check__text"><span class="check__label">{{ label }}</span>{% if help %}<span class="check__help">{{ help }}</span>{% endif %}</span>
+</label>
+{%- endmacro %}
+
+{# stepper_field(name, value=1, min=0, max=999, label=None, default=None, step=1, id=None)
+   Number with - / + buttons ("تعداد محاسبه برای حقوق نیرو" defaults to 1). #}
+{% macro stepper_field(name, value=1, min=0, max=999, label=none, default=none, step=1, id=none, aria_label=none) -%}
+{%- set fid = id or ('f-' ~ name) -%}
+{%- if label %}<div class="field"><label class="field__label" for="{{ fid }}">{{ label }}</label>{% endif -%}
+<div class="stepper" data-stepper data-min="{{ min }}" data-max="{{ max }}" data-step="{{ step }}" data-default="{{ default if default is not none else value }}">
+  <button type="button" class="stepper__btn" data-stepper-dec aria-label="کاهش">{{ _svg('minus') }}</button>
+  <input class="stepper__input" type="text" id="{{ fid }}" name="{{ name }}" inputmode="numeric" autocomplete="off" value="{{ value }}"{% if aria_label and not label %} aria-label="{{ aria_label }}"{% endif %}>
+  <button type="button" class="stepper__btn" data-stepper-inc aria-label="افزایش">{{ _svg('plus') }}</button>
+</div>
+{%- if label %}</div>{% endif %}
+{%- endmacro %}
+
+{#- ------------------------------------------------------- overlays, disclosure -#}
+{# modal(id, title, size='md')  size: sm|md|lg|xl.  Body via {% call %}.  Open with
+   <button data-modal-open="ID">; close with data-modal-close, Esc or the backdrop.
+   Put action buttons in <div class="modal__footer">. Phones get a full-screen sheet. #}
+{% macro modal(id, title, size='md') -%}
+<div class="modal modal--{{ size }}" id="{{ id }}" role="dialog" aria-modal="true" aria-labelledby="{{ id }}-title" hidden>
+  <div class="modal__backdrop" data-modal-close></div>
+  <div class="modal__dialog" tabindex="-1">
+    <header class="modal__header">
+      <h2 class="modal__title" id="{{ id }}-title">{{ title }}</h2>
+      <button type="button" class="icon-btn" data-modal-close aria-label="بستن">{{ _svg('close') }}</button>
+    </header>
+    <div class="modal__body">{% if caller is defined %}{{ caller() }}{% endif %}</div>
+  </div>
+</div>
+{%- endmacro %}
+
+{# collapse(id, open=False) - a header-less panel that slides open; toggle it from anywhere with
+   <button data-accordion-toggle="ID" aria-expanded="false" aria-controls="ID">. CLOSED by default. #}
+{% macro collapse(id, open=false, cls='') -%}
+<div class="collapse{% if open %} is-open{% endif %}{% if cls %} {{ cls }}{% endif %}" id="{{ id }}" data-collapse>
+  <div class="collapse__inner">{% if caller is defined %}{{ caller() }}{% endif %}</div>
+</div>
+{%- endmacro %}
+
+{# accordion(id, title, open=False, meta=None, level=3) - CLOSED by default; the panel slides open.
+   Any [data-accordion-toggle="ID"] control on the page also toggles it (e.g. a "فاکتور" button). #}
+{% macro accordion(id, title, open=false, meta=none, level=3) -%}
+<div class="accordion{% if open %} is-open{% endif %}" id="{{ id }}" data-accordion>
+  <h{{ level }} class="accordion__header">
+    <button type="button" class="accordion__toggle" id="{{ id }}-btn" aria-expanded="{{ 'true' if open else 'false' }}" aria-controls="{{ id }}-panel" data-accordion-toggle="{{ id }}">
+      <span class="accordion__title">{{ title }}</span>
+      {%- if meta %}<span class="accordion__meta">{{ meta }}</span>{% endif %}
+      {{ _svg('chevron-down', cls='accordion__chevron') }}
+    </button>
+  </h{{ level }}>
+  <div class="collapse{% if open %} is-open{% endif %}" id="{{ id }}-panel" role="region" aria-labelledby="{{ id }}-btn">
+    <div class="collapse__inner"><div class="accordion__body">{% if caller is defined %}{{ caller() }}{% endif %}</div></div>
+  </div>
+</div>
+{%- endmacro %}
+
+{# confirm_button(label, action, message, title=None, confirm_label='تأیید', cancel_label='انصراف',
+                  tone='danger', fields=None, cls=None, icon=None)
+   A POST form with CSRF whose button first asks "are you sure?" in a modal (core.js).
+   fields: {'name': value} hidden inputs.  tone: danger|primary.  cls overrides the button classes. #}
+{% macro confirm_button(label, action, message, title=none, confirm_label='تأیید', cancel_label='انصراف',
+                        tone='danger', fields=none, cls=none, icon=none) -%}
+<form class="inline-form" method="post" action="{{ action }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  {%- if fields %}{% for k, v in fields.items() %}
+  <input type="hidden" name="{{ k }}" value="{{ v }}">
+  {%- endfor %}{% endif %}
+  <button type="submit" class="{{ cls or ('btn btn--sm btn--danger-soft' if tone == 'danger' else 'btn btn--sm btn--primary') }}"
+    data-confirm="{{ message }}" data-confirm-title="{{ title or label }}" data-confirm-label="{{ confirm_label }}"
+    data-confirm-cancel="{{ cancel_label }}" data-confirm-tone="{{ tone }}">
+    {%- if icon %}{{ _svg(icon) }}{% endif %}<span>{{ label }}</span></button>
+</form>
+{%- endmacro %}
+
+{#- -------------------------------------------------------- navigation widgets -#}
+{# tab_panel(key, active=False, id='tabs') - panel for client-side tabs; body via {% call %}. #}
+{% macro tab_panel(key, active=false, id='tabs') -%}
+<div class="tabs__panel" role="tabpanel" id="{{ id }}-panel-{{ key }}" aria-labelledby="{{ id }}-tab-{{ key }}" data-tab-panel="{{ key }}"{% if not active %} hidden{% endif %}>{% if caller is defined %}{{ caller() }}{% endif %}</div>
+{%- endmacro %}
+
+{# tabs(items, active=None, label=None, id='tabs')
+   items: [{'key': 'a', 'label': '...', 'url': '/x' (optional), 'badge': '3' (optional), 'icon': 'name'}]
+   * every item has a url -> link tabs (server navigation, aria-current).
+   * no urls + {% call %} body of tab_panel(...) -> client-side tabs (role=tablist, arrow keys). #}
+{% macro tabs(items, active=none, label=none, id='tabs') -%}
+{%- if caller is defined %}
+<div class="tabs" data-tabs>
+  <div class="tabs__list" role="tablist"{% if label %} aria-label="{{ label }}"{% endif %}>
+    {%- for it in items %}
+    <button type="button" class="tabs__tab" role="tab" id="{{ id }}-tab-{{ it.key }}" aria-controls="{{ id }}-panel-{{ it.key }}" data-tab="{{ it.key }}"
+      aria-selected="{{ 'true' if it.key == active else 'false' }}" tabindex="{{ 0 if it.key == active else -1 }}">
+      {%- if it.icon %}{{ _svg(it.icon) }}{% endif %}<span>{{ it.label }}</span>{% if it.badge %}<span class="badge badge--accent">{{ it.badge }}</span>{% endif -%}
+    </button>
+    {%- endfor %}
+  </div>
+  {{ caller() }}
+</div>
+{%- else %}
+<nav class="tabs"{% if label %} aria-label="{{ label }}"{% endif %}>
+  <div class="tabs__list">
+    {%- for it in items %}
+    <a class="tabs__tab" href="{{ it.url }}"{% if it.key == active %} aria-current="page"{% endif %}>
+      {%- if it.icon %}{{ _svg(it.icon) }}{% endif %}<span>{{ it.label }}</span>{% if it.badge %}<span class="badge badge--accent">{{ it.badge }}</span>{% endif -%}
+    </a>
+    {%- endfor %}
+  </div>
+</nav>
+{%- endif %}
+{%- endmacro %}
+
+{# pagination(page_obj, endpoint, **filters)
+   page_obj: a Flask-SQLAlchemy Pagination (db.paginate(...)); extra keyword args are passed to url_for
+   (the current filters), e.g. {{ pagination(page, 'events.index', q=q, status=status) }}.  Renders nothing for one page. #}
+{% macro pagination(page_obj, endpoint) -%}
+{%- if page_obj and page_obj.pages and page_obj.pages > 1 %}
+<nav class="pagination-nav" aria-label="صفحه‌بندی">
+  <ul class="pagination">
+    <li>{% if page_obj.has_prev %}<a class="pagination__item" rel="prev" href="{{ url_for(endpoint, page=page_obj.prev_num, **kwargs) }}" aria-label="صفحهٔ قبل">{{ _svg('chevron-right') }}</a>
+      {%- else %}<span class="pagination__item pagination__item--disabled" aria-hidden="true">{{ _svg('chevron-right') }}</span>{% endif %}</li>
+    {%- for p in page_obj.iter_pages(left_edge=1, left_current=1, right_current=2, right_edge=1) %}
+    {%- if p is none %}
+    <li class="pagination__gap-item"><span class="pagination__gap" aria-hidden="true">…</span></li>
+    {%- elif p == page_obj.page %}
+    <li class="pagination__num is-current"><span class="pagination__item" aria-current="page"><span class="visually-hidden">صفحهٔ </span>{{ p|fa }}</span></li>
+    {%- else %}
+    <li class="pagination__num"><a class="pagination__item" href="{{ url_for(endpoint, page=p, **kwargs) }}"><span class="visually-hidden">صفحهٔ </span>{{ p|fa }}</a></li>
+    {%- endif %}
+    {%- endfor %}
+    <li>{% if page_obj.has_next %}<a class="pagination__item" rel="next" href="{{ url_for(endpoint, page=page_obj.next_num, **kwargs) }}" aria-label="صفحهٔ بعد">{{ _svg('chevron-left') }}</a>
+      {%- else %}<span class="pagination__item pagination__item--disabled" aria-hidden="true">{{ _svg('chevron-left') }}</span>{% endif %}</li>
+  </ul>
+  {%- if page_obj.total is not none %}
+  <p class="pagination__summary">صفحهٔ {{ page_obj.page|fa }} از {{ page_obj.pages|fa }} · {{ page_obj.total|fa }} مورد</p>
+  {%- endif %}
+</nav>
+{%- endif %}
+{%- endmacro %}
+
+{#- ------------------------------------------------------------------ tables -#}
+{% macro _cell(row, col) -%}
+{%- set v = row[col.key] if col.key else none -%}
+{%- if v is none or v is undefined -%}<span class="text-faint">—</span>
+{%- elif col.format == 'toman' -%}{{ v|toman }}{% if col.unit is not defined or col.unit %} <small class="text-muted">تومان</small>{% endif %}
+{%- elif col.format == 'jdate' -%}{{ v|jdate }}
+{%- elif col.format == 'jdatetime' -%}{{ v|jdatetime }}
+{%- elif col.format == 'jweekday' -%}{{ v|jweekday }}
+{%- elif col.format == 'fa' -%}{{ v|fa }}
+{%- else -%}{{ v }}{%- endif -%}
+{%- endmacro %}
+
+{# data_table(columns, rows, empty='...', caption=None, stack=True, empty_icon='inbox')
+   columns: [{'key': 'name', 'label': 'نام', 'format': 'toman'|'jdate'|'jdatetime'|'jweekday'|'fa' (optional),
+              'num': True (end-align numbers), 'actions': True (no phone label, end aligned), 'class': ''}]
+   rows: list of dicts/objects.  Cell = row[col.key] formatted per `format`.
+   Custom cells: {% call(row, col) data_table(columns, rows) %}{% if col.key == 'status' %}...{% endif %}{% endcall %}
+   (return nothing for a column to fall back to the default rendering).
+   On phones (< 640px) every row becomes a labelled card. #}
+{% macro data_table(columns, rows, empty='موردی برای نمایش وجود ندارد.', caption=none, stack=true, empty_icon='inbox') -%}
+{%- if not rows %}
+{{ empty_state(empty_icon, empty) }}
+{%- else %}
+<div class="table-wrap">
+  <table class="table{% if stack %} table--stack{% endif %}">
+    {%- if caption %}<caption>{{ caption }}</caption>{% endif %}
+    <thead>
+      <tr>
+        {%- for c in columns %}
+        <th scope="col"{% if c.num or c.class %} class="{{ 'cell-num' if c.num }}{{ ' ' ~ c.class if c.class }}"{% endif %}>{{ c.label if not c.actions else '' }}{% if c.actions and c.label %}<span class="visually-hidden">{{ c.label }}</span>{% endif %}</th>
+        {%- endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {%- for row in rows %}
+      <tr>
+        {%- for c in columns %}
+        {%- set custom = (caller(row, c)|trim) if caller is defined else '' %}
+        <td{% if c.label and not c.actions %} data-label="{{ c.label }}"{% endif %} class="{{ 'cell-num' if c.num }}{{ ' table__actions' if c.actions }}{{ ' ' ~ c.class if c.class }}">{% if custom %}{{ custom }}{% else %}{{ _cell(row, c) }}{% endif %}</td>
+        {%- endfor %}
+      </tr>
+      {%- endfor %}
+    </tbody>
+  </table>
+</div>
+{%- endif %}
+{%- endmacro %}
+
+{#- ---------------------------------------------------------------- calendar -#}
+{# calendar_month(grid, events=None, title=None, prev_url=None, next_url=None, today=None)
+   grid:   app.services.jalali.month_grid(jy, jm) -> weeks of 7 cells, a Gregorian date or None (Saturday first).
+   events: {date or 'YYYY-MM-DD': [{'label': 'عروسی ...', 'url': '/events/3', 'tone': 'accent|success|warning|danger|info|neutral'}]}
+   title:  e.g. 'مرداد ۱۴۰۴'.  today: a date to highlight.  Wide screens show event chips in each day; phones show
+   dots plus an agenda list below the grid. #}
+{% macro calendar_month(grid, events=none, title=none, prev_url=none, next_url=none, today=none) -%}
+{%- set ev = events if events else {} -%}
+{%- set names = ['شنبه', 'یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنجشنبه', 'جمعه'] -%}
+{%- set short = ['ش', 'ی', 'د', 'س', 'چ', 'پ', 'ج'] -%}
+{%- set ns = namespace(day=0) -%}
+<div class="cal">
+  <div class="cal__head">
+    {%- if prev_url %}<a class="icon-btn" href="{{ prev_url }}" rel="prev" aria-label="ماه قبل">{{ _svg('chevron-right') }}</a>{% else %}<span class="icon-btn" aria-hidden="true"></span>{% endif %}
+    <h2 class="cal__title">{{ title }}</h2>
+    {%- if next_url %}<a class="icon-btn" href="{{ next_url }}" rel="next" aria-label="ماه بعد">{{ _svg('chevron-left') }}</a>{% else %}<span class="icon-btn" aria-hidden="true"></span>{% endif %}
+  </div>
+  <div class="cal__grid" role="grid"{% if title %} aria-label="{{ title }}"{% endif %}>
+    {%- for n in names %}
+    <div class="cal__dow{% if loop.last %} cal__dow--weekend{% endif %}" role="columnheader"><span class="hide-sm">{{ n }}</span><span class="show-sm" aria-hidden="true">{{ short[loop.index0] }}</span></div>
+    {%- endfor %}
+    {%- for week in grid %}{% for cell in week %}
+    {%- if cell %}
+    {%- set ns.day = ns.day + 1 %}
+    {%- set day_events = ev.get(cell) or ev.get(cell.isoformat()) or [] %}
+    <div class="cal__day{% if loop.last %} cal__day--weekend{% endif %}{% if today and cell == today %} cal__day--today{% endif %}{% if day_events %} cal__day--has-events{% endif %}" role="gridcell"{% if today and cell == today %} aria-current="date"{% endif %}>
+      <span class="cal__num">{{ ns.day|fa }}</span>
+      {%- if day_events %}
+      <div class="cal__events">
+        {%- for e in day_events[:3] %}
+        {%- if e.url %}<a class="cal__event cal__event--{{ e.tone or 'accent' }}" href="{{ e.url }}" title="{{ e.label }}">{{ e.label }}</a>
+        {%- else %}<span class="cal__event cal__event--{{ e.tone or 'accent' }}" title="{{ e.label }}">{{ e.label }}</span>{% endif %}
+        {%- endfor %}
+        {%- if day_events|length > 3 %}<span class="cal__more">+{{ (day_events|length - 3)|fa }} مورد دیگر</span>{% endif %}
+      </div>
+      <div class="cal__dots" aria-hidden="true">{% for e in day_events[:4] %}<span class="cal__dot cal__dot--{{ e.tone or 'accent' }}"></span>{% endfor %}</div>
+      {%- endif %}
+    </div>
+    {%- else %}
+    <div class="cal__day cal__day--blank" role="gridcell" aria-hidden="true"></div>
+    {%- endif %}
+    {%- endfor %}{% endfor %}
+  </div>
+  {#- phones: agenda list of days that have events -#}
+  {%- set agenda = namespace(count=0, day=0) %}
+  <ol class="cal__agenda" aria-label="{{ title }}">
+    {%- for week in grid %}{% for cell in week %}{% if cell %}
+    {%- set agenda.day = agenda.day + 1 %}
+    {%- set day_events = ev.get(cell) or ev.get(cell.isoformat()) or [] %}
+    {%- if day_events %}{% set agenda.count = agenda.count + 1 %}
+    <li class="cal__agenda-item">
+      <div class="cal__agenda-day"><strong>{{ agenda.day|fa }}</strong><small>{{ names[loop.index0] }}</small></div>
+      <div class="cal__agenda-events">
+        {%- for e in day_events %}
+        {%- if e.url %}<a class="cal__event cal__event--{{ e.tone or 'accent' }}" href="{{ e.url }}">{{ e.label }}</a>
+        {%- else %}<span class="cal__event cal__event--{{ e.tone or 'accent' }}">{{ e.label }}</span>{% endif %}
+        {%- endfor %}
+      </div>
+    </li>
+    {%- endif %}
+    {%- endif %}{% endfor %}{% endfor %}
+    {%- if agenda.count == 0 %}<li class="cal__agenda-empty">مراسمی در این ماه ثبت نشده است.</li>{% endif %}
+  </ol>
+</div>
+{%- endmacro %}
+
+{#- ------------------------------------------------------------ error pages -#}
+{# error_page(code, title, text=None, icon='camera', actions=None[HTML])
+   Used by errors/403|404|500.html; reuse it for other status pages (400, 429, 503...). #}
+{% macro error_page(code, title, text=none, icon='camera', actions=none) -%}
+<section class="err" aria-labelledby="err-title">
+  <div class="err__art" aria-hidden="true">
+    <span class="err__code num">{{ code|string|fa }}</span>
+    <span class="err__lens">{{ _svg(icon) }}</span>
+  </div>
+  <h1 class="err__title" id="err-title">{{ title }}</h1>
+  {%- if text %}<p class="err__text">{{ text }}</p>{% endif %}
+  <div class="err__actions">{% if actions %}{{ actions }}{% endif %}{% if caller is defined %}{{ caller() }}{% endif %}</div>
+</section>
+{%- endmacro %}

@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+{% from 'components/ui.html' import page_header, card, badge, empty_state, icon %}
+{% block title %}تالارهای من{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='css/halls.css', v=asset_version|default('1')) }}">{% endblock %}
+
+{% block content %}
+<div class="page stack stack--lg">
+  {{ page_header('تالارهای من', 'تالارها و باغ‌هایی که مدیریت می‌کنید',
+       actions=('<a class="btn btn--primary" href="' ~ url_for('halls.hall_new') ~ '">تالار تازه</a>')|safe) }}
+
+  {% if halls %}
+  <ul class="hl-cards" aria-label="تالارها">
+    {% for hall in halls %}
+    <li>
+      {% call card(tone=None if hall.is_active else 'warning') %}
+        <div class="hl-event__head">
+          {% if covers.get(hall.id) %}<img class="hl-cover" src="{{ media_url(covers[hall.id]) }}" alt="" loading="lazy">
+          {% else %}<span class="hl-cover hl-cover--blank" aria-hidden="true">{{ icon('building', 28) }}</span>{% endif %}
+          <div class="hl-event__title">
+            <h2 class="hl-event__name"><a href="{{ url_for('halls.hall_show', hall_id=hall.id) }}">{{ hall.name }}</a></h2>
+            <p class="text-muted">{{ hall.city }}{% if hall.address %} · {{ hall.address }}{% endif %}</p>
+          </div>
+          {% if not hall.is_active %}{{ badge('غیرفعال', 'warning') }}{% endif %}
+        </div>
+        <p class="hl-facts">
+          <span class="hl-fact">{{ icon('calendar') }}{{ (upcoming.get(hall.id, 0))|fa }} مراسم پیش‌رو</span>
+          <span class="hl-fact">{{ icon('alert') }}{{ (free.get(hall.id, 0))|fa }} بدون اتلیه</span>
+        </p>
+        <div class="hl-actions">
+          <a class="btn btn--sm btn--primary" href="{{ url_for('halls.calendar', hall=hall.id) }}">{{ icon('calendar') }}<span>تقویم</span></a>
+          <a class="btn btn--sm btn--secondary" href="{{ url_for('halls.hall_show', hall_id=hall.id) }}">مشخصات</a>
+          <a class="btn btn--sm btn--ghost" href="{{ url_for('halls.hall_edit', hall_id=hall.id) }}">{{ icon('edit') }}<span>ویرایش</span></a>
+        </div>
+      {% endcall %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  {{ empty_state('building', 'هنوز تالاری ثبت نکرده‌اید', 'با ثبت تالار می‌توانید مراسم‌ها را اضافه کنید و به اتلیه‌ها بدهید.',
+                  action=('<a class="btn btn--primary" href="' ~ url_for('halls.setup') ~ '">ثبت تالار</a>')|safe) }}
+  {% endif %}
+</div>
+{% endblock %}

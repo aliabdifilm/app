@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% from 'components/ui.html' import page_header, card, badge, icon %}
+{% block title %}حساب کاربری{% endblock %}
+{% block content %}
+<div class="page page--narrow stack stack--lg">
+  {{ page_header('حساب کاربری', 'اطلاعات ورود و امنیت حساب شما') }}
+
+  {% call card(title='اطلاعات حساب') %}
+    <dl class="kv">
+      <dt>نام</dt><dd>{{ user.full_name or '—' }}</dd>
+      <dt>شمارهٔ موبایل</dt><dd><bdo dir="ltr" class="num">{{ user.mobile|fa }}</bdo></dd>
+      <dt>نقش</dt><dd>{{ badge(user.role.label, 'accent') }}</dd>
+      <dt>وضعیت</dt><dd>{{ badge(user.status.label, {'active': 'success', 'pending': 'warning', 'suspended': 'danger'}.get(user.status.value, 'neutral')) }}</dd>
+      <dt>آخرین ورود</dt><dd>{{ (user.last_login_at|jdatetime) or '—' }}</dd>
+    </dl>
+  {% endcall %}
+
+  {% call card(title='رمز عبور', subtitle='ورود اصلی شما با کد پیامکی است؛ رمز عبور اختیاری است.') %}
+    <p>{{ badge('تعیین شده', 'success', 'check') if user.password_hash else badge('تعیین نشده', 'neutral') }}</p>
+    <a class="btn btn--secondary" href="{{ url_for('auth.password') }}">{{ icon('lock') }}{{ 'تغییر رمز عبور' if user.password_hash else 'تعیین رمز عبور' }}</a>
+  {% endcall %}
+
+  <form method="post" action="{{ url_for('auth.logout') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit" class="btn btn--danger-soft btn--block">{{ icon('logout') }}خروج از حساب</button>
+  </form>
+</div>
+{% endblock %}

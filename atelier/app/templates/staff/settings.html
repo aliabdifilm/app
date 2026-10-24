@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% from 'components/ui.html' import page_header, card, alert, icon, checkbox_field %}
+{% from 'staff/_macros.html' import profile_tabs, csrf %}
+{% block title %}حساب و اعلان‌ها{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='css/staff.css', v=asset_version|default('1')) }}">{% endblock %}
+
+{% block content %}
+<div class="page page--narrow stack stack--lg">
+  {{ page_header('حساب و اعلان‌ها', 'شمارهٔ موبایل، رمز عبور و اعلان‌هایی که می‌خواهید بگیرید.') }}
+  {{ profile_tabs('settings') }}
+
+  {% call card(title='حساب کاربری') %}
+  <dl class="kv">
+    <div><dt>نام</dt><dd>{{ current_user.display_name }}</dd></div>
+    <div><dt>شمارهٔ موبایل (ورود)</dt><dd><bdo dir="ltr" class="num">{{ current_user.mobile|fa }}</bdo></dd></div>
+    <div><dt>رمز عبور</dt><dd>{{ 'تعیین شده' if has_password else 'تعیین نشده (ورود با کد پیامکی)' }}</dd></div>
+    {% if current_user.last_login_at %}<div><dt>آخرین ورود</dt><dd>{{ current_user.last_login_at|jdatetime }}</dd></div>{% endif %}
+  </dl>
+  <div class="st-actions">
+    <a class="btn btn--secondary" href="{{ url_for('staff.mobile_change') }}">{{ icon('phone') }}<span>تغییر شمارهٔ موبایل</span></a>
+    {% if password_url %}<a class="btn btn--secondary" href="{{ password_url }}">{{ icon('lock') }}<span>{{ 'تغییر رمز عبور' if has_password else 'تعیین رمز عبور (اختیاری)' }}</span></a>{% endif %}
+  </div>
+  <p class="text-muted text-sm">تغییر شماره با دو کد پیامکی تأیید می‌شود تا کسی بدون اجازهٔ شما حساب را به شمارهٔ دیگری منتقل نکند.</p>
+  {% endcall %}
+
+  {% call card(title='اعلان‌ها', subtitle='کدام اعلان‌ها در زنگوله برایتان بیاید؟') %}
+  <form method="post" action="{{ url_for('staff.notification_prefs') }}" class="stack">
+    {{ csrf() }}
+    <div class="stack stack--sm">
+      {% for group in groups %}
+      {{ checkbox_field(group.title, 'groups', checked=(group.key in enabled), value=group.key, help=group.help, id='grp-' ~ group.key) }}
+      {% endfor %}
+    </div>
+    <p class="text-muted text-sm">{{ icon('lock') }} {{ always_on }}</p>
+    <div class="form-actions"><button class="btn btn--primary" type="submit">ذخیرهٔ تنظیمات</button></div>
+  </form>
+  {% endcall %}
+</div>
+{% endblock %}
+
+{% block scripts %}<script src="{{ url_for('static', filename='js/staff.js', v=asset_version|default('1')) }}" defer></script>{% endblock %}

@@ -1,0 +1,16 @@
+{#- Any other HTTP error (400, 401, 405, 409, 413, 429 ...).  Variables: code, title, text, icon, retry_after. -#}
+{% extends 'base.html' %}
+{% from 'components/ui.html' import error_page %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="page">
+  {% call error_page(code, title, text, icon=icon) %}
+    {% if code == 401 %}
+    <a class="btn btn--primary" href="{{ login_url|default('/auth/login') }}">ورود</a>
+    {% else %}
+    <a class="btn btn--primary" href="{{ home_url|default('/') }}">صفحهٔ اصلی</a>
+    {% endif %}
+    <button type="button" class="btn" data-history-back>بازگشت به صفحهٔ قبل</button>
+  {% endcall %}
+</div>
+{% endblock %}

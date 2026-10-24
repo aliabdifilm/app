@@ -1,0 +1,148 @@
+{% extends 'base.html' %}
+{% from 'components/ui.html' import page_header, card, stat_tile, badge, alert, empty_state, pagination, icon, select_field %}
+{% from 'staff/_macros.html' import date_tile %}
+{% block title %}درآمد{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='css/staff.css', v=asset_version|default('1')) }}">{% endblock %}
+
+{% block content %}
+<div class="page stack stack--lg">
+  {% set header_actions %}
+    <a class="btn btn--secondary" href="{{ export_url }}" download>{{ icon('download') }}<span>خروجی CSV</span></a>
+  {% endset %}
+  {{ page_header('درآمد من', 'حقوق هر مراسم از فاکتور ثبت‌شدهٔ اتلیه آمده است؛ این صفحه فقط مال خود شماست.', actions=header_actions|safe) }}
+
+  {#- ---------------------------------------------------------------------- filters -#}
+  <form class="st-filters" method="get" action="{{ url_for('staff.earnings_page') }}" role="search" aria-label="فیلتر درآمد">
+    <input type="hidden" name="y" value="{{ year }}">
+    {{ select_field('ماه', 'm', [('', 'همهٔ ماه‌های ' ~ (year|fa))] + months|list, selected=(month|string if month else ''), id='f-month', attrs={'data-autosubmit': ''}) }}
+    {{ select_field('وضعیت پرداخت', 'status', [('all', 'همه'), ('paid', 'پرداخت‌شده'), ('unpaid', 'پرداخت‌نشده')], selected=status, id='f-status', attrs={'data-autosubmit': ''}) }}
+    <button class="btn btn--secondary" type="submit">اعمال</button>
+  </form>
+
+  {#- ------------------------------------------------------------------------ totals -#}
+  <section class="stack stack--sm" aria-label="جمع {{ period }}">
+    <h2 class="st-section-title">{{ period }}</h2>
+    <div class="grid grid--stats">
+      {{ stat_tile('جمع حقوق', summary.total|toman, unit='تومان', icon='coins', tone='info', hint=(summary.count|fa ~ ' مراسم') if summary.count else 'مراسمی در این دوره ثبت نشده') }}
+      {{ stat_tile('پرداخت‌شده', summary.paid|toman, unit='تومان', icon='check-circle', tone='success') }}
+      {{ stat_tile('پرداخت‌نشده', summary.unpaid|toman, unit='تومان', icon='clock', tone='warning' if summary.unpaid else none, hint=('مانده کل: ' ~ outstanding|toman ~ ' تومان') if outstanding != summary.unpaid else none) }}
+    </div>
+  </section>
+
+  {#- ------------------------------------------------------------------------ chart -#}
+  {% set chart_actions %}
+    <a class="icon-btn" href="{{ prev_year_url }}" aria-label="سال قبل">{{ icon('chevron-right') }}</a>
+    <a class="icon-btn" href="{{ next_year_url }}" aria-label="سال بعد">{{ icon('chevron-left') }}</a>
+  {% endset %}
+  {% call card(title='حقوق ماهانهٔ سال ' ~ (year|fa), actions=chart_actions|safe) %}
+  {% if chart.empty %}
+  <p class="text-muted">برای سال {{ year|fa }} حقوقی ثبت نشده است.</p>
+  {% else %}
+  <figure class="st-figure">
+    <svg class="st-chart" viewBox="0 0 {{ chart.width }} {{ chart.height }}" role="img" aria-labelledby="st-chart-title st-chart-desc">
+      <title id="st-chart-title">نمودار حقوق ماهانهٔ سال {{ year|fa }}</title>
+      <desc id="st-chart-desc">ستون هر ماه دو بخش دارد: پرداخت‌شده در پایین و پرداخت‌نشده در بالا؛ واحد: {{ chart.unit_label }}.</desc>
+      {% for tick in chart.ticks %}
+      <line class="st-chart__grid" x1="{{ chart.plot_left }}" x2="{{ chart.plot_right }}" y1="{{ tick.y }}" y2="{{ tick.y }}"/>
+      <text class="st-chart__tick" x="{{ chart.axis_x }}" y="{{ tick.y + 3 }}">{{ tick.label }}</text>
+      {% endfor %}
+      <line class="st-chart__axis" x1="{{ chart.plot_left }}" x2="{{ chart.plot_right }}" y1="{{ chart.baseline }}" y2="{{ chart.baseline }}"/>
+      {% for bar in chart.bars %}
+      <a href="{{ url_for('staff.earnings_page', y=year, m=bar.month, status=status) }}" aria-label="{{ bar.title }}">
+        <g class="st-chart__col{% if bar.month == month %} is-selected{% endif %}">
+          <title>{{ bar.title }}</title>
+          <rect class="st-chart__hit" x="{{ bar.hit_x }}" y="0" width="{{ chart.slot }}" height="{{ chart.height }}"/>
+          {% if bar.paid_path %}<path class="st-chart__bar st-chart__bar--paid" d="{{ bar.paid_path }}"/>{% endif %}
+          {% if bar.unpaid_path %}<path class="st-chart__bar st-chart__bar--unpaid" d="{{ bar.unpaid_path }}"/>{% endif %}
+          <text class="st-chart__month" x="{{ bar.center }}" y="{{ chart.height - 8 }}">{{ bar.short }}</text>
+        </g>
+      </a>
+      {% endfor %}
+      {% if chart.peak_month %}<text class="st-chart__peak" x="{{ chart.peak_x }}" y="{{ chart.peak_y }}">{{ chart.peak_text }}</text>{% endif %}
+    </svg>
+    <figcaption class="st-chart__legend">
+      <span class="st-legend__item"><span class="st-dot st-dot--success"></span>پرداخت‌شده</span>
+      <span class="st-legend__item"><span class="st-dot st-dot--warning"></span>پرداخت‌نشده</span>
+      <span class="text-muted text-sm">واحد: {{ chart.unit_label }} · با زدن روی هر ماه، فهرست همان ماه را ببینید</span>
+    </figcaption>
+  </figure>
+  <div class="visually-hidden">
+  <table>
+    <caption>جدول حقوق ماهانهٔ سال {{ year|fa }}</caption>
+    <thead><tr><th scope="col">ماه</th><th scope="col">پرداخت‌شده (تومان)</th><th scope="col">پرداخت‌نشده (تومان)</th></tr></thead>
+    <tbody>{% for item in series %}<tr><th scope="row">{{ item.label }}</th><td>{{ item.paid|toman }}</td><td>{{ item.unpaid|toman }}</td></tr>{% endfor %}</tbody>
+  </table>
+  </div>
+  {% endif %}
+  {% endcall %}
+
+  {#- ------------------------------------------------------------------- formula help -#}
+  <details class="card st-help">
+    <summary class="st-help__summary">{{ icon('info') }} حقوق چطور حساب می‌شود؟</summary>
+    <div class="card__body stack stack--sm">
+      <p><strong>{{ formula }}</strong></p>
+      <ul class="st-terms__lines">
+        <li><b>پایه:</b> مبلغ ثابتی که هنگام افیش با اتلیه توافق کرده‌اید.</li>
+        <li><b>پورسانت:</b> تعداد فروش مراسم × مبلغ پورسانت هر عکس.</li>
+        <li><b>پاداش:</b> مبلغ بالاترین پله‌ای که تعداد فروش به آن رسیده است (پله‌ها جمع نمی‌شوند و «۷۰ به بالا» یعنی ۷۰ و بیشتر).</li>
+      </ul>
+      <p class="text-muted text-sm">{{ units_note }} شرایط هر مراسم هنگام افیش برای شما ثبت می‌شود و بعداً روی مراسم‌های گذشته اثری ندارد.</p>
+    </div>
+  </details>
+
+  {#- --------------------------------------------------------------------------- rows -#}
+  <section class="stack" aria-label="فهرست حقوق">
+    {% if rows %}
+    <ul class="st-grid st-grid--earn">
+      {% for r in rows %}
+      {% set line = r.line %}
+      <li>
+        <article class="card st-card" id="line-{{ line.id }}">
+          <div class="card__body st-card__body">
+            <div class="st-card__head">
+              {{ date_tile(r.event.date) }}
+              <div class="st-card__title">
+                <h3 class="st-card__name"><a href="{{ url_for('staff.earning', line_id=line.id) }}">{{ r.role.label }} · {{ r.event.hall.name }}</a></h3>
+                <p class="st-card__sub">{{ r.event.date|jweekday }} {{ r.event.date|jdate('long') }}</p>
+              </div>
+              <div class="st-card__amount">
+                <strong>{{ line.total|toman }}</strong> <small>تومان</small>
+                {% if r.paid %}{{ badge('پرداخت شد', 'success', 'check') }}{% else %}{{ badge('پرداخت‌نشده', 'warning', 'clock') }}{% endif %}
+              </div>
+            </div>
+            <details class="st-calc">
+              <summary>نحوهٔ محاسبه</summary>
+              <table class="st-calc__table">
+                <tbody>
+                  {% for item in r.breakdown %}
+                  <tr><th scope="row">{{ item.label }}</th><td class="text-muted">{{ item.formula }}</td><td class="cell-num">{{ item.amount }}</td></tr>
+                  {% endfor %}
+                  <tr class="st-calc__total"><th scope="row">جمع</th><td></td><td class="cell-num">{{ line.total|toman }}</td></tr>
+                </tbody>
+              </table>
+              {% if r.paid %}
+              <p class="text-muted text-sm">پرداخت: {{ line.paid_at|jdate('long') }}{% if line.paid_method %} · {{ line.paid_method.label }}{% endif %}{% if line.paid_note %} · {{ line.paid_note }}{% endif %}</p>
+              {% endif %}
+            </details>
+            {% if r.recalculated_from is not none %}
+            {% call alert(tone='warning', title='مبلغ پس از پرداخت تغییر کرده') %}
+              هنگام پرداخت {{ r.recalculated_from|toman }} تومان ثبت شده بود، ولی فاکتور بعداً بازنگری شد. موضوع را با اتلیه در میان بگذارید.
+            {% endcall %}
+            {% endif %}
+            <p><a class="btn btn--ghost btn--sm" href="{{ url_for('staff.earning', line_id=line.id) }}">جزئیات کامل و گزارش مشکل</a></p>
+          </div>
+        </article>
+      </li>
+      {% endfor %}
+    </ul>
+    {{ pagination(page, 'staff.earnings_page', y=year, m=month or none, status=status if status != 'all' else none) }}
+    {% else %}
+    {{ empty_state('coins', 'در این دوره حقوقی ثبت نشده است',
+         'پس از آن‌که اتلیه فاکتور مراسم را ثبت کند، حقوق شما با جزئیات این‌جا نمایش داده می‌شود.',
+         action=('<a class="btn btn--primary" href="' ~ url_for('staff.schedule') ~ '">برنامهٔ من</a>')|safe) }}
+    {% endif %}
+  </section>
+</div>
+{% endblock %}
+
+{% block scripts %}<script src="{{ url_for('static', filename='js/staff.js', v=asset_version|default('1')) }}" defer></script>{% endblock %}

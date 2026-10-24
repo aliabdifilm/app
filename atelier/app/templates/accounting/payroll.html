@@ -1,0 +1,169 @@
+{#- Monthly payroll per person: totals, every line, mark paid one by one or in bulk, CSV. -#}
+{% extends 'base.html' %}
+{% from 'components/ui.html' import page_header, stat_tile, empty_state, icon, tabs, pagination, modal, badge, alert, jdate_input, select_field, form_field %}
+{% block title %}حقوق نیروها{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='css/accounting.css', v=asset_version|default('1')) }}">{% endblock %}
+{% block content %}
+{% set atelier_arg = atelier.id if ateliers else none %}
+{% set errors = form_state.get('errors', {}) %}
+{% set values = form_state.get('values', {}) %}
+{% set selected = form_state.get('selected', []) %}
+<div class="page stack stack--lg acc">
+  {{ page_header('حسابداری', 'حقوق نیروهای «' ~ atelier.name ~ '» به تفکیک نفر') }}
+  {{ tabs(tab_items, active='payroll', label='بخش‌های حسابداری', id='acc-tabs') }}
+
+  <form class="card acc-filters" method="get" action="{{ url_for('accounting.payroll_index') }}" role="search" aria-label="فیلتر حقوق">
+    <div class="card__body">
+      <div class="acc-filters__grid">
+        {% if ateliers %}
+        <div class="field"><label class="field__label" for="f-atelier">اتلیه</label>
+          <div class="select-wrap"><select class="select" id="f-atelier" name="atelier">
+            {% for a in ateliers %}<option value="{{ a.id }}"{% if a.id == atelier.id %} selected{% endif %}>{{ a.name }}</option>{% endfor %}
+          </select>{{ icon('chevron-down') }}</div></div>
+        {% endif %}
+        <div class="field"><label class="field__label" for="f-y">سال</label>
+          <div class="select-wrap"><select class="select" id="f-y" name="y">
+            {% for year in years %}<option value="{{ year }}"{% if year == period.jy %} selected{% endif %}>{{ year|fa }}</option>{% endfor %}
+          </select>{{ icon('chevron-down') }}</div></div>
+        <div class="field"><label class="field__label" for="f-m">ماه</label>
+          <div class="select-wrap"><select class="select" id="f-m" name="m">
+            {% for value, label in month_choices %}<option value="{{ value }}"{% if value == period.jm %} selected{% endif %}>{{ label }}</option>{% endfor %}
+          </select>{{ icon('chevron-down') }}</div></div>
+        <div class="field"><label class="field__label" for="f-state">وضعیت پرداخت</label>
+          <div class="select-wrap"><select class="select" id="f-state" name="state">
+            <option value="">همه</option>
+            <option value="unpaid"{% if state_filter == 'unpaid' %} selected{% endif %}>پرداخت‌نشده</option>
+            <option value="paid"{% if state_filter == 'paid' %} selected{% endif %}>پرداخت‌شده</option>
+          </select>{{ icon('chevron-down') }}</div></div>
+        <div class="field acc-filters__search"><label class="field__label" for="f-q">نام نیرو</label>
+          <input class="input" id="f-q" type="search" name="q" value="{{ q }}" maxlength="80" autocomplete="off" placeholder="جستجوی نام"></div>
+        <div class="acc-filters__go"><button class="btn btn--primary" type="submit">{{ icon('search') }}<span>نمایش</span></button></div>
+      </div>
+    </div>
+  </form>
+
+  <section class="stack stack--sm" aria-labelledby="pay-summary-title">
+    <div class="cluster cluster--between">
+      <h2 class="acc-section-title" id="pay-summary-title">حقوق {{ period.label|fa }}</h2>
+      <div class="cluster cluster--sm">
+        <a class="icon-btn" rel="prev" aria-label="{{ 'سال' if period.is_year else 'ماه' }} قبل" href="{{ url_for('accounting.payroll_index', y=prev_period.jy, m=prev_period.jm, state=state_filter or none, q=q or none, atelier=atelier_arg) }}">{{ icon('chevron-right') }}</a>
+        <a class="icon-btn" rel="next" aria-label="{{ 'سال' if period.is_year else 'ماه' }} بعد" href="{{ url_for('accounting.payroll_index', y=next_period.jy, m=next_period.jm, state=state_filter or none, q=q or none, atelier=atelier_arg) }}">{{ icon('chevron-left') }}</a>
+        <a class="btn btn--sm" href="{{ url_for('accounting.payroll_csv', y=period.jy, m=period.jm, state=state_filter or none, q=q or none, atelier=atelier_arg) }}" download>{{ icon('download') }}<span>خروجی CSV</span></a>
+      </div>
+    </div>
+    <div class="grid grid--stats">
+      {{ stat_tile('جمع حقوق', totals.total|toman, unit='تومان', icon='coins', hint=(totals.people|fa ~ ' نفر · ' ~ totals.events|fa ~ ' مراسم')) }}
+      {{ stat_tile('پرداخت‌شده', totals.paid|toman, unit='تومان', tone='success', icon='check-circle') }}
+      {{ stat_tile('پرداخت‌نشده', totals.unpaid|toman, unit='تومان', tone=('warning' if totals.unpaid else none), icon='clock') }}
+    </div>
+    {% if totals.mismatches %}
+    {{ alert(totals.mismatches|fa ~ ' ردیف پس از پرداخت دوباره محاسبه شده و با مبلغ پرداخت‌شده تفاوت دارد؛ آن‌ها را بررسی کنید.', 'warning') }}
+    {% endif %}
+  </section>
+
+  {% if errors %}
+  {% call alert(tone='danger', title='پرداخت ثبت نشد') %}
+    {% for message in errors.values() %}{{ message }}{% if not loop.last %}<br>{% endif %}{% endfor %}
+  {% endcall %}
+  {% endif %}
+
+  {% if people %}
+  <form id="pay-form" method="post" action="{{ url_for('accounting.payroll_pay') }}" class="stack stack--lg" data-pay-form{% if errors %} data-reopen{% endif %}>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="next" value="{{ next_url }}">
+    <input type="hidden" name="y" value="{{ period.jy }}"><input type="hidden" name="m" value="{{ period.jm }}">
+    <input type="hidden" name="state" value="{{ state_filter }}"><input type="hidden" name="q" value="{{ q }}">
+    {% if atelier_arg %}<input type="hidden" name="atelier" value="{{ atelier.id }}">{% endif %}
+
+    {% for person in people %}
+    <section class="card pay-person" aria-labelledby="person-{{ loop.index }}-name">
+      <div class="card__header pay-person__head">
+        <div>
+          <h3 class="card__title" id="person-{{ loop.index }}-name">{{ person.name }}</h3>
+          <p class="card__subtitle">{% for role in person.roles %}{{ role.label }}{% if not loop.last %}، {% endif %}{% endfor %} · {{ person.events|fa }} مراسم · {{ person.units|fa }} واحد</p>
+        </div>
+        <div class="pay-person__sum">
+          <div><span class="text-muted text-sm">جمع حقوق</span> <strong class="num">{{ person.total|toman }}</strong> <small class="text-muted">تومان</small></div>
+          <div class="cluster cluster--sm">
+            {% if person.state == 'paid' %}{{ badge('پرداخت شد', 'success', 'check') }}
+            {% elif person.state == 'partial' %}{{ badge('بخشی پرداخت شده', 'warning') }}
+            {% else %}{{ badge('پرداخت نشده', 'warning') }}{% endif %}
+            {% if person.unpaid_lines %}<span class="text-sm text-muted">مانده: <b class="num">{{ person.unpaid|toman }}</b></span>{% endif %}
+          </div>
+        </div>
+      </div>
+      {% if person.unpaid_lines %}
+      <div class="pay-person__select">
+        <label class="check"><input type="checkbox" data-select-person><span class="check__text"><span class="check__label">انتخاب همهٔ پرداخت‌نشده‌های {{ person.name }}</span></span></label>
+      </div>
+      {% endif %}
+      <ul class="pay-lines" aria-label="ردیف‌های حقوق {{ person.name }}">
+        {% for line in person.lines %}
+        <li class="pay-line{% if line.mismatch %} pay-line--mismatch{% endif %}">
+          <div class="pay-line__check">
+            {% if not line.is_paid %}<label><input type="checkbox" name="line_id" value="{{ line.id }}" data-pay-line data-amount="{{ line.total }}"{% if line.id in selected %} checked{% endif %} aria-label="انتخاب حقوق {{ person.name }} برای مراسم {{ line.event_date|jdate }}"></label>{% endif %}
+          </div>
+          <div class="pay-line__main">
+            <div><strong>{{ line.event_date|jdate }}</strong> <span class="text-muted">· {{ line.hall }} · {{ line.role.label if line.role else '—' }}</span></div>
+            <div class="pay-line__parts text-sm text-muted">
+              <span>پایه <b class="num">{{ line.base|toman }}</b></span>
+              <span>پورسانت <b class="num">{{ line.commission|toman }}</b> ({{ line.units|fa }} واحد)</span>
+              <span>پاداش <b class="num">{{ line.bonus|toman }}</b></span>
+            </div>
+            <div class="pay-line__state">
+              {% if line.is_paid %}
+                {{ badge('پرداخت شد', 'success', 'check') }}
+                <small class="text-muted num">{{ line.paid_at|jdate }}</small>
+                {% if line.paid_method %}<small class="text-muted">· {{ line.paid_method.label }}</small>{% endif %}
+                {% if line.paid_note %}<small class="text-muted">· {{ line.paid_note }}</small>{% endif %}
+                {% if line.mismatch %}{{ badge('مغایرت: پرداخت‌شده ' ~ (line.paid_amount|toman), 'danger', 'alert') }}{% endif %}
+              {% else %}{{ badge('پرداخت نشده', 'warning') }}{% endif %}
+            </div>
+          </div>
+          <div class="pay-line__side">
+            <b class="num pay-line__total">{{ line.total|toman }}</b>
+            {% if not line.is_paid %}
+            <button type="button" class="btn btn--sm" data-pay-one="{{ line.id }}">ثبت پرداخت</button>
+            {% else %}
+            <button type="submit" class="btn btn--sm btn--ghost" name="unpay_id" value="{{ line.id }}" formaction="{{ url_for('accounting.payroll_unpay') }}"
+              data-confirm="ثبت پرداخت این ردیف برگردانده می‌شود و دوباره «پرداخت‌نشده» حساب می‌شود. ادامه می‌دهید؟" data-confirm-title="برگشت پرداخت" data-confirm-label="بله، برگردانده شود">برگشت پرداخت</button>
+            {% endif %}
+          </div>
+        </li>
+        {% endfor %}
+      </ul>
+    </section>
+    {% endfor %}
+
+    {{ pagination(page, 'accounting.payroll_index', y=period.jy, m=period.jm, state=state_filter or none, q=q or none, atelier=atelier_arg) }}
+
+    <div class="pay-bar no-print" data-pay-bar hidden>
+      <p class="pay-bar__text" aria-live="polite"><b data-pay-count>۰</b> ردیف انتخاب شده · جمع <b class="num" data-pay-sum>۰</b> تومان</p>
+      <button type="button" class="btn btn--primary" data-pay-open disabled>{{ icon('wallet') }}<span>ثبت پرداخت انتخاب‌شده‌ها</span></button>
+    </div>
+
+    {% call modal('pay-modal', 'ثبت پرداخت حقوق', size='sm') %}
+      <div class="stack">
+        <p class="text-sm text-muted" data-pay-summary>ردیف‌های انتخاب‌شده با این تاریخ و روش، «پرداخت‌شده» ثبت می‌شوند و نیرو (اگر حساب کاربری دارد) خبردار می‌شود.</p>
+        {{ jdate_input('paid_on', values.get('paid_on') or today, label='تاریخ پرداخت', max=today, required=true, error=errors.get('paid_on')) }}
+        {{ select_field('روش پرداخت', 'pay_method', methods, selected=values.get('pay_method') or 'cash', required=true, error=errors.get('pay_method')) }}
+        {{ form_field('یادداشت (اختیاری)', name='note', value=values.get('note') or '', maxlength=300, placeholder='مثلاً چهار رقم آخر کارت یا شمارهٔ پیگیری', error=errors.get('note')) }}
+        <div class="modal__footer">
+          <button type="submit" class="btn btn--primary">{{ icon('check') }}<span>ثبت پرداخت</span></button>
+          <button type="button" class="btn" data-modal-close>انصراف</button>
+        </div>
+      </div>
+    {% endcall %}
+  </form>
+  {% else %}
+  {% if state_filter or q %}
+  {{ empty_state('search', 'حقوقی با این فیلتر پیدا نشد', 'فیلتر یا نام را تغییر دهید.') }}
+  {% else %}
+  {% call empty_state('wallet', 'در این بازه حقوقی ثبت نشده', 'حقوق نیروها با ثبت فاکتور هر مراسم محاسبه می‌شود؛ پس از ثبت اولین فاکتور، ردیف‌ها همین‌جا پیدا می‌شوند.') %}
+    <a class="btn btn--primary" href="{{ url_for('accounting.index', y=period.jy, m=period.jm) }}">رفتن به فاکتورها</a>
+  {% endcall %}
+  {% endif %}
+  {% endif %}
+</div>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/accounting.js', v=asset_version|default('1')) }}" defer></script>{% endblock %}

@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+{% from 'components/ui.html' import page_header, empty_state, alert, select_field, jdate_input, money_input, pagination, icon, badge %}
+{% from 'marketplace/_macros.html' import job_card %}
+{% block title %}بازار کار{% endblock %}
+{% block head %}
+<meta name="description" content="آگهی‌های همکاری عکاس، ادیتور، پرزنتور و فروشنده برای اتلیه‌های سیار؛ بر اساس شهر، تاریخ و حقوق.">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/marketplace.css', v=asset_version|default('1')) }}">
+{% endblock %}
+
+{% block content %}
+<div class="page stack stack--lg">
+  {% set actions %}
+    {% if viewer and viewer.role == Role.ATELIER_MANAGER %}
+    <a class="btn btn--primary" href="{{ url_for('marketplace.job_new') }}">{{ icon('plus') }}<span>ثبت آگهی</span></a>
+    <a class="btn btn--secondary" href="{{ url_for('marketplace.manage_jobs') }}"><span>آگهی‌های من</span></a>
+    {% elif viewer and viewer.role == Role.STAFF %}
+    <a class="btn btn--secondary" href="{{ url_for('marketplace.my_applications') }}">{{ icon('inbox') }}<span>درخواست‌های من</span></a>
+    {% endif %}
+  {% endset %}
+  {{ page_header('بازار کار', 'آگهی‌های همکاری اتلیه‌های سیار؛ حقوق هر آگهی با یک نمونهٔ محاسبه نوشته شده است.', actions=actions|safe) }}
+
+  {% if filters.errors %}
+  {% call alert(tone='warning', title='بعضی فیلترها نادیده گرفته شد') %}
+    <ul class="mk-list">{% for message in filters.errors.values() %}<li>{{ message }}</li>{% endfor %}</ul>
+  {% endcall %}
+  {% endif %}
+
+  <details class="card mk-filters" data-mk-filters{% if filters.active or filters.sort != 'date' %} open{% endif %}>
+    <summary class="mk-filters__summary">{{ icon('filter') }}<span>فیلتر و مرتب‌سازی</span>{% if filters.active %}{{ badge('فعال', 'accent') }}{% endif %}</summary>
+    <form class="card__body mk-filters__form" method="get" role="search" action="{{ url_for('marketplace.jobs') }}">
+      <div class="form-grid form-grid--3">
+        {{ select_field('شهر', 'city', cities if (not filters.city or filters.city in cities) else cities + [filters.city], selected=filters.city, placeholder='همهٔ شهرها') }}
+        {{ select_field('نقش', 'role', Skill.choices(), selected=filters.role.value if filters.role else '', placeholder='همهٔ نقش‌ها') }}
+        {{ select_field('مرتب‌سازی', 'sort', [('date', 'نزدیک‌ترین تاریخ'), ('pay', 'بیشترین حقوق'), ('new', 'تازه‌ترین آگهی')], selected=filters.sort) }}
+        {{ jdate_input('date_from', filters.date_from, label='از تاریخ', min=today, error=filters.errors.get('date_from')) }}
+        {{ jdate_input('date_to', filters.date_to, label='تا تاریخ', min=today, error=filters.errors.get('date_to')) }}
+        {{ money_input('min_pay', filters.min_pay, label='حداقل حقوق', help='با فروش نمونهٔ ۸۰ عکس (پایه + پورسانت + پاداش)', error=filters.errors.get('min_pay')) }}
+      </div>
+      <div class="form-actions">
+        <button class="btn btn--primary" type="submit">{{ icon('search') }}<span>اعمال فیلتر</span></button>
+        {% if filters.active or filters.sort != 'date' %}<a class="btn btn--ghost" href="{{ url_for('marketplace.jobs') }}">حذف فیلترها</a>{% endif %}
+      </div>
+    </form>
+  </details>
+
+  {% if cards %}
+  <p class="text-muted text-sm" role="status">{{ page.total|fa }} آگهی باز{% if filters.active %} با این فیلترها{% endif %}</p>
+  <ul class="mk-grid" aria-label="فهرست آگهی‌ها">
+    {% for c in cards %}<li>{{ job_card(c) }}</li>{% endfor %}
+  </ul>
+  {{ pagination(page, 'marketplace.jobs', city=filters.city or None, role=filters.role.value if filters.role else None,
+                date_from=filters.date_from.isoformat() if filters.date_from else None,
+                date_to=filters.date_to.isoformat() if filters.date_to else None,
+                min_pay=filters.min_pay or None, sort=filters.sort if filters.sort != 'date' else None) }}
+  {% elif filters.active %}
+  {{ empty_state('search', 'آگهی‌ای با این فیلترها پیدا نشد', 'فیلترها را کم کنید یا بازهٔ تاریخ را بازتر بگیرید.',
+                 action=('<a class="btn" href="' ~ url_for('marketplace.jobs') ~ '">حذف فیلترها</a>')|safe) }}
+  {% else %}
+  {{ empty_state('megaphone', 'فعلاً آگهی بازی نیست', 'اتلیه‌ها هر روز آگهی تازه می‌گذارند؛ بعداً سر بزنید.' if not (viewer and viewer.role == Role.ATELIER_MANAGER) else 'نخستین آگهی را شما بگذارید تا نیروها درخواست بدهند.',
+                 action=(('<a class="btn btn--primary" href="' ~ url_for('marketplace.job_new') ~ '">ثبت آگهی</a>') if (viewer and viewer.role == Role.ATELIER_MANAGER) else '')|safe) }}
+  {% endif %}
+
+  {% if not viewer %}
+  {% call alert(tone='info', title='برای درخواست همکاری وارد شوید') %}
+    شمارهٔ تماس اتلیه‌ها و نیروها فقط پس از پذیرفته‌شدن درخواست نمایش داده می‌شود.
+    <a href="{{ login_url }}?next={{ request.full_path|urlencode }}">ورود</a> یا <a href="{{ register_url }}">ثبت‌نام به‌عنوان نیرو</a>
+  {% endcall %}
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}<script src="{{ url_for('static', filename='js/marketplace.js', v=asset_version|default('1')) }}" defer></script>{% endblock %}
